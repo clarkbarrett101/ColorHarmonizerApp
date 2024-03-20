@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "ColorHarmonizer",
+    "slug": "ColorHarmonizer",
+    "version": "1.0.4",
+    "orientation": "portrait",
+    "icon": "./assets/appIcon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/appIcon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.clarkbarrett101.ColorHarmonizer"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/appIcon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.clarkbarrett101.ColorHarmonizer"
+    },
+    "web": {
+      "favicon": "./assets/appIcon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6f05c862-6a0c-4d89-809d-82f955b7e394"
+      }
+    }
+  }
+}

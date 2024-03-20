@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 501 501">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: blue;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        stroke: #231f20;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-4 {
+        letter-spacing: 0em;
+      }
+
+      .cls-2 {
+        fill: #ff0;
+      }
+
+      .cls-5 {
+        fill: #000;
+        font-family: MyriadPro-Regular, 'Myriad Pro';
+        font-size: 180px;
+      }
+
+      .cls-6 {
+        letter-spacing: -.01em;
+      }
+
+      .cls-3 {
+        fill: red;
+      }
+    </style>
+  </defs>
+  <path class="cls-3" d="M250.5.5v250l-216.49,125.11C12.7,338.82.5,296.08.5,250.5.5,112.43,112.43.5,250.5.5Z"/>
+  <path class="cls-2" d="M500.5,250.5c0,45.54-12.18,88.24-33.46,125.02l-216.54-125.02V.5c138.07,0,250,111.93,250,250Z"/>
+  <path class="cls-1" d="M467.04,375.52c-6.94,12-14.85,23.37-23.62,34-45.86,55.56-115.25,90.98-192.92,90.98-92.49,0-173.25-50.23-216.49-124.89l216.49-125.11,216.54,125.02Z"/>
+  <text class="cls-5" transform="translate(105.9 307.14)"><tspan class="cls-6" x="0" y="0">R</tspan><tspan class="cls-4" x="94.86" y="0">Y</tspan><tspan x="190.98" y="0">B</tspan></text>
+</svg>

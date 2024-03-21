@@ -1,41 +1,18 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 501 501">
-  <defs>
-    <style>
-      .cls-1 {
-        fill: blue;
-      }
-
-      .cls-1, .cls-2, .cls-3 {
-        stroke: #231f20;
-        stroke-miterlimit: 10;
-      }
-
-      .cls-4 {
-        letter-spacing: 0em;
-      }
-
-      .cls-2 {
-        fill: lime;
-      }
-
-      .cls-5 {
-        fill: #000;
-        font-family: MyriadPro-Regular, 'Myriad Pro';
-        font-size: 180px;
-      }
-
-      .cls-6 {
-        letter-spacing: 0em;
-      }
-
-      .cls-3 {
-        fill: red;
-      }
-    </style>
-  </defs>
-  <path class="cls-3" d="M250.5.5v250l-216.49,125.11C12.7,338.82.5,296.08.5,250.5.5,112.43,112.43.5,250.5.5Z"/>
-  <path class="cls-2" d="M500.5,250.5c0,45.54-12.18,88.24-33.46,125.02l-216.54-125.02V.5c138.07,0,250,111.93,250,250Z"/>
-  <path class="cls-1" d="M467.04,375.52c-6.94,12-14.85,23.37-23.62,34-45.86,55.56-115.25,90.98-192.92,90.98-92.49,0-173.25-50.23-216.49-124.89l216.49-125.11,216.54,125.02Z"/>
-  <text class="cls-5" transform="translate(91.98 306.07)"><tspan class="cls-4" x="0" y="0">R</tspan><tspan class="cls-6" x="97.38" y="0">GB</tspan></text>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 28.3.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 501 501" style="enable-background:new 0 0 501 501;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#FF0000;stroke:#231F20;stroke-miterlimit:10;}
+	.st1{fill:#00FF00;stroke:#231F20;stroke-miterlimit:10;}
+	.st2{fill:#0000FF;stroke:#231F20;stroke-miterlimit:10;}
+	.st3{font-family:'ArialMT';}
+	.st4{font-size:180px;}
+</style>
+<path class="st0" d="M250.5,0.5v250L34,375.6C12.7,338.8,0.5,296.1,0.5,250.5C0.5,112.4,112.4,0.5,250.5,0.5z"/>
+<path class="st1" d="M500.5,250.5c0,45.5-12.2,88.2-33.5,125l-216.5-125V0.5C388.6,0.5,500.5,112.4,500.5,250.5z"/>
+<path class="st2" d="M467,375.5c-6.9,12-14.9,23.4-23.6,34c-45.9,55.6-115.2,91-192.9,91C158,500.5,77.3,450.3,34,375.6l216.5-125.1
+	L467,375.5z"/>
+<text transform="matrix(1 0 0 1 74.98 306.0697)" class="st3 st4">R</text>
+<text transform="matrix(1 0 0 1 189.36 306.07)" class="st3 st4">GB</text>
 </svg>

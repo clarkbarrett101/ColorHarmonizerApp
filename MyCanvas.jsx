@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   Button,
   Image,
+  Touchable,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import ColorCircle from "./ColorCircle";
@@ -40,10 +41,6 @@ const MyCanvas = () => {
   useEffect(() => {
     drawSections();
   }, [colorA, colorB, rgb]);
-  useEffect(() => {
-    ColorSwap();
-  }, [rgb]);
-
   const drawSections = () => {
     console.log(rgb);
     let sections = [];
@@ -108,6 +105,8 @@ const MyCanvas = () => {
     }
     if (index > numSections) {
       index = index - numSections;
+    } else if (index < 0) {
+      index = index + numSections;
     }
     if (rgb) {
       return "hsl(" + index * (360 / numSections) + ", 100%, 50% )";
@@ -198,83 +197,99 @@ const MyCanvas = () => {
     }
     const diff = (100 * different) / numSections;
     if (invertColor(colorA) === colorB) {
-      complementary.push(ColorCircle([colorA, colorB]));
+      complementary.push(ColorCircle(colorCode([colorA, colorB])));
       tetradic.push(
-        ColorCircle([
-          colorA,
-          colorB,
-          colorA + numSections / 4,
-          colorB + numSections / 4,
-        ])
+        ColorCircle(
+          colorCode([
+            colorA,
+            colorB,
+            colorA + numSections / 4,
+            colorB + numSections / 4,
+          ])
+        )
       );
       doubleSplitComplementary.push(
-        ColorCircle([
-          colorA,
-          colorB,
-          colorA + numSections * 0.08,
-          colorB + numSections * 0.08,
-        ])
+        ColorCircle(
+          colorCode([
+            colorA,
+            colorB,
+            colorA + numSections * 0.08,
+            colorB + numSections * 0.08,
+          ])
+        )
       );
       doubleSplitComplementary.push(
-        ColorCircle([
-          colorA,
-          colorB,
-          colorA - numSections * 0.08,
-          colorB - numSections * 0.08,
-        ])
+        ColorCircle(
+          colorCode([
+            colorA,
+            colorB,
+            colorA - numSections * 0.08,
+            colorB - numSections * 0.08,
+          ])
+        )
       );
     } else {
       if (diff < 28 && diff > 20) {
         tetradic.push(
-          ColorCircle([
-            colorA,
-            colorB,
-            invertColor(colorA),
-            invertColor(colorB),
-          ])
+          ColorCircle(
+            colorCode([
+              colorA,
+              colorB,
+              invertColor(colorA),
+              invertColor(colorB),
+            ])
+          )
         );
       } else {
         doubleSplitComplementary.push(
-          ColorCircle([
-            colorA,
-            colorB,
-            invertColor(colorA),
-            invertColor(colorB),
-          ])
+          ColorCircle(
+            colorCode([
+              colorA,
+              colorB,
+              invertColor(colorA),
+              invertColor(colorB),
+            ])
+          )
         );
       }
       if (diff < 40 && diff > 28) {
-        triadic.push(ColorCircle([colorA, colorB, invertColor(middle)]));
+        triadic.push(
+          ColorCircle(colorCode([colorA, colorB, invertColor(middle)]))
+        );
       }
       if (diff <= 30) {
-        analogous.push(ColorCircle([colorA, colorB, middle]));
+        analogous.push(ColorCircle(colorCode([colorA, colorB, middle])));
         if (diff <= 28) {
           splitComplementary.push(
-            ColorCircle([colorB, colorA, invertColor(middle)])
+            ColorCircle(colorCode([colorB, colorA, invertColor(middle)]))
           );
           if (diff < 15) {
             analogous.push(
-              ColorCircle([colorA, colorB, middle + 1.5 * different])
+              ColorCircle(colorCode([colorA, colorB, middle + 1.5 * different]))
             );
             analogous.push(
-              ColorCircle([colorA, colorB, middle - 1.5 * different])
+              ColorCircle(colorCode([colorA, colorB, middle - 1.5 * different]))
             );
           }
         }
       } else if (diff > 40) {
         splitComplementary.push(
-          ColorCircle([
-            colorA,
-            colorB,
-            loopSide ? colorB + 2 * different : colorB - 2 * different,
-          ])
+          ColorCircle(
+            colorCode([
+              colorA,
+              colorB,
+              loopSide ? colorB + 2 * different : colorB - 2 * different,
+            ])
+          )
         );
         splitComplementary.push(
-          ColorCircle([
-            colorA,
-            colorB,
-            loopSide ? colorA - 2 * different : colorA + 2 * different,
-          ])
+          ColorCircle(
+            colorCode([
+              colorA,
+              colorB,
+              loopSide ? colorA - 2 * different : colorA + 2 * different,
+            ])
+          )
         );
       }
     }
@@ -366,11 +381,18 @@ const MyCanvas = () => {
       </View>
     );
   }
-  function ColorSwap() {
+  function colorCode(colors) {
+    let codes = [];
+    for (let i = 0; i < colors.length; i++) {
+      codes.push(getColorForSection(colors[i]));
+    }
+    return codes;
+  }
+  function colorSwap() {
     if (rgb) {
-      return <RGB rgb={rgb} setRgb={setRgb} />;
+      return <RGB style={styles.button} rgb={rgb} setRgb={setRgb} />;
     } else {
-      return <RYB rgb={rgb} setRgb={setRgb} />;
+      return <RYB style={styles.button} rgb={rgb} setRgb={setRgb} />;
     }
   }
 
@@ -400,6 +422,9 @@ const MyCanvas = () => {
         >
           {drawSections()}
         </Svg>
+
+        {colorSwap()}
+
         <>{harmonizeColors()}</>
       </ScrollView>
     </SafeAreaView>
@@ -408,8 +433,8 @@ const MyCanvas = () => {
 
 const styles = StyleSheet.create({
   button: {
-    marginTop: 30,
-    marginBottom: -50,
+    marginTop: -100,
+    left: 10,
     height: 100,
     width: 100,
     zIndex: 2,
@@ -446,7 +471,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexGrow: 2,
     position: "absolute",
-    width: "100%",
+    width: "120%",
     height: "120%",
     top: -50,
 

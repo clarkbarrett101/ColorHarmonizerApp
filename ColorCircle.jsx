@@ -11,25 +11,14 @@ const styles = StyleSheet.create({
     height: 125,
   },
 });
-
 const ColorCircle = (colors) => {
   const numSections = colors.length;
   const height = 125;
   const width = 125;
   const crad = width / 2;
-  function getColorForSection(index) {
-    const totalSections = 24;
-    if (index > totalSections) {
-      index = index - totalSections;
-    } else if (index < 0) {
-      index = totalSections + index;
-    }
-    return "hsl(" + index * (360 / totalSections) + ", 100%, 50% )";
-  }
   return (
     <Svg style={styles.circle} key={colors}>
       {colors.map((color, index) => {
-        console.log(color, getColorForSection(color));
         const startAngle = (index * 2 * Math.PI) / numSections;
         const endAngle = ((index + 1) * 2 * Math.PI) / numSections;
         const pathData = `
@@ -50,7 +39,7 @@ const ColorCircle = (colors) => {
             styles={styles.circle}
             key={color + index}
             d={pathData}
-            fill={getColorForSection(color)}
+            fill={color}
           />
         );
       })}

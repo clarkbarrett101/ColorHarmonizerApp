@@ -2,10 +2,10 @@ import { useState } from "react";
 import * as React from "react";
 import Svg, { Path, Text, TSpan } from "react-native-svg";
 
-function RGB({ rgb, setRgb }) {
+function RGB(props) {
   return (
     <Svg
-      onPress={() => setRgb(false)}
+      onPress={() => props.setRgb(false)}
       id="Layer_1"
       data-name="Layer 1"
       xmlns="http://www.w3.org/2000/svg"

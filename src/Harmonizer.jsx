@@ -4,13 +4,10 @@ import {
   StyleSheet,
   PanResponder,
   Dimensions,
-  TouchableWithoutFeedback,
   Text,
   ScrollView,
   SafeAreaView,
-  Button,
   Image,
-  Touchable,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import ColorCircle from "./ColorCircle";
@@ -25,7 +22,7 @@ const wheel = [
   219, 270, 234, 285, 251, 300, 267, 315, 282, 330, 298, 345, 329, 360, 360,
 ];
 
-const MyCanvas = () => {
+export default function Harmonizer() {
   const [rgb, setRgb] = useState(true);
   const [hoveredSection, setHoveredSection] = useState(null);
   const [colorA, setColorA] = useState(-1);
@@ -297,7 +294,7 @@ const MyCanvas = () => {
     if (complementary.length > 0) {
       output.push(
         <View key={"compbox"} style={styles.boxes}>
-          <Image style={styles.icon} source={require("./assets/comp.png")} />
+          <Image style={styles.icon} source={require("../assets/comp.png")} />
           <Text style={styles.text} key="complementary">
             Complementary
           </Text>
@@ -312,7 +309,7 @@ const MyCanvas = () => {
         <View key={"anBox"} style={styles.boxes}>
           <Image
             style={styles.icon}
-            source={require("./assets/analogous.png")}
+            source={require("../assets/analogous.png")}
           />
           <Text style={styles.text} key="analogous">
             Analogous
@@ -326,7 +323,7 @@ const MyCanvas = () => {
     if (splitComplementary.length > 0) {
       output.push(
         <View key={"spBox"} style={styles.boxes}>
-          <Image style={styles.icon} source={require("./assets/split.png")} />
+          <Image style={styles.icon} source={require("../assets/split.png")} />
           <Text style={styles.text} key="splitComplementary">
             Split Complementary
           </Text>
@@ -339,7 +336,7 @@ const MyCanvas = () => {
     if (triadic.length > 0) {
       output.push(
         <View key={"triBox"} style={styles.boxes}>
-          <Image style={styles.icon} source={require("./assets/tri.png")} />
+          <Image style={styles.icon} source={require("../assets/tri.png")} />
           <Text style={styles.text} key="triadic">
             Triadic
           </Text>
@@ -352,7 +349,7 @@ const MyCanvas = () => {
     if (doubleSplitComplementary.length > 0) {
       output.push(
         <View key={"dsBox"} style={styles.boxes}>
-          <Image style={styles.icon} source={require("./assets/double.png")} />
+          <Image style={styles.icon} source={require("../assets/double.png")} />
           <Text style={styles.text} key="doubleSplitComplementary">
             Double Split Complementary
           </Text>
@@ -365,7 +362,7 @@ const MyCanvas = () => {
     if (tetradic.length > 0) {
       output.push(
         <View key={"tetBox"} style={styles.boxes}>
-          <Image style={styles.icon} source={require("./assets/tetra.png")} />
+          <Image style={styles.icon} source={require("../assets/tetra.png")} />
           <Text style={styles.text} key="tetradic">
             Tetradic
           </Text>
@@ -429,7 +426,7 @@ const MyCanvas = () => {
       </ScrollView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   button: {
@@ -507,5 +504,3 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
-
-export { MyCanvas };

@@ -1,20 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
-import { MyCanvas } from "./MyCanvas";
+import Driver from "./src/Driver";
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <MyCanvas />
-    </View>
-  );
+  return <Driver />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

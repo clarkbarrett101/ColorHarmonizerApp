@@ -2,7 +2,7 @@
   "expo": {
     "name": "ColorHarmonizer",
     "slug": "ColorHarmonizer",
-    "version": "1.0.4",
+    "version": "2.0.1",
     "orientation": "portrait",
     "icon": "./assets/appIcon.png",
     "userInterfaceStyle": "light",
@@ -11,12 +11,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.clarkbarrett101.ColorHarmonizer"
+      "bundleIdentifier": "com.clarkbarrett101.ColorHarmonizer",
+      "buildNumber": "2.0.1"
     },
     "android": {
       "adaptiveIcon": {

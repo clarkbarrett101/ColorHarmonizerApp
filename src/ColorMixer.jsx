@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, Text, StyleSheet, Image } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Image,
+  Dimensions,
+} from "react-native";
 import masterList from "./masterList.mjs";
-export default function ColorMixer() {
+import PaintChip from "./PaintChip";
+export default function ColorMixer({
+  assignedColor = null,
+  isDragging,
+  onDrop,
+  startDrag,
+}) {
   const maxRYB = [192, 252, 189.5];
   const [paintColor, setPaintColor] = useState(null);
   const [stepRate, setStepRate] = useState(3);
@@ -21,15 +34,20 @@ export default function ColorMixer() {
   const [closestUV, setClosestUV] = useState(placeholder);
 
   const ml = masterList[Math.floor(Math.random() * masterList.length)];
+
   useEffect(() => {
-    if (!paintColor) {
+    if (assignedColor) {
+      setPaintColor(assignedColor);
+    } else {
       setPaintColor(ml);
     }
-  }, []);
+  }, [assignedColor]);
+
   function RGBString(color) {
     let rgb = color;
     return "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
   }
+
   function calculateDiff(color, index) {
     if (index === 0) {
       return color[0] - color[1] - 2 * color[2];
@@ -39,7 +57,7 @@ export default function ColorMixer() {
       return -2 * color[0] - color[1] / 2 + color[2];
     }
   }
-
+  /////////Calculation functions////////////////////////
   function findClosestRYB(ryb, rgb, index, offset = 0) {
     if (!paintColor) {
       return ml;
@@ -181,7 +199,7 @@ export default function ColorMixer() {
       console.log(luvList);
     }
   }
-
+  /////////On Change of Paint Color////////////////////////
   useEffect(() => {
     if (!paintColor) {
       return;
@@ -213,6 +231,8 @@ export default function ColorMixer() {
     setClosestLup(lup);
     setClosestLdown(findClosestLdown(paintColor.hsluv));
   }, [paintColor, stepRate]);
+
+  ///////////Display Functions////////////////////////
 
   function getYellow() {
     if (closestY.name === placeholder.name) {
@@ -329,14 +349,12 @@ export default function ColorMixer() {
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          position: "absolute",
-          top: 50,
+          height: "10%",
+          width: "100%",
         }}
       >
         <View
           style={{
-            width: "100%",
-            height: "15%",
             flexDirection: "row",
             justifyContent: "center",
             alignItems: "center",
@@ -346,41 +364,39 @@ export default function ColorMixer() {
           <TouchableOpacity
             onPress={() => (stepRate > 1 ? setStepRate(stepRate - 1) : {})}
           >
-            <Image
-              source={require("../assets/1 Swatch.png")}
-              style={{ resizeMode: "contain", height: 100, width: 35 }}
-            />
+            <Text style={{ fontSize: 24, paddingRight: 16 }}>-</Text>
           </TouchableOpacity>
-          <Text style={{ justifyText: "center", fontSize: 24, padding: 16 }}>
+          <Text style={{ justifyText: "center", fontSize: 24 }}>
             {stepRate}
           </Text>
-          <TouchableOpacity onPress={() => setStepRate(stepRate + 1)}>
-            <Image
-              source={require("../assets/3 Swatches.png")}
-              style={{ resizeMode: "contain", height: 100, width: 70 }}
-            />
+          <TouchableOpacity
+            onPress={() => (stepRate < 21 ? setStepRate(stepRate + 1) : {})}
+          >
+            <Text style={{ fontSize: 24, paddingLeft: 16 }}>+</Text>
           </TouchableOpacity>
         </View>
-        <Text style={{ fontSize: 20, textAlign: "center", flex: 1 }}>
+        <Text style={{ fontSize: 16, textAlign: "center", flex: 1 }}>
           Shades per Step
         </Text>
       </View>
     );
   }
-
+  /////////Render////////////////////////
   try {
     return (
       <View
         style={{
           flex: 1,
           display: "flex",
-          justifyContent: "center",
+          justifyContent: "start",
           alignItems: "center",
           backgroundColor: RGBString(paintColor ? paintColor.rgb : [0, 0, 0]),
-          width: "100%",
-          height: "100%",
         }}
       >
+        <Text style={{ fontSize: 16, padding: 16 }}>
+          Drag in a paint and tap to find paint colors that have more yellow,
+          red, blue, white, gray, or black
+        </Text>
         {stepMeter()}
         <View
           style={{
@@ -400,18 +416,41 @@ export default function ColorMixer() {
             height: "25%",
             justifyContent: "center",
           }}
-        >
-          <Text
+        ></View>
+
+        {paintColor ? (
+          <PaintChip
+            paintColor={paintColor}
+            startWidth={150}
+            startHeight={150}
+            startTop={Dimensions.get("window").height / 2 - 50}
+            startLeft={Dimensions.get("window").width / 2}
+            isSaved={false}
+            onDrop={onDrop}
+            startDrag={startDrag}
             style={{
-              fontSize: 20,
-              textAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 5,
             }}
-          >
-            {paintColor
-              ? paintColor.name + " (" + paintColor.brand + ")"
-              : "Loading..."}
-          </Text>
-        </View>
+            strokeWidth={3}
+          />
+        ) : (
+          <View></View>
+        )}
+        <Text
+          style={{
+            color: paintColor.hsluv[2] > 50 ? "black" : "white",
+            textAlign: "center",
+            fontSize: 12,
+            margin: 5,
+            zIndex: 10,
+            alignSelf: "center",
+          }}
+        >
+          Drag to Add to Pallette
+        </Text>
         <View
           style={{
             width: "100%",
@@ -427,8 +466,10 @@ export default function ColorMixer() {
       </View>
     );
   } catch (e) {
-    console.log(paintColor);
-    if (paintColor !== ml) setPaintColor(ml);
+    console.log(e);
+    if (!paintColor) {
+      setPaintColor(ml);
+    }
     return <View></View>;
   }
 }

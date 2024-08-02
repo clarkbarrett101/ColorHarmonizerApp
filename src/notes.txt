@@ -1,0 +1,13 @@
+Red = 0 => 0
+Orange = 30 => 60
+Yellow = 60 => 120
+Green = 120 => 180
+Blue = 240 => 240
+Violet = 270 => 300
+
+RYB => HSL
+if (hue<60) {
+    return hue/60*30
+}else if (hue<120){
+    return 30+(hue-60)/60*30
+}else 

@@ -14,6 +14,7 @@ import ColorCircle from "./ColorCircle";
 import { LinearGradient } from "expo-linear-gradient";
 import RGB from "./RGB";
 import RYB from "./RYB";
+import SatLitMatrix from "./SatLitMatrix";
 
 const numSections = 24;
 const wheel = [
@@ -22,7 +23,14 @@ const wheel = [
   219, 270, 234, 285, 251, 300, 267, 315, 282, 330, 298, 345, 329, 360, 360,
 ];
 
-export default function Harmonizer() {
+export default function Harmonizer({
+  assignedColor,
+  isDragging,
+  startDrag,
+  onDrop,
+  setCanScroll,
+  canScroll,
+}) {
   const [rgb, setRgb] = useState(true);
   const [hoveredSection, setHoveredSection] = useState(null);
   const [colorA, setColorA] = useState(-1);
@@ -34,19 +42,43 @@ export default function Harmonizer() {
   const centerX = canvasWidth / 2;
   const centerY = canvasWidth / 2;
   const numSections = 24;
+  const [lastAssignedColor, setLastAssignedColor] = useState(null);
+  const [colorScheme, setColorScheme] = useState([]);
+  const scrollRef = useRef();
 
   useEffect(() => {
     drawSections();
   }, [colorA, colorB, rgb]);
   const drawSections = () => {
-    console.log(rgb);
     let sections = [];
     for (let i = 0; i < numSections; i++) {
       sections.push(drawSection(i));
     }
-
     return sections;
   };
+  useEffect(() => {
+    if (!assignedColor) return;
+
+    if (assignedColor && !lastAssignedColor) {
+      if (colorA === -1) {
+        setColorA(Math.floor((assignedColor.hsluv[0] / 360) * numSections));
+      } else if (colorB === -1) {
+        setColorB(Math.floor((assignedColor.hsluv[0] / 360) * numSections));
+      } else {
+        setColorA(Math.floor((assignedColor.hsluv[0] / 360) * numSections));
+      }
+      setLastAssignedColor(assignedColor);
+    } else if (assignedColor && lastAssignedColor) {
+      setColorA(Math.floor((lastAssignedColor.hsluv[0] / 360) * numSections));
+      setColorB(Math.floor((assignedColor.hsluv[0] / 360) * numSections));
+    }
+    drawSections();
+  }, [assignedColor]);
+  useEffect(() => {
+    drawSections();
+    console.log("colorA", colorA);
+  }, [colorA, colorB]);
+
   const drawSection = (index) => {
     let crad = radius;
     let stroke = "#0000";
@@ -115,7 +147,6 @@ export default function Harmonizer() {
     if (index == -1) {
       return "grey";
     }
-    console.log(rgb, index);
     if (rgb) {
       return "hsl(" + index * (360 / numSections) + ", 100%, 75% )";
     } else {
@@ -128,6 +159,7 @@ export default function Harmonizer() {
     setHoveredSection(getSectionForTouch(locationX, locationY));
   };
   function getSectionForTouch(x, y) {
+    console.log("x", x, "y", y);
     const angle = Math.atan2(y - centerY, x - centerX);
     let section = Math.floor((angle * numSections) / (2 * Math.PI));
     if (section < 0) {
@@ -136,6 +168,7 @@ export default function Harmonizer() {
     return section;
   }
   const handleTouchStart = (event) => {
+    setCanScroll(false);
     handleTouch(event);
   };
 
@@ -144,6 +177,7 @@ export default function Harmonizer() {
   };
 
   const handleTouchEnd = () => {
+    setCanScroll(true);
     if (hoveredSection !== null && colorA === hoveredSection) {
       setColorA(-1);
     } else if (hoveredSection !== null && colorB === hoveredSection) {
@@ -194,103 +228,138 @@ export default function Harmonizer() {
     }
     const diff = (100 * different) / numSections;
     if (invertColor(colorA) === colorB) {
-      complementary.push(ColorCircle(colorCode([colorA, colorB])));
+      complementary.push(
+        <ColorCircle
+          setColorScheme={setColorScheme}
+          colors={colorCode([colorA, colorB])}
+        />
+      );
       tetradic.push(
-        ColorCircle(
-          colorCode([
+        <ColorCircle
+          setColorScheme={setColorScheme}
+          colors={colorCode([
             colorA,
             colorB,
             colorA + numSections / 4,
             colorB + numSections / 4,
-          ])
-        )
+          ])}
+        />
       );
       doubleSplitComplementary.push(
-        ColorCircle(
-          colorCode([
+        <ColorCircle
+          setColorScheme={setColorScheme}
+          colors={colorCode([
             colorA,
             colorB,
             colorA + numSections * 0.08,
             colorB + numSections * 0.08,
-          ])
-        )
+          ])}
+        />
       );
       doubleSplitComplementary.push(
-        ColorCircle(
-          colorCode([
+        <ColorCircle
+          setColorScheme={setColorScheme}
+          colors={colorCode([
             colorA,
             colorB,
             colorA - numSections * 0.08,
             colorB - numSections * 0.08,
-          ])
-        )
+          ])}
+        />
       );
     } else {
       if (diff < 28 && diff > 20) {
         tetradic.push(
-          ColorCircle(
-            colorCode([
+          <ColorCircle
+            setColorScheme={setColorScheme}
+            colors={colorCode([
               colorA,
               colorB,
               invertColor(colorA),
               invertColor(colorB),
-            ])
-          )
+            ])}
+          />
         );
       } else {
         doubleSplitComplementary.push(
-          ColorCircle(
-            colorCode([
+          <ColorCircle
+            setColorScheme={setColorScheme}
+            colors={colorCode([
               colorA,
               colorB,
               invertColor(colorA),
               invertColor(colorB),
-            ])
-          )
+            ])}
+          />
         );
       }
       if (diff < 40 && diff > 28) {
         triadic.push(
-          ColorCircle(colorCode([colorA, colorB, invertColor(middle)]))
+          <ColorCircle
+            setColorScheme={setColorScheme}
+            colors={colorCode([colorA, colorB, invertColor(middle)])}
+          />
         );
       }
       if (diff <= 30) {
-        analogous.push(ColorCircle(colorCode([colorA, colorB, middle])));
+        analogous.push(
+          <ColorCircle
+            setColorScheme={setColorScheme}
+            colors={colorCode([colorA, colorB, middle])}
+          />
+        );
         if (diff <= 28) {
           splitComplementary.push(
-            ColorCircle(colorCode([colorB, colorA, invertColor(middle)]))
+            <ColorCircle
+              setColorScheme={setColorScheme}
+              colors={colorCode([colorB, colorA, invertColor(middle)])}
+            />
           );
           if (diff < 15) {
             analogous.push(
-              ColorCircle(colorCode([colorA, colorB, middle + 1.5 * different]))
+              <ColorCircle
+                setColorScheme={setColorScheme}
+                colors={colorCode([colorA, colorB, middle + 1.5 * different])}
+              />
             );
             analogous.push(
-              ColorCircle(colorCode([colorA, colorB, middle - 1.5 * different]))
+              <ColorCircle
+                setColorScheme={setColorScheme}
+                colors={colorCode([colorA, colorB, middle - 1.5 * different])}
+              />
             );
           }
         }
       } else if (diff > 40) {
         splitComplementary.push(
-          ColorCircle(
-            colorCode([
+          <ColorCircle
+            setColorScheme={setColorScheme}
+            colors={colorCode([
               colorA,
               colorB,
               loopSide ? colorB + 2 * different : colorB - 2 * different,
-            ])
-          )
+            ])}
+          />
         );
+
         splitComplementary.push(
-          ColorCircle(
-            colorCode([
+          <ColorCircle
+            setColorScheme={setColorScheme}
+            colors={colorCode([
               colorA,
               colorB,
               loopSide ? colorA - 2 * different : colorA + 2 * different,
-            ])
-          )
+            ])}
+          />
         );
       }
     }
     let output = [];
+    output.push(
+      <Text key="title" style={styles.text}>
+        Select a color scheme to view possible paint colors
+      </Text>
+    );
     if (complementary.length > 0) {
       output.push(
         <View key={"compbox"} style={styles.boxes}>
@@ -392,7 +461,29 @@ export default function Harmonizer() {
       return <RYB style={styles.button} rgb={rgb} setRgb={setRgb} />;
     }
   }
-
+  function getSatLitMatrix() {
+    let matrix = [];
+    colorScheme.map((color, index) => {
+      matrix.push(
+        <SatLitMatrix
+          key={index}
+          hue={hueFromHSLstring(color)}
+          onDrop={onDrop}
+          startDrag={startDrag}
+          setCanScroll={setCanScroll}
+        />
+      );
+    });
+    return matrix;
+  }
+  function hueFromHSLstring(hsl) {
+    return hsl.split(",")[0].split("(")[1];
+  }
+  useEffect(() => {
+    if (colorScheme.length > 0) {
+      scrollRef.current.scrollToEnd();
+    }
+  }, [colorScheme]);
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
@@ -405,11 +496,11 @@ export default function Harmonizer() {
           getBackgroundColor(colorB),
         ]}
       />
-      <ScrollView>
-        <Text style={styles.title}>Color Harmonizer</Text>
+      <ScrollView scrollEnabled={canScroll} ref={scrollRef}>
         <Text style={styles.bodyText}>
-          Select any two colors and get harmonious color combinations that
-          include them both. Tap a color again to unselect it.
+          Select any two colors or drag paints from your palette and get
+          harmonious color combinations that include them both. Tap a color
+          again to unselect it.
         </Text>
         <Svg
           style={styles.container}
@@ -423,6 +514,7 @@ export default function Harmonizer() {
         {colorSwap()}
 
         <>{harmonizeColors()}</>
+        {getSatLitMatrix()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -432,16 +524,13 @@ const styles = StyleSheet.create({
   button: {
     marginTop: -100,
     left: 10,
-    height: 100,
-    width: 100,
+    height: 65,
+    width: 65,
     zIndex: 2,
   },
   safeArea: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "black",
-    padding: 40,
+    display: "flex",
   },
   container: {
     flex: 1,
@@ -465,30 +554,27 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
   },
   background: {
-    flex: 1,
-    flexGrow: 2,
     position: "absolute",
-    width: "120%",
-    height: "120%",
-    top: -50,
-
-    // margin: -20,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: -1,
   },
   bodyText: {
-    fontSize: 20,
+    fontSize: 16,
     textAlign: "center",
     padding: 10,
     marginBottom: -50,
     zIndex: 1,
   },
   text: {
-    fontSize: 20,
+    fontSize: 16,
     textAlign: "center",
     padding: 10,
   },
   title: {
-    fontSize: 30,
+    fontSize: 24,
     textAlign: "center",
     paddingTop: 50,
   },

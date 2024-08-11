@@ -6,6 +6,11 @@ import ColorSearch from "./ColorSearch";
 import SwatchBook from "./SwatchBook";
 import ColorMixer from "./ColorMixer";
 import Harmonizer from "./Harmonizer";
+import ColorSeasons from "./ColorSeasons";
+import WallSwapper from "./WallSwapper";
+import ChromaCamera from "./ChromaCamera";
+import Home from "./Home";
+import ViewPallete from "./ViewPallete";
 export default function Driver() {
   let testList = [masterList[Math.floor(Math.random() * masterList.length)]];
   testList.push(masterList[Math.floor(Math.random() * masterList.length)]);
@@ -13,10 +18,21 @@ export default function Driver() {
   const [swatches, setSwatches] = useState(testList);
   const [currentPage, setCurrentPage] = useState(0);
   const [assignedColor, setAssignedColor] = useState(null);
+  const [assignedColor2, setAssignedColor2] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [canScroll, setCanScroll] = useState(true);
-  const pages = {};
+  const pages = [
+    "Home",
+    "Harmonizer",
+    "Color Mixer",
+    "Color Sliders",
+    "Color Seasons",
+    "Undertone Camera",
+    "Wall Paint Visualizer",
+    "My Palette",
+    "Saved Palettes",
+  ];
   const dropTop = (2 * Dimensions.get("window").height) / 7;
   const dropMid = (3 * Dimensions.get("window").height) / 7 + dropTop;
   const dropBot = (2 * Dimensions.get("window").height) / 7 + dropMid + dropTop;
@@ -59,6 +75,8 @@ export default function Driver() {
   }
   function getPage() {
     if (currentPage === 0) {
+      return <Home pages={pages} setCurrentPage={setCurrentPage} />;
+    } else if (currentPage === 3) {
       return (
         <ColorSearch
           assignedColor={assignedColor}
@@ -71,6 +89,7 @@ export default function Driver() {
       return (
         <Harmonizer
           assignedColor={assignedColor}
+          assignedColor2={assignedColor2}
           onDrop={onDrop}
           isDragging={isDragging}
           startDrag={startDrag}
@@ -78,7 +97,9 @@ export default function Driver() {
           setCanScroll={setCanScroll}
         />
       );
-    } else {
+    } else if (currentPage === 4) {
+      return <ColorSeasons />;
+    } else if (currentPage === 2) {
       return (
         <ColorMixer
           assignedColor={assignedColor}
@@ -87,91 +108,51 @@ export default function Driver() {
           onDrop={onDrop}
         />
       );
+    } else if (currentPage === 6) {
+      return <WallSwapper assignedColor={assignedColor} />;
+    } else if (currentPage === 5) {
+      return (
+        <ChromaCamera
+          setAssignedColor={setAssignedColor}
+          setAssignedColor2={setAssignedColor2}
+          setCurrentPage={setCurrentPage}
+        />
+      );
+    } else if (currentPage === 7) {
+      return <ViewPallete paints={swatches} />;
+    } else if (currentPage === 8) {
+      return <Text>You currently have no saved palettes</Text>;
     }
   }
 
   return (
     <View style={{ flex: 1, display: "flex" }}>
-      <View
+      <TouchableOpacity
         style={{
-          position: "absolute",
-          display: "flex",
-          flexDirection: "row",
-          top: "5%",
-          height: "5%",
+          backgroundColor: "rgba(0, 125, 255, 1)",
+          padding: 10,
           width: "100%",
+          height: "5%",
+          justifyContent: "center",
+          borderTopLeftRadius: 10,
+          borderTopRightRadius: 10,
+          position: "absolute",
+          top: 45,
         }}
+        onPress={() => setCurrentPage(0)}
       >
-        <TouchableOpacity
-          onPress={() => setCurrentPage(0)}
+        <Text
           style={{
-            backgroundColor: "rgba(0, 125, 255, 0.5)",
-            padding: 10,
-            flex: 1,
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderTopWidth: currentPage === 0 ? 3 : 0,
-            borderLeftWidth: currentPage === 0 ? 3 : 0,
-            borderRightWidth: currentPage === 0 ? 3 : 0,
-            borderBottomWidth: currentPage === 0 ? 0 : 3,
-            borderColor: "black",
+            textAlign: "center",
+            color: "white",
+            fontSize: 20,
+            bottom: 0,
           }}
         >
-          <Text
-            style={{
-              textAlign: "center",
-            }}
-          >
-            Slider
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setCurrentPage(1)}
-          style={{
-            backgroundColor: "rgba(0, 125, 255, 0.5)",
-            padding: 10,
-            flex: 1,
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderTopWidth: currentPage === 1 ? 3 : 0,
-            borderLeftWidth: currentPage === 1 ? 3 : 0,
-            borderRightWidth: currentPage === 1 ? 3 : 0,
-            borderBottomWidth: currentPage === 1 ? 0 : 3,
-            borderColor: "black",
-          }}
-        >
-          <Text
-            style={{
-              textAlign: "center",
-            }}
-          >
-            Harmonizer
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setCurrentPage(2)}
-          style={{
-            backgroundColor: "rgba(0, 125, 255, 0.5)",
-            padding: 10,
-            flex: 1,
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderTopWidth: currentPage === 2 ? 3 : 0,
-            borderLeftWidth: currentPage === 2 ? 3 : 0,
-            borderRightWidth: currentPage === 2 ? 3 : 0,
-            borderBottomWidth: currentPage === 2 ? 0 : 3,
-            borderColor: "black",
-          }}
-        >
-          <Text
-            style={{
-              textAlign: "center",
-            }}
-          >
-            Mixer
-          </Text>
-        </TouchableOpacity>
-      </View>
+          Home
+        </Text>
+      </TouchableOpacity>
+
       {isDragging ? <DragMenu isSaved={isSaved} /> : null}
       <View
         style={{

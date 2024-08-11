@@ -25,7 +25,10 @@ export default function ColorSeasons() {
     let diffList = [];
     for (let i = 0; i < masterList.length; i++) {
       const color = masterList[i];
-      if (isUpWarm(hue) && color.hsluv[0] <= hue) {
+      if (
+        (isUpWarm(hue) && color.hsluv[0] < hue) ||
+        (!isUpWarm(hue) && color.hsluv[0] > hue)
+      ) {
         continue;
       }
       if (color.hsluv[1] > saturation) {
@@ -34,7 +37,7 @@ export default function ColorSeasons() {
       if (color.hsluv[2] < lightness) {
         continue;
       }
-      const hdiff = Math.abs(color.hsluv[0] - hue);
+      const hdiff = getHueDiff(color.hsluv[0], hue);
       const sdiff = Math.abs(color.hsluv[1] - saturation);
       const ldiff = Math.abs(color.hsluv[2] - lightness);
       const diff = hdiff + sdiff + ldiff;
@@ -57,7 +60,10 @@ export default function ColorSeasons() {
     let diffList = [];
     for (let i = 0; i < masterList.length; i++) {
       const color = masterList[i];
-      if (isUpWarm(hue) && color.hsluv[0] <= hue) {
+      if (
+        (isUpWarm(hue) && color.hsluv[0] < hue) ||
+        (!isUpWarm(hue) && color.hsluv[0] > hue)
+      ) {
         continue;
       }
       if (color.hsluv[1] > saturation) {
@@ -66,7 +72,7 @@ export default function ColorSeasons() {
       if (color.hsluv[2] > lightness) {
         continue;
       }
-      const hdiff = Math.abs(color.hsluv[0] - hue);
+      const hdiff = getHueDiff(color.hsluv[0], hue);
       const sdiff = Math.abs(color.hsluv[1] - saturation);
       const ldiff = Math.abs(color.hsluv[2] - lightness);
       const diff = hdiff + sdiff + ldiff;
@@ -90,7 +96,10 @@ export default function ColorSeasons() {
     let diffList = [];
     for (let i = 0; i < masterList.length; i++) {
       const color = masterList[i];
-      if (!isUpWarm(hue) && color.hsluv[0] >= hue) {
+      if (
+        (!isUpWarm(hue) && color.hsluv[0] > hue) ||
+        (isUpWarm(hue) && color.hsluv[0] < hue)
+      ) {
         continue;
       }
       if (color.hsluv[1] < saturation) {
@@ -99,7 +108,7 @@ export default function ColorSeasons() {
       if (color.hsluv[2] > lightness) {
         continue;
       }
-      const hdiff = Math.abs(color.hsluv[0] - hue);
+      const hdiff = getHueDiff(color.hsluv[0], hue);
       const sdiff = Math.abs(color.hsluv[1] - saturation);
       const ldiff = Math.abs(color.hsluv[2] - lightness);
       const diff = hdiff + sdiff + ldiff;
@@ -122,7 +131,10 @@ export default function ColorSeasons() {
     let diffList = [];
     for (let i = 0; i < masterList.length; i++) {
       const color = masterList[i];
-      if (!isUpWarm(hue) && color.hsluv[0] >= hue) {
+      if (
+        (!isUpWarm(hue) && color.hsluv[0] > hue) ||
+        (isUpWarm(hue) && color.hsluv[0] < hue)
+      ) {
         continue;
       }
       if (color.hsluv[1] < saturation) {
@@ -131,7 +143,7 @@ export default function ColorSeasons() {
       if (color.hsluv[2] < lightness) {
         continue;
       }
-      const hdiff = Math.abs(color.hsluv[0] - hue);
+      const hdiff = getHueDiff(color.hsluv[0], hue);
       const sdiff = Math.abs(color.hsluv[1] - saturation);
       const ldiff = Math.abs(color.hsluv[2] - lightness);
       const diff = hdiff + sdiff + ldiff;
@@ -149,7 +161,14 @@ export default function ColorSeasons() {
     }
   }
   function isUpWarm(hue) {
-    return hue <= 60 || hue >= 240;
+    return hue < 60 || hue >= 240;
+  }
+  function getHueDiff(hue1, hue2) {
+    let diff = Math.abs(hue1 - hue2);
+    if (diff > 180) {
+      diff = 360 - diff;
+    }
+    return diff / 2;
   }
   return (
     <View
@@ -162,7 +181,8 @@ export default function ColorSeasons() {
         flexWrap: "wrap",
         width: width * 2,
         height: width * 2,
-        top: Dimensions.get("window").height / 2 - width,
+        top: Dimensions.get("window").height / 3 - width,
+        gap: -1,
       }}
     >
       <View
@@ -187,6 +207,33 @@ export default function ColorSeasons() {
         </Text>
       </View>
       <TouchableOpacity
+        onPress={() => setMainColor(spring)}
+        style={{
+          backgroundColor: spring.hex,
+          width: width,
+          height: width,
+          paddingTop: 20,
+        }}
+      >
+        <Text
+          style={{
+            textAlign: "center",
+          }}
+        >
+          {spring.name + "\n[" + spring.brand + "]"}
+        </Text>
+        <Image
+          style={{
+            width: 100,
+            resizeMode: "contain",
+            alignSelf: "center",
+            position: "absolute",
+            bottom: -40,
+          }}
+          source={require("../assets/Spring.png")}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
         onPress={() => setMainColor(summer)}
         style={{
           backgroundColor: summer.hex,
@@ -200,13 +247,14 @@ export default function ColorSeasons() {
             textAlign: "center",
           }}
         >
-          {"(Summer) \n" + summer.name + "\n[" + summer.brand + "]"}
+          {summer.name + "\n[" + summer.brand + "]"}
         </Text>
         <Image
           style={{
-            width: 100,
+            width: 120,
             resizeMode: "contain",
             alignSelf: "center",
+            bottom: 60,
             position: "absolute",
           }}
           source={require("../assets/Summer.png")}
@@ -218,7 +266,8 @@ export default function ColorSeasons() {
           backgroundColor: autumn.hex,
           width: width,
           height: width,
-          paddingTop: 20,
+          justifyContent: "flex-end",
+          paddingBottom: 20,
         }}
       >
         <Text
@@ -226,14 +275,14 @@ export default function ColorSeasons() {
             textAlign: "center",
           }}
         >
-          {"(Autumn) \n" + autumn.name + "\n[" + autumn.brand + "]"}
+          {autumn.name + "\n[" + autumn.brand + "]"}
         </Text>
         <Image
           style={{
             width: 100,
             resizeMode: "contain",
             alignSelf: "center",
-            top: -200,
+            top: 50,
             position: "absolute",
           }}
           source={require("../assets/Autumn.png")}
@@ -254,7 +303,7 @@ export default function ColorSeasons() {
             textAlign: "center",
           }}
         >
-          {"(Winter) \n" + winter.name + "\n[" + winter.brand + "]"}
+          {winter.name + "\n[" + winter.brand + "]"}
         </Text>
         <Image
           style={{
@@ -265,34 +314,6 @@ export default function ColorSeasons() {
             position: "absolute",
           }}
           source={require("../assets/Winter.png")}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => setMainColor(spring)}
-        style={{
-          backgroundColor: spring.hex,
-          width: width,
-          height: width,
-          justifyContent: "flex-end",
-          paddingBottom: 20,
-        }}
-      >
-        <Text
-          style={{
-            textAlign: "center",
-          }}
-        >
-          {"(Spring) \n" + spring.name + "\n[" + spring.brand + "]"}
-        </Text>
-        <Image
-          style={{
-            width: 100,
-            resizeMode: "contain",
-            alignSelf: "center",
-            top: -40,
-            position: "absolute",
-          }}
-          source={require("../assets/Spring.png")}
         />
       </TouchableOpacity>
     </View>

@@ -25,6 +25,7 @@ const wheel = [
 
 export default function Harmonizer({
   assignedColor,
+  assignedColor2,
   isDragging,
   startDrag,
   onDrop,
@@ -45,6 +46,7 @@ export default function Harmonizer({
   const [lastAssignedColor, setLastAssignedColor] = useState(null);
   const [colorScheme, setColorScheme] = useState([]);
   const scrollRef = useRef();
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     drawSections();
@@ -58,8 +60,10 @@ export default function Harmonizer({
   };
   useEffect(() => {
     if (!assignedColor) return;
-
-    if (assignedColor && !lastAssignedColor) {
+    if (assignedColor2) {
+      setColorA(Math.floor((assignedColor.hsluv[0] / 360) * numSections));
+      setColorB(Math.floor((assignedColor2.hsluv[0] / 360) * numSections));
+    } else if (assignedColor && !lastAssignedColor) {
       if (colorA === -1) {
         setColorA(Math.floor((assignedColor.hsluv[0] / 360) * numSections));
       } else if (colorB === -1) {
@@ -127,6 +131,83 @@ export default function Harmonizer({
       }
     } catch (e) {}
   }
+  function rybHueOf(rgbHue) {
+    return rybHue2RgbHue(rgbHue);
+    try {
+      var x0, y0;
+      var x1, y1;
+      for (var i = 0; i < wheel.length - 2; i += 2) {
+        x0 = wheel[i];
+        y0 = wheel[i + 1];
+        x1 = wheel[i + 2];
+        y1 = wheel[i + 3];
+
+        if (rybHue <= y1 && rgbHue >= y0) {
+          return x0 + ((x1 - x0) * (rgbHue - y0)) / (y1 - y0);
+        }
+      }
+    } catch (e) {}
+  }
+  function rybHue2RgbHue(hue) {
+    if (hue < 60) {
+      return hue * 2;
+    } else if (hue < 120) {
+      return 60 + hue;
+    } else if (hue < 180) {
+      return 120 + (hue - 180) * 2;
+    } else {
+      return hue;
+    }
+  }
+  function rgbHue2RybHue(hue) {
+    if (hue < 120) {
+      return hue / 2;
+    } else if (hue < 180) {
+      return 60 + hue - 120;
+    } else if (hue < 240) {
+      return 120 + (hue - 180) * 2;
+    } else {
+      return hue;
+    }
+  }
+  useEffect(() => {
+    if (!open) {
+      setOpen(true);
+      return;
+    }
+    if (!rgb) {
+      console.log("colorA", rybHueOf(colorA), "colorB", rybHueOf(colorB));
+      setColorA(
+        (rybHue2RgbHue(colorA * (360 / numSections)) / 360) * numSections
+      );
+      setColorB(
+        (rybHue2RgbHue(colorB * (360 / numSections)) / 360) * numSections
+      );
+    } else {
+      setColorA(
+        (rgbHue2RybHue(colorA * (360 / numSections)) / 360) * numSections
+      );
+      setColorB(
+        (rgbHue2RybHue(colorB * (360 / numSections)) / 360) * numSections
+      );
+    }
+  }, [rgb]);
+  function rybHueWheel(hue, lightness) {
+    let rgb;
+    if (hue < 120) {
+      rgb = [255, (225 * hue) / 120, 0];
+    } else if (hue < 180) {
+      rgb = [(255 * (180 - hue)) / 60, 225, (55 * (hue - 120)) / 60];
+    } else if (hue < 240) {
+      rgb = [0, (200 * (240 - hue)) / 60, (255 * (hue - 180)) / 60];
+    } else if (hue < 300) {
+      rgb = [(255 * (hue - 240)) / 120, 0, 255];
+    } else {
+      rgb = [(255 * (hue - 240)) / 120, 0, (255 * (360 - hue)) / 60];
+    }
+
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  }
 
   function getColorForSection(index) {
     if (index == -1) {
@@ -140,7 +221,7 @@ export default function Harmonizer({
     if (rgb) {
       return "hsl(" + index * (360 / numSections) + ", 100%, 50% )";
     } else {
-      return "hsl(" + rgbHueOf((index * 360) / numSections) + ", 100%, 50% )";
+      return rybHueWheel(index * (360 / numSections), 50);
     }
   }
   function getBackgroundColor(index) {
@@ -150,7 +231,7 @@ export default function Harmonizer({
     if (rgb) {
       return "hsl(" + index * (360 / numSections) + ", 100%, 75% )";
     } else {
-      return "hsl(" + rgbHueOf((index * 360) / numSections) + ", 100%, 75% )";
+      return rybHueWheel(index * (360 / numSections), 75);
     }
   }
 

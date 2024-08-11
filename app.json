@@ -31,6 +31,14 @@
       "eas": {
         "projectId": "6f05c862-6a0c-4d89-809d-82f955b7e394"
       }
-    }
+    },
+    "plugins": [
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "ColorHarmonizer needs access to your Camera."
+        }
+      ]
+    ]
   }
 }

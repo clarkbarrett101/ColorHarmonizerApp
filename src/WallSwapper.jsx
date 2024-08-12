@@ -4,8 +4,10 @@ import {
   useCameraDevice,
   useCameraPermission,
   useSkiaFrameProcessor,
+  useFrameProcessor,
 } from "react-native-vision-camera";
-import { Skia } from "@shopify/react-native-skia";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Skia, float } from "@shopify/react-native-skia";
 import { useSharedValue } from "react-native-worklets-core";
 function WallSwapper({ assignedColor }) {
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -18,6 +20,7 @@ function WallSwapper({ assignedColor }) {
     uniform shader image;
     uniform vec3 replacementYUV;
     uniform vec2 center;
+    uniform half threshold;
   vec3 rgb2yuv(vec3 rgb) {
     float y = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
     float u = -0.14713 * rgb.r - 0.28886 * rgb.g + 0.436 * rgb.b;
@@ -45,7 +48,8 @@ function WallSwapper({ assignedColor }) {
         vec3 targetYUV = rgb2yuv(targetColor);
         vec2 targetUV = vec2(targetYUV[1], targetYUV[2]);
         float dist = distance(targetUV, uv);
-        if(dist < 0.05) {
+        if(dist < threshold) {
+        yuv[0]*= yuv[0]/.5;
           yuv[0] *= replacementYUV[0];
             yuv[1] = replacementYUV[1];
             yuv[2] = replacementYUV[2];
@@ -62,6 +66,9 @@ function WallSwapper({ assignedColor }) {
   const shaderBuilder = Skia.RuntimeShaderBuilder(invertColorsFilter);
   shaderBuilder.setUniform("replacementYUV", [128, 0, 0]);
   shaderBuilder.setUniform("center", [300, 300]);
+  const startThreshold = 0.05;
+  shaderBuilder.setUniform("threshold", [0.05]);
+  const [threshold, setThreshold] = useState(0.05);
   const sharedCenter = useSharedValue([300, 300]);
   const imageFilter = Skia.ImageFilter.MakeRuntimeShader(
     shaderBuilder,
@@ -90,6 +97,7 @@ function WallSwapper({ assignedColor }) {
     const yuvNormalized = assignedColor.yuv.map((v) => v / 255);
     shaderBuilder.setUniform("replacementYUV", yuvNormalized);
     shaderBuilder.setUniform("center", [...sharedCenter.value]);
+    shaderBuilder.setUniform("threshold", [threshold]);
     const imageFilter = Skia.ImageFilter.MakeRuntimeShader(
       shaderBuilder,
       null,
@@ -98,17 +106,95 @@ function WallSwapper({ assignedColor }) {
     const newPaint = Skia.Paint();
     newPaint.setImageFilter(imageFilter);
     paint.value = newPaint;
-  }, [assignedColor, sharedCenter]);
+  }, [assignedColor, sharedCenter, threshold]);
+
   return (
-    <Camera
-      fps={30}
-      ref={camera}
-      device={device}
-      frameProcessor={skiaFrameProcessor}
-      pixelFormat="rgb"
-      isActive={true}
-      style={{ flex: 1 }}
-    />
+    <View
+      style={{
+        flex: 1,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Camera
+        fps={30}
+        ref={camera}
+        device={device}
+        frameProcessor={skiaFrameProcessor}
+        pixelFormat="rgb"
+        isActive={true}
+        style={{
+          flex: 1,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      />
+      <View
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          position: "absolute",
+          bottom: "20%",
+          backgroundColor: "rgba(255, 255, 255, 0.5)",
+          borderRadius: 10,
+          padding: 10,
+          margin: 10,
+        }}
+      >
+        <Text
+          style={{
+            textAlign: "center",
+            fontSize: 16,
+            marginBottom: 10,
+          }}
+        >
+          Point the camera at a wall and drag paints from your pallete to what
+          they look like
+        </Text>
+        <View
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <TouchableOpacity
+            onPressIn={() => setThreshold(threshold * 1.1)}
+            style={{
+              marginRight: 10,
+              borderWidth: 1,
+              padding: 5,
+              borderRadius: 5,
+              paddingLeft: 10,
+              paddingRight: 10,
+            }}
+          >
+            <Text>+</Text>
+          </TouchableOpacity>
+          <Text>{"Change Paint Level"}</Text>
+          <TouchableOpacity
+            onPressIn={() => setThreshold(threshold / 1.1)}
+            style={{
+              marginLeft: 10,
+              borderWidth: 1,
+              padding: 5,
+              borderRadius: 5,
+              paddingLeft: 10,
+              paddingRight: 10,
+            }}
+          >
+            <Text>-</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 }
 

@@ -158,17 +158,34 @@ export default function ChromaCamera({
         />
         {savedHex == null ? null : getSavedColor()}
       </Svg>
+      <Text
+        style={{
+          position: "absolute",
+          top: "5%",
+          color: "black",
+          backgroundColor: "rgba(255, 255, 255, 0.5)",
+          borderRadius: 10,
+          padding: 10,
+          margin: 10,
+          textAlign: "center",
+        }}
+      >
+        Point the camera at a wall or object to get it's undertone, then tap
+        save. Once you have two saved colors, you'll see which colors what
+        colors would give you a harmonious color scheme.
+      </Text>
       <TouchableOpacity
         style={{
           backgroundColor: "rgba(0, 125, 255, 1)",
           padding: 10,
-          width: "100%",
+          width: "50%",
           height: "5%",
           justifyContent: "center",
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
+          alignItems: "center",
+          alignSelf: "center",
+          borderRadius: 10,
           position: "absolute",
-          top: 0,
+          bottom: "20%",
         }}
         onPressIn={() => {
           if (savedHex == null) {
@@ -185,7 +202,7 @@ export default function ChromaCamera({
           style={{
             textAlign: "center",
             color: "white",
-            fontSize: 20,
+            fontSize: 16,
             bottom: 0,
           }}
         >

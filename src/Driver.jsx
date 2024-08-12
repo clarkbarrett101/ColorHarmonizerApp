@@ -95,10 +95,11 @@ export default function Driver() {
           startDrag={startDrag}
           canScroll={canScroll}
           setCanScroll={setCanScroll}
+          setCurrentPage={setCurrentPage}
         />
       );
     } else if (currentPage === 4) {
-      return <ColorSeasons />;
+      return <ColorSeasons assignedColor={assignedColor} />;
     } else if (currentPage === 2) {
       return (
         <ColorMixer
@@ -124,41 +125,141 @@ export default function Driver() {
       return <Text>You currently have no saved palettes</Text>;
     }
   }
+  function colorTabs() {
+    let output = [];
+    if (currentPage === 2 || currentPage === 3 || currentPage === 4) {
+      output.push(
+        <View
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            height: "50%",
+          }}
+        >
+          <TouchableOpacity
+            style={{
+              backgroundColor:
+                currentPage === 2 ? "rgba(0, 125, 255, 1)" : "white",
+              borderColor: "rgba(0, 125, 255, 1)",
+              borderWidth: currentPage === 2 ? 0 : 2,
+              padding: 10,
+              flex: 1,
+              justifyContent: "center",
+              borderRadius: 10,
+            }}
+            onPress={() => setCurrentPage(2)}
+          >
+            <Text
+              style={{
+                textAlign: "center",
+                color: currentPage === 2 ? "white" : "rgba(0, 125, 255, 1)",
+                fontSize: 16,
+                bottom: 0,
+              }}
+            >
+              Color Mixer
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              padding: 10,
+              flex: 1,
+              justifyContent: "center",
+              borderRadius: 10,
+              backgroundColor:
+                currentPage === 3 ? "rgba(0, 125, 255, 1)" : "white",
+              borderColor: "rgba(0, 125, 255, 1)",
+              borderWidth: currentPage === 3 ? 0 : 2,
+            }}
+            onPress={() => setCurrentPage(3)}
+          >
+            <Text
+              style={{
+                textAlign: "center",
+                color: currentPage === 3 ? "white" : "rgba(0, 125, 255, 1)",
+                fontSize: 16,
+                bottom: 0,
+              }}
+            >
+              Color Sliders
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              backgroundColor:
+                currentPage === 4 ? "rgba(0, 125, 255, 1)" : "white",
+              borderColor: "rgba(0, 125, 255, 1)",
+              borderWidth: currentPage === 4 ? 0 : 2,
+              padding: 10,
+              flex: 1,
+              justifyContent: "center",
+              borderRadius: 10,
+            }}
+            onPress={() => setCurrentPage(4)}
+          >
+            <Text
+              style={{
+                textAlign: "center",
+                color: currentPage === 4 ? "white" : "rgba(0, 125, 255, 1)",
+                fontSize: 16,
+                bottom: 0,
+              }}
+            >
+              Color Seasons
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return output;
+  }
 
   return (
     <View style={{ flex: 1, display: "flex" }}>
-      <TouchableOpacity
+      <View
         style={{
-          backgroundColor: "rgba(0, 125, 255, 1)",
-          padding: 10,
+          display: "flex",
           width: "100%",
-          height: "5%",
-          justifyContent: "center",
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
-          position: "absolute",
           top: 45,
+          height: "10%",
         }}
-        onPress={() => setCurrentPage(0)}
       >
-        <Text
-          style={{
-            textAlign: "center",
-            color: "white",
-            fontSize: 20,
-            bottom: 0,
-          }}
-        >
-          Home
-        </Text>
-      </TouchableOpacity>
+        {currentPage === 0 ? null : (
+          <TouchableOpacity
+            style={{
+              backgroundColor: "rgba(0, 125, 255, 1)",
+              padding: 10,
+              flex: 1,
+              height: "100%",
+              justifyContent: "center",
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+            }}
+            onPress={() => setCurrentPage(0)}
+          >
+            <Text
+              style={{
+                textAlign: "center",
+                color: "white",
+                fontSize: 16,
+                bottom: 0,
+              }}
+            >
+              Home
+            </Text>
+          </TouchableOpacity>
+        )}
+        {colorTabs()}
+      </View>
 
       {isDragging ? <DragMenu isSaved={isSaved} /> : null}
       <View
         style={{
           height: "90%",
           display: "flex",
-          top: "10%",
+          top: "5%",
         }}
       >
         {getPage()}

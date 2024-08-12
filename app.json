@@ -2,7 +2,7 @@
   "expo": {
     "name": "ColorHarmonizer",
     "slug": "ColorHarmonizer",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "orientation": "portrait",
     "icon": "./assets/appIcon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.clarkbarrett101.ColorHarmonizer",
-      "buildNumber": "2.0.1"
+      "buildNumber": "2.0.2"
     },
     "android": {
       "adaptiveIcon": {
@@ -36,7 +36,7 @@
       [
         "react-native-vision-camera",
         {
-          "cameraPermissionText": "ColorHarmonizer needs access to your Camera."
+          "cameraPermissionText": "ColorHarmonizer needs access to your camera so you can measure undertones and view walls with different paint colors."
         }
       ]
     ]

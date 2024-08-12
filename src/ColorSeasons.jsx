@@ -1,7 +1,7 @@
 import masterList from "./masterList";
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, Dimensions, Image } from "react-native";
-export default function ColorSeasons() {
+export default function ColorSeasons({ assignedColor = null }) {
   const stepRate = 5;
   const [mainColor, setMainColor] = useState(
     masterList[Math.floor(Math.random() * masterList.length)]
@@ -17,6 +17,11 @@ export default function ColorSeasons() {
     setSpring(getPlusSpring());
     setSummer(getPlusSummer());
   }, [mainColor]);
+  useEffect(() => {
+    if (assignedColor) {
+      setMainColor(assignedColor);
+    }
+  }, [assignedColor]);
 
   function getPlusSummer() {
     const hue = mainColor.hsluv[0];

@@ -4,7 +4,9 @@ import { View, Text, TouchableOpacity } from "react-native";
 export default function Home({ pages, setCurrentPage }) {
   function getPages() {
     let pageLinks = [];
-    for (let i = 1; i < pages.length; i++) {
+    pageLinks.push(PageLink("Color Harmonizer", 1));
+    pageLinks.push(PageLink("Find a Paint Color", 2));
+    for (let i = 5; i < pages.length; i++) {
       pageLinks.push(PageLink(pages[i], i));
     }
     return pageLinks;
@@ -33,7 +35,7 @@ export default function Home({ pages, setCurrentPage }) {
         style={{
           backgroundColor: "rgba(0, 125, 255, 1)",
           padding: 10,
-          width: "40%",
+          width: "90%",
           height: "15%",
           justifyContent: "center",
           borderRadius: 10,

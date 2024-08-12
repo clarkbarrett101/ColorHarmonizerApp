@@ -349,7 +349,7 @@ export default function ColorMixer({
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          height: "10%",
+          height: "8%",
           width: "100%",
         }}
       >
@@ -393,7 +393,7 @@ export default function ColorMixer({
           backgroundColor: RGBString(paintColor ? paintColor.rgb : [0, 0, 0]),
         }}
       >
-        <Text style={{ fontSize: 16, padding: 16 }}>
+        <Text style={{ fontSize: 16, padding: 10, paddingBottom: 0 }}>
           Drag in a paint and tap to find paint colors that have more yellow,
           red, blue, white, gray, or black
         </Text>
@@ -447,6 +447,7 @@ export default function ColorMixer({
             margin: 5,
             zIndex: 10,
             alignSelf: "center",
+            top: -150,
           }}
         >
           Drag to Add to Pallette

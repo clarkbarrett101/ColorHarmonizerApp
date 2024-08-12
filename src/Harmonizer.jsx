@@ -8,6 +8,7 @@ import {
   ScrollView,
   SafeAreaView,
   Image,
+  TouchableOpacity,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import ColorCircle from "./ColorCircle";
@@ -31,6 +32,7 @@ export default function Harmonizer({
   onDrop,
   setCanScroll,
   canScroll,
+  setCurrentPage,
 }) {
   const [rgb, setRgb] = useState(true);
   const [hoveredSection, setHoveredSection] = useState(null);
@@ -87,10 +89,10 @@ export default function Harmonizer({
     let crad = radius;
     let stroke = "#0000";
     if (hoveredSection !== null && index === hoveredSection) {
-      crad = radius * 1.5;
+      crad = radius * 1.25;
     }
     if (colorA === index || colorB === index) {
-      crad = radius * 1.5;
+      crad = radius * 1.25;
       stroke = "#000";
     }
     var startAngle = (index * 2 * Math.PI) / numSections;
@@ -148,6 +150,46 @@ export default function Harmonizer({
       }
     } catch (e) {}
   }
+  function rgb2Hsl(rgb) {
+    const r = rgb[0] / 255;
+    const g = rgb[1] / 255;
+    const b = rgb[2] / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+
+    let h, s, l;
+
+    if (max === min) {
+      h = 0;
+    } else if (max === r) {
+      h = ((g - b) / (max - min)) % 6;
+    } else if (max === g) {
+      h = (b - r) / (max - min) + 2;
+    } else {
+      h = (r - g) / (max - min) + 4;
+    }
+
+    h = Math.round(h * 60);
+    if (h < 0) {
+      h += 360;
+    }
+
+    l = (max + min) / 2;
+
+    if (max === min) {
+      s = 0;
+    } else if (l <= 0.5) {
+      s = (max - min) / (max + min);
+    } else {
+      s = (max - min) / (2 - max - min);
+    }
+
+    s = Math.round(s * 100);
+    l = Math.round(l * 100);
+
+    return "hsl(" + h + ", " + s + "%, " + l + "%)";
+  }
   function rybHue2RgbHue(hue) {
     if (hue < 60) {
       return hue * 2;
@@ -199,14 +241,14 @@ export default function Harmonizer({
     } else if (hue < 180) {
       rgb = [(255 * (180 - hue)) / 60, 225, (55 * (hue - 120)) / 60];
     } else if (hue < 240) {
-      rgb = [0, (200 * (240 - hue)) / 60, (255 * (hue - 180)) / 60];
+      rgb = [25, 25 + (200 * (240 - hue)) / 60, (255 * (hue - 180)) / 60];
     } else if (hue < 300) {
-      rgb = [(255 * (hue - 240)) / 120, 0, 255];
+      rgb = [(255 * (hue - 240)) / 120, 25, 255];
     } else {
       rgb = [(255 * (hue - 240)) / 120, 0, (255 * (360 - hue)) / 60];
     }
 
-    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+    return rgb2Hsl(rgb);
   }
 
   function getColorForSection(index) {
@@ -298,7 +340,6 @@ export default function Harmonizer({
       setColorA(colorB);
       setColorB(temp);
     }
-
     let different = colorB - colorA;
     let middle = (colorA + colorB) / 2;
     let loopSide = false;
@@ -562,6 +603,7 @@ export default function Harmonizer({
   }
   useEffect(() => {
     if (colorScheme.length > 0) {
+      console.log(colorScheme);
       scrollRef.current.scrollToEnd();
     }
   }, [colorScheme]);
@@ -577,11 +619,38 @@ export default function Harmonizer({
           getBackgroundColor(colorB),
         ]}
       />
-      <ScrollView scrollEnabled={canScroll} ref={scrollRef}>
+      <ScrollView
+        scrollEnabled={canScroll}
+        ref={scrollRef}
+        contentContainerStyle={{
+          paddingBottom: "30%",
+        }}
+      >
+        <TouchableOpacity
+          style={{
+            backgroundColor: "rgba(0, 125, 255, 1)",
+            position: "absolute",
+            top: "22%",
+            right: 10,
+            padding: 5,
+            borderRadius: 10,
+          }}
+          onPress={() => setCurrentPage(5)}
+        >
+          <Text
+            style={{
+              textAlign: "center",
+              textAlignVertical: "center",
+              color: "white",
+            }}
+          >
+            {"Undertone\nCamera"}
+          </Text>
+        </TouchableOpacity>
         <Text style={styles.bodyText}>
-          Select any two colors or drag paints from your palette and get
-          harmonious color combinations that include them both. Tap a color
-          again to unselect it.
+          Select any two colors by tapping them, dragging paints from your
+          palette, or using the Undertone Camera, and get harmonious color
+          combinations that include them both. Tap a color again to unselect it.
         </Text>
         <Svg
           style={styles.container}

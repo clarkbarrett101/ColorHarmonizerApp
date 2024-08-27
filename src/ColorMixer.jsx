@@ -6,18 +6,27 @@ import {
   StyleSheet,
   Image,
   Dimensions,
+  PanResponder,
 } from "react-native";
 import masterList from "./masterList.mjs";
 import PaintChip from "./PaintChip";
+import Svg, { Circle, Path, G } from "react-native-svg";
+import SectorPath from "./SectorPath";
+import MixerSector from "./MixerSector";
+import PaintSector from "./PaintSector";
+import MixerCapsule from "./MixerCapsule";
 export default function ColorMixer({
   assignedColor = null,
   isDragging,
   onDrop,
   startDrag,
+  chipPosition,
+  setChipPosition,
 }) {
-  const maxRYB = [192, 252, 189.5];
+  const screenWidth = Dimensions.get("window").width;
+  const screenHeight = Dimensions.get("window").height;
   const [paintColor, setPaintColor] = useState(null);
-  const [stepRate, setStepRate] = useState(3);
+  const [stepRate, setStepRate] = useState(6);
   const placeholder = {
     name: "placeholder",
     brand: "placeholder",
@@ -32,8 +41,90 @@ export default function ColorMixer({
   const [closestLup, setClosestLup] = useState(placeholder);
   const [closestLdown, setClosestLdown] = useState(placeholder);
   const [closestUV, setClosestUV] = useState(placeholder);
-
+  const [sectorAngles, setSectorAngles] = useState([0, 60, 120, 180, 240, 300]);
+  const [selectedSector, setSelectedSector] = useState(null);
   const ml = masterList[Math.floor(Math.random() * masterList.length)];
+  useEffect(() => {
+    let angles = [];
+    const angleStep = (angleRange[1] - angleRange[0]) / 6;
+    for (let i = 0; i <= 6; i++) {
+      angles.push(angleRange[0] + i * angleStep);
+    }
+    setSectorAngles(angles);
+  }, [angleRange]);
+  function getTouchedSector(x, y) {
+    let sector = null;
+    const angle = Math.atan2(y, x) * (180 / Math.PI);
+    const distance = Math.sqrt(x ** 2 + y ** 2);
+    if (distance < innerRadius || distance > outerRadius) {
+      return null;
+    }
+    for (let i = 0; i < 6; i++) {
+      if (angle >= sectorAngles[i] && angle <= sectorAngles[i + 1]) {
+        sector = i;
+      }
+    }
+    return sector;
+  }
+  function getSectorColor(sector) {
+    switch (sector) {
+      case 0:
+        return closestR;
+      case 1:
+        return closestY;
+      case 2:
+        return closestB;
+      case 3:
+        return closestLup;
+      case 4:
+        return closestUV;
+      case 5:
+        return closestLdown;
+      default:
+        return null;
+    }
+  }
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (evt, gestureState) => {
+      if (isDragging) {
+        return;
+      }
+      let sector = getTouchedSector(
+        screenWidth - evt.nativeEvent.pageX,
+        evt.nativeEvent.pageY - screenHeight / 2
+      );
+      if (sector >= 0) {
+        setSelectedSector(sector);
+      }
+    },
+    onPanResponderMove: (evt, gestureState) => {
+      if (isDragging) {
+        return;
+      }
+      let sector = getTouchedSector(
+        screenWidth - evt.nativeEvent.pageX,
+        evt.nativeEvent.pageY - screenHeight / 2
+      );
+      if (sector >= 0) {
+        setSelectedSector(sector);
+      }
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      if (selectedSector !== null) {
+        let color = getSectorColor(selectedSector);
+        if (color) {
+          setPaintColor(color);
+        }
+      }
+      setSelectedSector(null);
+    },
+    onPanResponderTerminate: (evt, gestureState) => {
+      setSelectedSector(null);
+    },
+  });
 
   useEffect(() => {
     if (assignedColor) {
@@ -204,12 +295,7 @@ export default function ColorMixer({
     if (!paintColor) {
       return;
     }
-    console.log(
-      "PaintColor",
-      paintColor.name,
-      paintColor.ryb,
-      paintColor.hsluv
-    );
+
     const red = findClosestRYB(paintColor.ryb, paintColor.rgb, 0);
     let yellow = findClosestRYB(paintColor.ryb, paintColor.rgb, 1);
     try {
@@ -231,257 +317,137 @@ export default function ColorMixer({
     setClosestLup(lup);
     setClosestLdown(findClosestLdown(paintColor.hsluv));
   }, [paintColor, stepRate]);
+  const angleRange = [-75, 75];
+  const angleStep = (angleRange[1] - angleRange[0]) / 6;
+  const innerRadius = screenWidth * 0.4;
+  const outerRadius = screenWidth * 0.92;
+  const outerRing = screenWidth;
+  function getSizeModifier(index) {
+    if (index === selectedSector) {
+      return 1.1;
+    } else {
+      return 1;
+    }
+  }
+  if (!paintColor) {
+    setPaintColor(ml);
+  }
+  function getPaintSectors() {
+    let sectors = [];
+    let angleStep = (angleRange[1] - angleRange[0]) / 6;
+    let colors = [
+      closestR,
+      closestY,
+      closestB,
+      closestLup,
+      closestUV,
+      closestLdown,
+    ];
+    for (let i = 0; i < colors.length; i++) {
+      sectors.push(
+        <PaintSector
+          paint={colors[i]}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius * getSizeModifier(i)}
+          angle={angleStep}
+          startRotation={-90}
+          endRotation={angleRange[0] + i * angleStep}
+          direction={-1}
+          textStyles={{
+            fontSize: 16,
+            color: "black",
+          }}
+        />
+      );
+    }
+    return sectors;
+  }
+  function getColorSectors() {
+    let sectors = [];
+    let angleStep = (angleRange[1] - angleRange[0]) / 6;
+    let colors = [
+      [10, 100, 50],
+      [70, 100, 85],
+      [250, 100, 45],
+      [0, 0, 100],
+      [0, 0, 50],
+      [0, 100, 0],
+    ];
+    const labels = [
+      "More Red",
+      "More Yellow",
+      "More Blue",
+      "More White",
+      "More Gray",
+      "More Black",
+    ];
+    for (let i = 0; i < colors.length; i++) {
+      sectors.push(
+        <MixerSector
+          hues={[colors[i][0]]}
+          sats={[colors[i][1]]}
+          lits={[colors[i][2]]}
+          innerRadius={outerRadius * getSizeModifier(i)}
+          outerRadius={outerRing * getSizeModifier(i)}
+          startAngle={angleRange[0] + i * angleStep + 90}
+          endAngle={angleRange[0] + (i + 1) * angleStep + 90}
+          direction={-1}
+          textStyles={{
+            fontSize: 16,
+            color: "black",
+          }}
+          label={selectedSector === i ? "" : labels[i]}
+        />
+      );
+    }
+    return sectors;
+  }
+  return (
+    <View
+      style={{
+        top: "40%",
+        right: "-5%",
+        position: "absolute",
+        backgroundColor: "white",
+      }}
+      {...panResponder.panHandlers}
+    >
+      {getPaintSectors()}
+      <PaintSector
+        paint={paintColor}
+        innerRadius={0}
+        outerRadius={innerRadius}
+        angle={180}
+        startRotation={-90}
+        endRotation={-90}
+        direction={-1}
+        textStyles={{
+          fontSize: 20,
+          color: "transparent",
+        }}
+      />
+      {getColorSectors()}
 
-  ///////////Display Functions////////////////////////
-
-  function getYellow() {
-    if (closestY.name === placeholder.name) {
-      return <View style={styles.colorBox}></View>;
-    }
-    return (
-      <TouchableOpacity
-        onPress={() => setPaintColor(closestY)}
-        style={{
-          ...styles.colorBox,
-          backgroundColor: RGBString(closestY.rgb),
-          borderColor: "yellow",
-          borderTopWidth: 2,
-        }}
-      >
-        <Text>{closestY.name + " (" + closestY.brand + ")"}</Text>
-      </TouchableOpacity>
-    );
-  }
-  function getBlue() {
-    if (closestB.name === placeholder.name) {
-      return <View style={styles.colorBox}></View>;
-    }
-    return (
-      <TouchableOpacity
-        onPress={() => setPaintColor(closestB)}
-        style={{
-          ...styles.colorBox,
-          backgroundColor: RGBString(closestB.rgb),
-          borderColor: "blue",
-          borderTopWidth: 2,
-        }}
-      >
-        <Text>{closestB.name + " (" + closestB.brand + ")"}</Text>
-      </TouchableOpacity>
-    );
-  }
-  function getRed() {
-    if (closestR.name === placeholder.name) {
-      return <View style={styles.colorBox}></View>;
-    }
-    return (
-      <TouchableOpacity
-        onPress={() => setPaintColor(closestR)}
-        style={{
-          ...styles.colorBox,
-          backgroundColor: RGBString(closestR.rgb),
-          borderColor: "red",
-          borderTopWidth: 2,
-        }}
-      >
-        <Text>{closestR.name + " (" + closestR.brand + ")"}</Text>
-      </TouchableOpacity>
-    );
-  }
-  function getLightUp() {
-    if (closestLup.name === placeholder.name) {
-      return <View style={styles.colorBox}></View>;
-    }
-    return (
-      <TouchableOpacity
-        onPress={() => setPaintColor(closestLup)}
-        style={{
-          ...styles.colorBox,
-          backgroundColor: RGBString(closestLup.rgb),
-          borderColor: "white",
-          borderBottomWidth: 2,
-        }}
-      >
-        <Text>{closestLup.name + " (" + closestLup.brand + ")"}</Text>
-      </TouchableOpacity>
-    );
-  }
-  function getLightDown() {
-    if (closestLdown.name === placeholder.name) {
-      return <View style={styles.colorBox}></View>;
-    }
-    return (
-      <TouchableOpacity
-        onPress={() => setPaintColor(closestLdown)}
-        style={{
-          ...styles.colorBox,
-          backgroundColor: RGBString(closestLdown.rgb),
-          borderBottomWidth: 2,
-        }}
-      >
-        <Text>{closestLdown.name + " (" + closestLdown.brand + ")"}</Text>
-      </TouchableOpacity>
-    );
-  }
-  function getUV() {
-    if (closestUV.name === placeholder.name) {
-      return <View style={styles.colorBox}></View>;
-    }
-    return (
-      <TouchableOpacity
-        onPress={() => setPaintColor(closestUV)}
-        style={{
-          ...styles.colorBox,
-          backgroundColor: RGBString(closestUV.rgb),
-          borderBottomWidth: 2,
-          borderColor: "gray",
-        }}
-      >
-        <Text>{closestUV.name + " (" + closestUV.brand + ")"}</Text>
-      </TouchableOpacity>
-    );
-  }
-  function stepMeter() {
-    return (
-      <View
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "8%",
-          width: "100%",
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            alignItems: "center",
-            flex: 1,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => (stepRate > 1 ? setStepRate(stepRate - 1) : {})}
-          >
-            <Text style={{ fontSize: 24, paddingRight: 16 }}>-</Text>
-          </TouchableOpacity>
-          <Text style={{ justifyText: "center", fontSize: 24 }}>
-            {stepRate}
-          </Text>
-          <TouchableOpacity
-            onPress={() => (stepRate < 21 ? setStepRate(stepRate + 1) : {})}
-          >
-            <Text style={{ fontSize: 24, paddingLeft: 16 }}>+</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={{ fontSize: 16, textAlign: "center", flex: 1 }}>
-          Shades per Step
-        </Text>
-      </View>
-    );
-  }
-  /////////Render////////////////////////
-  try {
-    return (
-      <View
-        style={{
-          flex: 1,
-          display: "flex",
-          justifyContent: "start",
-          alignItems: "center",
-          backgroundColor: RGBString(paintColor ? paintColor.rgb : [0, 0, 0]),
-        }}
-      >
-        <Text style={{ fontSize: 16, padding: 10, paddingBottom: 0 }}>
-          Drag in a paint and tap to find paint colors that have more yellow,
-          red, blue, white, gray, or black
-        </Text>
-        {stepMeter()}
-        <View
-          style={{
-            width: "100%",
-            height: "15%",
-            flexDirection: "row",
-            justifyContent: "space-around",
-          }}
-        >
-          {getRed()}
-          {getYellow()}
-          {getBlue()}
-        </View>
-        <View
-          style={{
-            width: "100%",
-            height: "25%",
-            justifyContent: "center",
-          }}
-        ></View>
-
-        {paintColor ? (
-          <PaintChip
-            paintColor={paintColor}
-            startWidth={150}
-            startHeight={150}
-            startTop={Dimensions.get("window").height / 2 - 50}
-            startLeft={Dimensions.get("window").width / 2}
-            isSaved={false}
-            onDrop={onDrop}
-            startDrag={startDrag}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 5,
-            }}
-            strokeWidth={3}
-          />
-        ) : (
-          <View></View>
-        )}
-        <Text
-          style={{
-            color: paintColor.hsluv[2] > 50 ? "black" : "white",
-            textAlign: "center",
-            fontSize: 12,
-            margin: 5,
-            zIndex: 10,
-            alignSelf: "center",
-            top: -150,
-          }}
-        >
-          Drag to Add to Pallette
-        </Text>
-        <View
-          style={{
-            width: "100%",
-            height: "15%",
-            flexDirection: "row",
-            justifyContent: "space-around",
-          }}
-        >
-          {getLightUp()}
-          {getUV()}
-          {getLightDown()}
-        </View>
-      </View>
-    );
-  } catch (e) {
-    console.log(e);
-    if (!paintColor) {
-      setPaintColor(ml);
-    }
-    return <View></View>;
-  }
+      <MixerCapsule
+        paint={paintColor}
+        startRotation={30}
+        endRotation={0}
+        isDragging={isDragging}
+        onDragStart={startDrag}
+        onDrop={onDrop}
+        isSaved={false}
+        setChipPosition={setChipPosition}
+        chipPosition={chipPosition}
+        width={screenWidth * 0.4}
+        radiusOffset={0}
+        direction={1}
+        position={[-screenWidth * 0.4, -screenWidth * 0.1]}
+      />
+    </View>
+  );
 }
 const styles = StyleSheet.create({
-  colorBox: {
-    width: "30%",
-    height: "100%",
-    borderRadius: 10,
-    margin: 20,
-    justifyContent: "center",
-  },
+  colorBox: {},
   icons: {
     height: 100,
     width: 100,

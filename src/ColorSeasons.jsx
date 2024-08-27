@@ -1,7 +1,17 @@
 import masterList from "./masterList";
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Dimensions, Image } from "react-native";
-export default function ColorSeasons({ assignedColor = null }) {
+import PaintSector from "./PaintSector";
+import MixerCapsule from "./MixerCapsule";
+import SeasonSector from "./SeasonSector";
+import { View, Dimensions, PanResponder } from "react-native";
+export default function ColorSeasons({
+  assignedColor = null,
+  isDragging,
+  startDrag,
+  setChipPosition,
+  chipPosition,
+  onDrop,
+}) {
   const stepRate = 5;
   const [mainColor, setMainColor] = useState(
     masterList[Math.floor(Math.random() * masterList.length)]
@@ -10,13 +20,79 @@ export default function ColorSeasons({ assignedColor = null }) {
   const [winter, setWinter] = useState(getPlusWinter());
   const [spring, setSpring] = useState(getPlusSpring());
   const [summer, setSummer] = useState(getPlusSummer());
-  const width = Dimensions.get("window").width / 2;
+  const [allColors, setAllColors] = useState([]);
+  const screenWidth = Dimensions.get("window").width;
+  const screenHeight = Dimensions.get("window").height;
+  const [sectorAngles, setSectorAngles] = useState([0, 60, 120, 180, 240, 300]);
+  const [selectedSector, setSelectedSector] = useState(null);
+  const angleRange = [-75, 75];
+  const angleStep = (angleRange[1] - angleRange[0]) / 4;
+  const innerRadius = screenWidth * 0.4;
+  const outerRadius = screenWidth * 0.92;
+  const outerRing = screenWidth;
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (e, gestureState) => {
+      let sector = getTouchedSector(
+        screenWidth - e.nativeEvent.pageX,
+        e.nativeEvent.pageY - screenHeight / 2
+      );
+      setSelectedSector(sector);
+    },
+    onPanResponderMove: (e, gestureState) => {
+      let sector = getTouchedSector(
+        screenWidth - e.nativeEvent.pageX,
+        e.nativeEvent.pageY - screenHeight / 2
+      );
+      setSelectedSector(sector);
+    },
+    onPanResponderRelease: (e, gestureState) => {
+      let sector = getTouchedSector(
+        screenWidth - e.nativeEvent.pageX,
+        e.nativeEvent.pageY - screenHeight / 2
+      );
+      setSelectedSector(null);
+      if (sector === -1) {
+        return;
+      }
+      setMainColor(allColors[sector]);
+    },
+  });
+  function getTouchedSector(x, y) {
+    let distance = Math.sqrt(x * x + y * y);
+    if (distance < innerRadius || distance > outerRing) {
+      return -1;
+    }
+    const angle = (Math.atan2(y, x) * 180) / Math.PI;
+    for (let i = 0; i < sectorAngles.length; i++) {
+      if (angle >= sectorAngles[i] && angle <= sectorAngles[i + 1]) {
+        return i;
+      }
+    }
+    return -1;
+  }
   useEffect(() => {
-    setAutumn(getPlusAutumn());
-    setWinter(getPlusWinter());
+    let angles = [];
+    for (let i = 0; i < 6; i++) {
+      angles.push(angleRange[0] + i * angleStep);
+    }
+    setSectorAngles(angles);
+  }, [angleStep]);
+  useEffect(() => {
     setSpring(getPlusSpring());
     setSummer(getPlusSummer());
+    setAutumn(getPlusAutumn());
+    setWinter(getPlusWinter());
   }, [mainColor]);
+  useEffect(() => {
+    let colors = [];
+    colors.push(spring);
+    colors.push(summer);
+    colors.push(autumn);
+    colors.push(winter);
+    setAllColors(colors);
+  }, [winter]);
   useEffect(() => {
     if (assignedColor) {
       setMainColor(assignedColor);
@@ -175,152 +251,121 @@ export default function ColorSeasons({ assignedColor = null }) {
     }
     return diff / 2;
   }
-  return (
-    <View
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        flexWrap: "wrap",
-        width: width * 2,
-        height: width * 2,
-        top: Dimensions.get("window").height / 3 - width,
-        gap: -1,
-      }}
-    >
+
+  function getSizeModifier(index) {
+    if (index === selectedSector) {
+      return 1.1;
+    } else {
+      return 1;
+    }
+  }
+
+  function getPaintSectors() {
+    let sectors = [];
+
+    for (let i = 0; i < allColors.length; i++) {
+      sectors.push(
+        <PaintSector
+          key={i}
+          paint={allColors[i]}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius * getSizeModifier(i)}
+          angle={angleStep}
+          startRotation={-90}
+          endRotation={angleRange[0] + i * angleStep}
+          direction={-1}
+          textStyles={{
+            fontSize: 16,
+            color: "black",
+          }}
+        />
+      );
+    }
+    return sectors;
+  }
+  function getColorSectors() {
+    let sectors = [];
+    const hueSets = [
+      [340, 20, 60, 90],
+      [120, 160, 220, 280],
+      [20, 50, 80, 110],
+      [220, 250, 280, 320],
+    ];
+    const satSets = [[130], [75], [80, 130, 130, 130], [120]];
+    const litSets = [[60, 65, 83, 82], [80], [45], [40, 30, 20, 20]];
+    let labels = ["Spring", "Summer", "Autumn", "Winter"];
+    for (let i = 0; i < allColors.length; i++) {
+      sectors.push(
+        <SeasonSector
+          key={i}
+          hues={hueSets[i]}
+          sats={satSets[i]}
+          lits={litSets[i]}
+          innerRadius={outerRadius * getSizeModifier(i)}
+          outerRadius={outerRing * getSizeModifier(i)}
+          angle={angleStep}
+          startAngle={angleRange[0] + i * angleStep + 90}
+          endAngle={angleRange[0] + (i + 1) * angleStep + 90}
+          direction={-1}
+          textStyles={{
+            fontSize: 16,
+            color: "black",
+          }}
+          label={i === selectedSector ? "" : labels[i]}
+        />
+      );
+    }
+    return sectors;
+  }
+  try {
+    return (
       <View
         style={{
-          width: width,
-          height: width,
-          backgroundColor: mainColor.hex,
-          marginBottom: 20,
+          top: "40%",
+          right: "-5%",
           position: "absolute",
-          top: width / 2,
-          left: width / 2,
-          zIndex: 1,
-          justifyContent: "center",
+          backgroundColor: "white",
+          shadowColor: "black",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.5,
+          shadowRadius: 5,
         }}
+        {...panResponder.panHandlers}
       >
-        <Text
-          style={{
-            textAlign: "center",
+        {getPaintSectors()}
+        <PaintSector
+          paint={mainColor}
+          innerRadius={0}
+          outerRadius={innerRadius}
+          angle={180}
+          startRotation={-90}
+          endRotation={-90}
+          direction={-1}
+          textStyles={{
+            fontSize: 20,
+            color: "transparent",
           }}
-        >
-          {mainColor.name + "\n[" + mainColor.brand + "]"}
-        </Text>
+        />
+        {getColorSectors()}
+        <MixerCapsule
+          paint={mainColor}
+          startRotation={30}
+          endRotation={0}
+          isDragging={isDragging}
+          onDragStart={startDrag}
+          onDrop={onDrop}
+          isSaved={false}
+          setChipPosition={setChipPosition}
+          chipPosition={chipPosition}
+          width={screenWidth * 0.4}
+          radiusOffset={0}
+          direction={1}
+          position={[-screenWidth * 0.4, -screenWidth * 0.1]}
+        />
       </View>
-      <TouchableOpacity
-        onPress={() => setMainColor(spring)}
-        style={{
-          backgroundColor: spring.hex,
-          width: width,
-          height: width,
-          paddingTop: 20,
-        }}
-      >
-        <Text
-          style={{
-            textAlign: "center",
-          }}
-        >
-          {spring.name + "\n[" + spring.brand + "]"}
-        </Text>
-        <Image
-          style={{
-            width: 100,
-            resizeMode: "contain",
-            alignSelf: "center",
-            position: "absolute",
-            bottom: -40,
-          }}
-          source={require("../assets/Spring.png")}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => setMainColor(summer)}
-        style={{
-          backgroundColor: summer.hex,
-          width: width,
-          height: width,
-          paddingTop: 20,
-        }}
-      >
-        <Text
-          style={{
-            textAlign: "center",
-          }}
-        >
-          {summer.name + "\n[" + summer.brand + "]"}
-        </Text>
-        <Image
-          style={{
-            width: 120,
-            resizeMode: "contain",
-            alignSelf: "center",
-            bottom: 60,
-            position: "absolute",
-          }}
-          source={require("../assets/Summer.png")}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => setMainColor(autumn)}
-        style={{
-          backgroundColor: autumn.hex,
-          width: width,
-          height: width,
-          justifyContent: "flex-end",
-          paddingBottom: 20,
-        }}
-      >
-        <Text
-          style={{
-            textAlign: "center",
-          }}
-        >
-          {autumn.name + "\n[" + autumn.brand + "]"}
-        </Text>
-        <Image
-          style={{
-            width: 100,
-            resizeMode: "contain",
-            alignSelf: "center",
-            top: 50,
-            position: "absolute",
-          }}
-          source={require("../assets/Autumn.png")}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => setMainColor(winter)}
-        style={{
-          backgroundColor: winter.hex,
-          width: width,
-          height: width,
-          justifyContent: "flex-end",
-          paddingBottom: 20,
-        }}
-      >
-        <Text
-          style={{
-            textAlign: "center",
-          }}
-        >
-          {winter.name + "\n[" + winter.brand + "]"}
-        </Text>
-        <Image
-          style={{
-            width: 100,
-            resizeMode: "contain",
-            alignSelf: "center",
-            top: 20,
-            position: "absolute",
-          }}
-          source={require("../assets/Winter.png")}
-        />
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  } catch (error) {
+    setMainColor(masterList[Math.floor(Math.random() * masterList.length)]);
+    return null;
+  }
 }

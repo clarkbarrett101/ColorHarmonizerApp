@@ -1,14 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Dimensions, TouchableOpacity, Text } from "react-native";
 import masterList from "./masterList.mjs";
+import Svg, {
+  RadialGradient,
+  Stop,
+  Defs,
+  Rect,
+  Circle,
+} from "react-native-svg";
 import DragMenu from "./DragMenu";
-import ColorSearch from "./ColorSearch";
-import SwatchBook from "./SwatchBook";
+import { LinearGradient } from "expo-linear-gradient";
 import ColorMixer from "./ColorMixer";
 import Harmonizer from "./Harmonizer";
 import ColorSeasons from "./ColorSeasons";
 import WallSwapper from "./WallSwapper";
 import ChromaCamera from "./ChromaCamera";
+import ColorRadials from "./ColorRadials";
+import PaintFan from "./PaintFan";
 import Home from "./Home";
 import ViewPallete from "./ViewPallete";
 export default function Driver() {
@@ -16,12 +24,15 @@ export default function Driver() {
   testList.push(masterList[Math.floor(Math.random() * masterList.length)]);
   testList.push(masterList[Math.floor(Math.random() * masterList.length)]);
   const [swatches, setSwatches] = useState(testList);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(4);
   const [assignedColor, setAssignedColor] = useState(null);
   const [assignedColor2, setAssignedColor2] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [canScroll, setCanScroll] = useState(true);
+  const [draggedColor, setDraggedColor] = useState(null);
+  const panResponder = useRef(null);
+  const [xy, setXY] = useState([0, 0]);
   const pages = [
     "Home",
     "Harmonizer",
@@ -33,25 +44,27 @@ export default function Driver() {
     "My Palette",
     "Saved Palettes",
   ];
-  const dropTop = (2 * Dimensions.get("window").height) / 7;
-  const dropMid = (3 * Dimensions.get("window").height) / 7 + dropTop;
-  const dropBot = (2 * Dimensions.get("window").height) / 7 + dropMid + dropTop;
+  const screenHeight = Dimensions.get("window").height;
+  const screenWidth = Dimensions.get("window").width;
+  const [chipPosition, setChipPosition] = useState([0, 0]);
+  const dropTop = (2 * screenHeight) / 7;
+  const dropMid = (3 * screenHeight) / 7 + dropTop;
+  const dropBot = (2 * screenHeight) / 7 + dropMid + dropTop;
   function onDrop(screenPosition, paintColor, isSaved) {
-    console.log(screenPosition, paintColor.name, isSaved);
     setIsDragging(false);
     setCanScroll(true);
-    if (screenPosition.y < dropTop) {
-      if (isSaved) {
+    if (screenPosition[1] < dropTop) {
+      if (isSaved && screenPosition[0] < screenWidth / 2) {
         console.log("remove color");
         removeColor(paintColor);
       }
-    } else if (screenPosition.y < dropMid) {
-      if (isSaved) {
+    } else if (screenPosition[1] < dropMid) {
+      if (isSaved && screenPosition[0] > screenWidth / 2) {
         console.log("use color");
         useColor(paintColor);
       }
-    } else if (screenPosition.y < dropBot) {
-      if (!isSaved) {
+    } else if (screenPosition[1] < dropBot) {
+      if (!isSaved && screenPosition[0] < screenWidth / 2) {
         console.log("add color");
         addColor(paintColor);
       }
@@ -59,7 +72,7 @@ export default function Driver() {
   }
   function removeColor(color) {
     let newSwatches = swatches.filter((swatch) => swatch !== color);
-    setSwatches(newSwatches);
+    setSwatches([...newSwatches]);
   }
   function addColor(color) {
     let newSwatches = [...swatches, color];
@@ -68,21 +81,26 @@ export default function Driver() {
   function useColor(color) {
     setAssignedColor(color);
   }
-  function startDrag(paintColor, isSaved) {
+  function startDrag(paintColor, isSaved, xy, panResponder) {
+    setXY(xy);
+    panResponder = panResponder;
     setIsDragging(true);
     setIsSaved(isSaved);
     setCanScroll(false);
+    setDraggedColor(paintColor);
   }
+
   function getPage() {
     if (currentPage === 0) {
       return <Home pages={pages} setCurrentPage={setCurrentPage} />;
     } else if (currentPage === 3) {
       return (
-        <ColorSearch
-          assignedColor={assignedColor}
-          isDragging={isDragging}
-          startDrag={startDrag}
+        <ColorRadials
+          onDragStart={startDrag}
           onDrop={onDrop}
+          assignedColor={assignedColor}
+          chipPosition={chipPosition}
+          setChipPosition={setChipPosition}
         />
       );
     } else if (currentPage === 1) {
@@ -96,10 +114,21 @@ export default function Driver() {
           canScroll={canScroll}
           setCanScroll={setCanScroll}
           setCurrentPage={setCurrentPage}
+          chipPosition={chipPosition}
+          setChipPosition={setChipPosition}
         />
       );
     } else if (currentPage === 4) {
-      return <ColorSeasons assignedColor={assignedColor} />;
+      return (
+        <ColorSeasons
+          assignedColor={assignedColor}
+          isDragging={isDragging}
+          startDrag={startDrag}
+          onDrop={onDrop}
+          chipPosition={chipPosition}
+          setChipPosition={setChipPosition}
+        />
+      );
     } else if (currentPage === 2) {
       return (
         <ColorMixer
@@ -107,6 +136,8 @@ export default function Driver() {
           isDragging={isDragging}
           startDrag={startDrag}
           onDrop={onDrop}
+          chipPosition={chipPosition}
+          setChipPosition={setChipPosition}
         />
       );
     } else if (currentPage === 6) {
@@ -125,99 +156,63 @@ export default function Driver() {
       return <Text>You currently have no saved palettes</Text>;
     }
   }
-  function colorTabs() {
-    let output = [];
-    if (currentPage === 2 || currentPage === 3 || currentPage === 4) {
-      output.push(
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            height: "50%",
-          }}
-        >
-          <TouchableOpacity
-            style={{
-              backgroundColor:
-                currentPage === 2 ? "rgba(0, 125, 255, 1)" : "white",
-              borderColor: "rgba(0, 125, 255, 1)",
-              borderWidth: currentPage === 2 ? 0 : 2,
-              padding: 10,
-              flex: 1,
-              justifyContent: "center",
-              borderRadius: 10,
-            }}
-            onPress={() => setCurrentPage(2)}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: currentPage === 2 ? "white" : "rgba(0, 125, 255, 1)",
-                fontSize: 16,
-                bottom: 0,
-              }}
-            >
-              Color Mixer
-            </Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={{
-              padding: 10,
-              flex: 1,
-              justifyContent: "center",
-              borderRadius: 10,
-              backgroundColor:
-                currentPage === 3 ? "rgba(0, 125, 255, 1)" : "white",
-              borderColor: "rgba(0, 125, 255, 1)",
-              borderWidth: currentPage === 3 ? 0 : 2,
-            }}
-            onPress={() => setCurrentPage(3)}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: currentPage === 3 ? "white" : "rgba(0, 125, 255, 1)",
-                fontSize: 16,
-                bottom: 0,
-              }}
-            >
-              Color Sliders
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{
-              backgroundColor:
-                currentPage === 4 ? "rgba(0, 125, 255, 1)" : "white",
-              borderColor: "rgba(0, 125, 255, 1)",
-              borderWidth: currentPage === 4 ? 0 : 2,
-              padding: 10,
-              flex: 1,
-              justifyContent: "center",
-              borderRadius: 10,
-            }}
-            onPress={() => setCurrentPage(4)}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: currentPage === 4 ? "white" : "rgba(0, 125, 255, 1)",
-                fontSize: 16,
-                bottom: 0,
-              }}
-            >
-              Color Seasons
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return output;
+  function chipDistanceFrom(x, y) {
+    const dist = Math.sqrt(
+      (x - chipPosition[0]) ** 2 + (y - chipPosition[1]) ** 2
+    );
+    console.log("dist", chipPosition, dist);
+    return dist;
   }
 
   return (
     <View style={{ flex: 1, display: "flex" }}>
+      <Svg
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        <Defs>
+          <RadialGradient
+            id="grad"
+            cx="100%"
+            cy="50%"
+            rx="120%"
+            ry="60%"
+            fx="100%"
+            fy="50%"
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0" stopColor="#fcc" stopOpacity="1" />
+            <Stop offset="1" stopColor="#cdF" stopOpacity="1" />
+          </RadialGradient>
+        </Defs>
+        <Rect x="-100%" y="0" width="200%" height="100%" fill="url(#grad)" />
+      </Svg>
+      {isDragging && !isSaved ? (
+        <PaintFan
+          colors={swatches}
+          startAngle={15}
+          endAngle={90}
+          innerRadius={50}
+          outerRadius={Dimensions.get("window").width * 0.5}
+          direction={1}
+          onDrop={onDrop}
+          onDragStart={startDrag}
+          isSaved={true}
+          isDragging={isDragging}
+          style={{
+            position: "absolute",
+            bottom: "10%",
+            left: "-10%",
+          }}
+          chipPosition={chipPosition}
+          setChipPosition={setChipPosition}
+        />
+      ) : null}
+
       <View
         style={{
           display: "flex",
@@ -231,11 +226,9 @@ export default function Driver() {
             style={{
               backgroundColor: "rgba(0, 125, 255, 1)",
               padding: 10,
-              flex: 1,
-              height: "100%",
+              width: "20%",
               justifyContent: "center",
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
+              borderRadius: 10,
             }}
             onPress={() => setCurrentPage(0)}
           >
@@ -251,10 +244,8 @@ export default function Driver() {
             </Text>
           </TouchableOpacity>
         )}
-        {colorTabs()}
       </View>
 
-      {isDragging ? <DragMenu isSaved={isSaved} /> : null}
       <View
         style={{
           height: "90%",
@@ -264,18 +255,90 @@ export default function Driver() {
       >
         {getPage()}
       </View>
-      <SwatchBook
-        swatches={swatches}
-        onDrop={onDrop}
-        isDragging={isDragging}
-        startDrag={startDrag}
-        style={{
-          display: "flex",
-          height: isDragging ? "100%" : "auto",
-          width: isDragging ? "100%" : "auto",
-          position: "absolute",
-        }}
-      />
+      {isDragging ? (
+        <Svg
+          style={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <Defs>
+            <RadialGradient
+              id="grad"
+              cx="50%"
+              cy="50%"
+              rx="100%"
+              ry="100%"
+              fx="50%"
+              fy="50%"
+              gradientUnits="userSpaceOnUse"
+            >
+              <Stop offset="0" stopColor="#42a" stopOpacity="0" />
+              <Stop offset="1" stopColor="#42a" stopOpacity=".75" />
+            </RadialGradient>
+          </Defs>
+          <Rect x="-100%" y="0" width="200%" height="100%" fill="url(#grad)" />
+
+          {isSaved ? (
+            <Circle
+              cx={screenWidth - 50}
+              cy={screenHeight / 2 - 50}
+              fill={"url(#grad)"}
+              r={Math.min(
+                Math.max(
+                  30000 / chipDistanceFrom(screenWidth, -screenHeight / 2),
+                  50
+                ),
+                200
+              )}
+            />
+          ) : null}
+          {isSaved ? (
+            <Circle
+              cx={50}
+              cy={50}
+              fill={"url(#grad)"}
+              r={Math.min(
+                Math.max(30000 / chipDistanceFrom(0, -screenHeight), 50),
+                200
+              )}
+            />
+          ) : (
+            <Circle
+              cx={50}
+              cy={screenHeight - 50}
+              fill={"url(#grad)"}
+              r={Math.min(
+                Math.max(30000 / chipDistanceFrom(0, screenHeight / 2), 50),
+                200
+              )}
+            />
+          )}
+        </Svg>
+      ) : null}
+
+      {!isDragging || isSaved ? (
+        <PaintFan
+          colors={swatches}
+          startAngle={15}
+          endAngle={90}
+          innerRadius={50}
+          outerRadius={Dimensions.get("window").width * 0.5}
+          direction={1}
+          onDrop={onDrop}
+          onDragStart={startDrag}
+          isSaved={true}
+          isDragging={isDragging}
+          style={{
+            position: "absolute",
+            bottom: "10%",
+            left: "-10%",
+          }}
+          chipPosition={chipPosition}
+          setChipPosition={setChipPosition}
+        />
+      ) : null}
     </View>
   );
 }

@@ -38,6 +38,12 @@
         {
           "cameraPermissionText": "ColorHarmonizer needs access to your camera so you can measure undertones and view walls with different paint colors."
         }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": ["./assets/Outfit-VariableFont_wght.ttf"]
+        }
       ]
     ]
   }

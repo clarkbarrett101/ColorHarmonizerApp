@@ -1,6 +1,6 @@
 import React from "react";
 import { Hsluv } from "./hsluv";
-import PaintChip from "./PaintChip";
+import PaintFan from "./PaintFan";
 import masterList from "./masterList.mjs";
 import { View, Dimensions, Text } from "react-native";
 export default function PaintSort({
@@ -30,34 +30,23 @@ export default function PaintSort({
       }
       searchRange += 2;
     }
-    let paintChipList = [];
-    const longList = paintList.length > 5;
-    for (let i = 0; i < paintList.length; i++) {
-      const paintColor = paintList[i];
-      paintChipList.push(
-        <PaintChip
-          key={i}
-          paintColor={paintColor}
-          startWidth={100}
-          startHeight={100}
-          startTop={longList ? 75 + 50 * Math.floor(i / 5) : 75}
-          startLeft={
-            (width / (Math.min(paintList.length, 5) + 1)) *
-            ((longList ? i % 5 : i) + 1)
-          }
-          isSaved={false}
-          onDrop={onDrop}
-          startDrag={startDrag}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: longList ? 7 - Math.floor(i / 5) : 5,
-          }}
-        />
-      );
-    }
-    return paintChipList;
+    const startModifier = 60 - 60 / paintList.length;
+    const endModifier = 60 - 60 / paintList.length;
+    return (
+      <PaintFan
+        colors={paintList}
+        startAngle={90 - startModifier}
+        endAngle={90 + endModifier}
+        innerRadius={250}
+        outerRadius={350}
+        direction={-1}
+        style={{
+          position: "absolute",
+          top: "50%",
+          right: 0,
+        }}
+      />
+    );
   }
   return (
     <View style={{ flex: 1 }}>

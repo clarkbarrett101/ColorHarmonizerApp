@@ -35,15 +35,13 @@ export default function SectorRow({
     }
     let isHSL =
       h === hsl[0] &&
-      s >= hsl[1] - hslCheckRange * 2 &&
-      s <= hsl[1] + hslCheckRange * 2 &&
+      s >= hsl[1] - hslCheckRange &&
+      s <= hsl[1] + hslCheckRange &&
       l >= hsl[2] - hslCheckRange &&
       l <= hsl[2] + hslCheckRange;
     return isHSL;
   }
-  useEffect(() => {
-    console.log("HSL", hsl, hue, satRange[0], litRange);
-  }, [hsl]);
+
   function annulusSectorPath(
     cx,
     cy,

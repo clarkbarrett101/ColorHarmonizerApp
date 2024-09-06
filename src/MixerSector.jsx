@@ -17,6 +17,7 @@ export default function MixerSector({
   sat,
   lit,
   label = "",
+  textStyles = {},
 }) {
   let modifiedValue;
   if (sat) {
@@ -55,11 +56,17 @@ export default function MixerSector({
         continue;
       }
       const pathEndPos = [
-        Math.cos(((180 - angle / 2 - label.length / 2) * Math.PI) / 180) *
-          (outerRadius - 20) +
+        Math.cos(
+          ((180 - (endAngle - startAngle) / 2 - label.length * 0.7) * Math.PI) /
+            180
+        ) *
+          (outerRadius * 0.95) +
           outerRadius,
-        Math.sin(((180 - angle / 2 - label.length / 2) * Math.PI) / 180) *
-          (outerRadius - 20) +
+        Math.sin(
+          ((180 - (endAngle - startAngle) / 2 - label.length * 0.7) * Math.PI) /
+            180
+        ) *
+          (outerRadius * 0.95) +
           outerRadius,
       ];
       sectorComponents.push(
@@ -123,12 +130,14 @@ export default function MixerSector({
                   d={`
                     M ${pathEndPos[0]},${pathEndPos[1]}
                  
-                   A ${outerRadius},${outerRadius} 0,0,1  ${20},${outerRadius}`}
+                   A ${outerRadius},${outerRadius} 0,0,1  ${
+                    outerRadius * 0.05
+                  },${outerRadius * 0.95}`}
                 />
               </Defs>
               <Text
                 fill={lits[0] > 50 ? "black" : "white"}
-                fontSize={14}
+                fontSize={textStyles.fontSize}
                 fontFamily="-"
               >
                 <TextPath href="#path">{label}</TextPath>

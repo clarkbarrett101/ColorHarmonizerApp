@@ -17,6 +17,7 @@ export default function SeasonSector({
   sat,
   lit,
   label = "",
+  textStyles = {},
 }) {
   let modifiedValue;
   if (sat) {
@@ -51,12 +52,13 @@ export default function SeasonSector({
     Math.cos(
       ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180
     ) *
-      (outerRadius - 20) +
+      outerRadius *
+      0.97 +
       outerRadius,
     Math.sin(
       ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180
     ) *
-      (outerRadius - 20) +
+      (outerRadius * 0.85) +
       outerRadius,
   ];
   function getColors() {
@@ -144,7 +146,7 @@ export default function SeasonSector({
           </Defs>
           <Text
             fill={lits[0] > 50 ? "black" : "white"}
-            fontSize={18}
+            fontSize={textStyles.fontSize || 20}
             fontFamily="-"
           >
             <TextPath href="#path">{label}</TextPath>

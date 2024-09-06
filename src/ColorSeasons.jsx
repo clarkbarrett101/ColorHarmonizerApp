@@ -3,33 +3,50 @@ import React, { useState, useEffect } from "react";
 import PaintSector from "./PaintSector";
 import MixerCapsule from "./MixerCapsule";
 import SeasonSector from "./SeasonSector";
+import { TouchableOpacity } from "react-native";
+import TutorialBox from "./TutorialBox";
+import InfoIcon from "./InfoIcon";
 import { View, Dimensions, PanResponder } from "react-native";
+import PaintCapsule from "./PaintCapsule";
 export default function ColorSeasons({
   assignedColor = null,
   isDragging,
-  startDrag,
-  setChipPosition,
-  chipPosition,
+  onDragStart,
   onDrop,
+  setSelectedColor,
+  selectedColor,
 }) {
+  const screenWidth = Dimensions.get("window").width;
+  const screenHeight = Dimensions.get("window").height;
   const stepRate = 5;
   const [mainColor, setMainColor] = useState(
     masterList[Math.floor(Math.random() * masterList.length)]
   );
+  let sizeMod = 1;
+  let angleRange = [-75, 75];
+  let innerRadius = screenWidth * 0.4;
+  if (screenHeight > screenWidth * 2) {
+    sizeMod = screenWidth;
+  } else {
+    sizeMod = screenHeight * 0.65;
+    angleRange = [-60, 60];
+    innerRadius = sizeMod * 0.37;
+  }
+  const fontMod = sizeMod / 400;
+  const angleStep = (angleRange[1] - angleRange[0]) / 4;
+
+  const outerRadius = sizeMod * 0.88;
+  const outerRing = sizeMod * 0.95;
   const [autumn, setAutumn] = useState(getPlusAutumn());
   const [winter, setWinter] = useState(getPlusWinter());
   const [spring, setSpring] = useState(getPlusSpring());
   const [summer, setSummer] = useState(getPlusSummer());
+  const [tutorialOpen, setTutorialOpen] = useState(true);
   const [allColors, setAllColors] = useState([]);
-  const screenWidth = Dimensions.get("window").width;
-  const screenHeight = Dimensions.get("window").height;
+
   const [sectorAngles, setSectorAngles] = useState([0, 60, 120, 180, 240, 300]);
   const [selectedSector, setSelectedSector] = useState(null);
-  const angleRange = [-75, 75];
-  const angleStep = (angleRange[1] - angleRange[0]) / 4;
-  const innerRadius = screenWidth * 0.4;
-  const outerRadius = screenWidth * 0.92;
-  const outerRing = screenWidth;
+
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
@@ -84,6 +101,7 @@ export default function ColorSeasons({
     setSummer(getPlusSummer());
     setAutumn(getPlusAutumn());
     setWinter(getPlusWinter());
+    setSelectedColor(mainColor.hsluv);
   }, [mainColor]);
   useEffect(() => {
     let colors = [];
@@ -125,10 +143,9 @@ export default function ColorSeasons({
       diffList.push({ diff, color });
     }
     diffList.sort((a, b) => a.diff - b.diff);
-    console.log("summer" + diffList.length);
     if (diffList.length < 1) {
       return mainColor;
-    } else if (diffList.length < stepRate) {
+    } else if (diffList.length <= stepRate) {
       return diffList[0].color;
     } else {
       return diffList[stepRate].color;
@@ -160,11 +177,9 @@ export default function ColorSeasons({
       diffList.push({ diff, color });
     }
     diffList.sort((a, b) => a.diff - b.diff);
-    console.log("Autumn" + diffList.length);
-    console.log(stepRate);
     if (diffList.length < 1) {
       return mainColor;
-    } else if (diffList.length < stepRate) {
+    } else if (diffList.length <= stepRate) {
       return diffList[0].color;
     } else {
       return diffList[stepRate].color;
@@ -196,10 +211,9 @@ export default function ColorSeasons({
       diffList.push({ diff, color });
     }
     diffList.sort((a, b) => a.diff - b.diff);
-    console.log("winter", diffList.length);
     if (diffList.length < 1) {
       return mainColor;
-    } else if (diffList.length < stepRate) {
+    } else if (diffList.length <= stepRate) {
       return diffList[0].color;
     } else {
       return diffList[stepRate].color;
@@ -231,11 +245,10 @@ export default function ColorSeasons({
       diffList.push({ diff, color });
     }
     diffList.sort((a, b) => a.diff - b.diff);
-    console.log("Spring" + diffList.length);
 
     if (diffList.length < 1) {
       return mainColor;
-    } else if (diffList.length < stepRate) {
+    } else if (diffList.length <= stepRate) {
       return diffList[0].color;
     } else {
       return diffList[stepRate].color;
@@ -275,7 +288,7 @@ export default function ColorSeasons({
           endRotation={angleRange[0] + i * angleStep}
           direction={-1}
           textStyles={{
-            fontSize: 16,
+            fontSize: 16 * fontMod,
             color: "black",
           }}
         />
@@ -308,7 +321,7 @@ export default function ColorSeasons({
           endAngle={angleRange[0] + (i + 1) * angleStep + 90}
           direction={-1}
           textStyles={{
-            fontSize: 16,
+            fontSize: 16 * fontMod,
             color: "black",
           }}
           label={i === selectedSector ? "" : labels[i]}
@@ -317,55 +330,98 @@ export default function ColorSeasons({
     }
     return sectors;
   }
-  try {
-    return (
-      <View
-        style={{
-          top: "40%",
-          right: "-5%",
-          position: "absolute",
-          backgroundColor: "white",
-          shadowColor: "black",
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.5,
-          shadowRadius: 5,
+
+  return (
+    <View
+      style={{
+        top: "50%",
+        right: -sizeMod * 0.1,
+        position: "absolute",
+        backgroundColor: "white",
+      }}
+      {...panResponder.panHandlers}
+    >
+      {getPaintSectors()}
+      <PaintSector
+        paint={mainColor}
+        innerRadius={0}
+        outerRadius={innerRadius}
+        angle={180}
+        startRotation={-90}
+        endRotation={-90}
+        direction={-1}
+        textStyles={{
+          fontSize: 20,
+          color: "transparent",
         }}
-        {...panResponder.panHandlers}
+      />
+      {getColorSectors()}
+      <PaintCapsule
+        paint={mainColor}
+        startRotation={30}
+        endRotation={0}
+        isDragging={isDragging}
+        onDragStart={onDragStart}
+        onDrop={onDrop}
+        isSaved={false}
+        width={sizeMod * 0.4}
+        radiusOffset={0}
+        direction={1}
+        position={[-sizeMod * 0.4, -sizeMod * 0.1]}
+        xOffset={-sizeMod * 1.4}
+      />
+      <TutorialBox
+        text={
+          "Pick from a list of paint colors that feel more Spring (Warm & Vibrant), Summer (Cool & Bright), Autumn (Warm & Soft), or Winter (Cool & Deep)."
+        }
+        style={{
+          position: "absolute",
+          top: -screenHeight / 3,
+          right: screenWidth / 2 - sizeMod * 0.4,
+          zIndex: 100,
+          width: sizeMod,
+          height: sizeMod / 2,
+        }}
+        width={sizeMod}
+        height={sizeMod / 2}
+        textStyle={{
+          fontSize: 20 * fontMod,
+          color: "white",
+          textAlign: "center",
+          top: 0,
+          width: sizeMod,
+          height: sizeMod * 0.5,
+          padding: sizeMod * 0.1,
+          paddingVertical: sizeMod * 0.12,
+          zIndex: 100,
+          fontFamily: "-",
+          position: "absolute",
+        }}
+        isOpen={tutorialOpen}
+        setOpen={setTutorialOpen}
+        selectedColor={selectedColor}
+      />
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          zIndex: 100,
+          padding: 10,
+          borderRadius: 100,
+          top: -screenHeight * 0.37,
+          left: -screenWidth * 1.1,
+          width: sizeMod * 0.1,
+          height: sizeMod * 0.1,
+        }}
+        onPressIn={() => {
+          setTutorialOpen(!tutorialOpen);
+        }}
       >
-        {getPaintSectors()}
-        <PaintSector
-          paint={mainColor}
-          innerRadius={0}
-          outerRadius={innerRadius}
-          angle={180}
-          startRotation={-90}
-          endRotation={-90}
-          direction={-1}
-          textStyles={{
-            fontSize: 20,
-            color: "transparent",
-          }}
+        <InfoIcon
+          width={sizeMod * 0.1}
+          height={sizeMod * 0.1}
+          selectedColor={selectedColor}
         />
-        {getColorSectors()}
-        <MixerCapsule
-          paint={mainColor}
-          startRotation={30}
-          endRotation={0}
-          isDragging={isDragging}
-          onDragStart={startDrag}
-          onDrop={onDrop}
-          isSaved={false}
-          setChipPosition={setChipPosition}
-          chipPosition={chipPosition}
-          width={screenWidth * 0.4}
-          radiusOffset={0}
-          direction={1}
-          position={[-screenWidth * 0.4, -screenWidth * 0.1]}
-        />
-      </View>
-    );
-  } catch (error) {
-    setMainColor(masterList[Math.floor(Math.random() * masterList.length)]);
-    return null;
-  }
+      </TouchableOpacity>
+    </View>
+  );
 }

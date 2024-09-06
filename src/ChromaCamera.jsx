@@ -7,13 +7,20 @@ import {
 } from "react-native-vision-camera";
 import { useSharedValue } from "react-native-worklets-core";
 import { Hsluv } from "./hsluv.mjs";
-import { View, Image, TouchableOpacity, Text } from "react-native";
-import Svg, { Line, Circle } from "react-native-svg";
+import { View, Image, TouchableOpacity, Text, Dimensions } from "react-native";
+import Svg, { Line, Circle, G } from "react-native-svg";
+import ColorSector from "./ColorSector.jsx";
+import SectorPath from "./SectorPath.jsx";
+import SelectText from "./SelectText.jsx";
+import TutorialBox from "./TutorialBox.jsx";
+import InfoIcon from "./InfoIcon.jsx";
 
 export default function ChromaCamera({
   setCurrentPage,
   setAssignedColor,
   setAssignedColor2,
+  setSelectedColor,
+  selectedColor,
 }) {
   const [savedHex, setSavedHex] = useState(null);
   const [hex, setHex] = useState("#000000");
@@ -21,7 +28,12 @@ export default function ChromaCamera({
   const [savedHue, setSavedHue] = useState(0);
   const camera = useRef(null);
   const device = useCameraDevice("back");
+  const totalSectors = 48;
+  const sectorStep = 360 / totalSectors;
+  const screenWidth = Dimensions.get("window").width;
+  const screenHeight = Dimensions.get("window").height;
   const { hasPermission, requestPermission } = useCameraPermission();
+  const [tutorialOpen, setTutorialOpen] = useState(true);
   useEffect(() => {
     if (!hasPermission) {
       requestPermission();
@@ -60,49 +72,68 @@ export default function ChromaCamera({
     }, 100);
     return () => clearInterval(interval);
   }, []);
+  useEffect(() => {
+    setSelectedColor([hue, 75, 40]);
+  }, [hue]);
 
   function gradientCirlce() {
     let circles = [];
     let hsluv = new Hsluv();
     hsluv.hsluv_l = 75;
-
     hsluv.hsluv_s = 100;
-    for (let i = 0; i < 360; i += 1) {
-      hsluv.hsluv_h = i;
+
+    for (let i = 0; i < totalSectors; i += 1) {
+      hsluv.hsluv_h = i * sectorStep;
       hsluv.hsluvToHex();
       circles.push(
-        <Circle
-          cx={128 + 100 * Math.cos((i * Math.PI) / 180)}
-          cy={128 + 100 * Math.sin((i * Math.PI) / 180)}
-          r={5}
-          fill={hsluv.hex}
+        <SectorPath
+          key={i}
+          hue={hsluv.hsluv_h}
+          saturation={100}
+          lightness={75}
+          startAngle={i * sectorStep}
+          endAngle={(i + 1) * sectorStep}
+          innerRadius={screenWidth * getSizeMod(i)}
+          outerRadius={screenWidth * 0.3}
         />
       );
     }
 
     return circles;
   }
+  function getSizeMod(index) {
+    let hueDiff = Math.abs(hue - index * sectorStep);
+    if (hueDiff > 180) {
+      hueDiff = 360 - hueDiff;
+    }
+    hueDiff /= 360;
+    hueDiff **= 0.5;
+    hueDiff = Math.min(0.25, hueDiff);
+    return hueDiff;
+  }
   function getSavedColor() {
     return (
-      <>
-        <Circle
-          cx={128 + 100 * Math.cos((savedHue * Math.PI) / 180)}
-          cy={128 + 100 * Math.sin((savedHue * Math.PI) / 180)}
-          r={10}
-          stroke="black"
-          strokeWidth="1"
-          fill={savedHex}
+      <Svg
+        height={screenWidth * 0.7}
+        width={screenWidth * 0.7}
+        style={{
+          position: "absolute",
+          top: screenHeight / 2 - screenWidth * 0.35,
+          left: screenWidth / 2 - screenWidth * 0.35,
+        }}
+      >
+        <SectorPath
+          hue={savedHue}
+          saturation={100}
+          lightness={75}
+          startAngle={savedHue - sectorStep}
+          endAngle={savedHue + sectorStep}
+          innerRadius={screenWidth * 0.2}
+          outerRadius={screenWidth * 0.35}
+          stroke={"white"}
+          strokeWidth={2}
         />
-
-        <Line
-          x1={128 + 10 * Math.cos((savedHue * Math.PI) / 180)}
-          y1={128 + 10 * Math.sin((savedHue * Math.PI) / 180)}
-          x2={128 + 90 * Math.cos((savedHue * Math.PI) / 180)}
-          y2={128 + 90 * Math.sin((savedHue * Math.PI) / 180)}
-          stroke="black"
-          strokeWidth="1"
-        />
-      </>
+      </Svg>
     );
   }
 
@@ -122,70 +153,93 @@ export default function ChromaCamera({
         isActive={true}
       ></Camera>
       <Svg
-        height={256}
-        width={256}
+        height={screenWidth * 0.6}
+        width={screenWidth * 0.6}
         style={{
           position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: [{ translateX: -128 }, { translateY: -128 }],
+          top: screenHeight / 2 - screenWidth * 0.3,
+          left: screenWidth / 2 - screenWidth * 0.3,
         }}
       >
         {gradientCirlce()}
+
         <Circle
-          cx={128 + 100 * Math.cos((hue * Math.PI) / 180)}
-          cy={128 + 100 * Math.sin((hue * Math.PI) / 180)}
-          r={10}
-          stroke="black"
-          strokeWidth="1"
-          fill={hex}
-        />
-        <Circle
-          cx={128}
-          cy={128}
-          r={10}
-          stroke="black"
-          strokeWidth="1"
+          cx={screenWidth * 0.3}
+          cy={screenWidth * 0.3}
+          r={15}
+          stroke={hex}
+          strokeWidth="3"
           fill={"rgb(" + sharedRGB.value.join(",") + ")"}
         />
-        <Line
-          x1={128 + 10 * Math.cos((hue * Math.PI) / 180)}
-          y1={128 + 10 * Math.sin((hue * Math.PI) / 180)}
-          x2={128 + 90 * Math.cos((hue * Math.PI) / 180)}
-          y2={128 + 90 * Math.sin((hue * Math.PI) / 180)}
-          stroke="black"
-          strokeWidth="1"
-        />
-        {savedHex == null ? null : getSavedColor()}
       </Svg>
-      <Text
+      {savedHex == null ? null : getSavedColor()}
+
+      <TutorialBox
+        text={
+          "Point the camera at a surface to find it's undertone and press Select Color.  Select 2 colors to see harmonious color schemes.."
+        }
         style={{
           position: "absolute",
-          top: "5%",
-          color: "black",
-          backgroundColor: "rgba(255, 255, 255, 0.5)",
-          borderRadius: 10,
-          padding: 10,
-          margin: 10,
-          textAlign: "center",
+          top: screenHeight * 0.6,
+          left: "-5%",
+          zIndex: 100,
+          width: screenHeight / 2,
+          height: screenHeight / 4,
         }}
-      >
-        Point the camera at a wall or object to get it's undertone, then tap
-        save. Once you have two saved colors, you'll see which colors what
-        colors would give you a harmonious color scheme.
-      </Text>
+        width={screenHeight / 2}
+        height={screenHeight / 4}
+        textStyle={{
+          fontSize: 20,
+          textAlign: "center",
+          top: (screenHeight / 2) * 0.12,
+          left: (screenHeight / 2) * 0.12,
+          width: (screenHeight / 2) * 0.75,
+          height: (screenHeight / 2) * 0.3,
+          zIndex: 100,
+          fontFamily: "-",
+          position: "absolute",
+        }}
+        isOpen={tutorialOpen}
+        setOpen={setTutorialOpen}
+        selectedColor={selectedColor}
+      />
       <TouchableOpacity
         style={{
-          backgroundColor: "rgba(0, 125, 255, 1)",
+          position: "absolute",
+          zIndex: 100,
           padding: 10,
-          width: "50%",
-          height: "5%",
+          borderRadius: 100,
+          top: -screenHeight / 12,
+          left: 0,
+          width: (screenHeight / 2) * 0.1,
+          height: (screenHeight / 2) * 0.1,
+        }}
+        onPressIn={() => {
+          setTutorialOpen(!tutorialOpen);
+        }}
+      >
+        <InfoIcon
+          width={(screenHeight / 2) * 0.1}
+          height={screenHeight / 2}
+          style={{
+            left: 0,
+            top: 0,
+          }}
+          selectedColor={selectedColor}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={{
+          padding: 10,
+          width: screenWidth * 0.5,
+          height: screenWidth * 0.5,
+          top: screenHeight / 2 - screenWidth * 0.25,
+          left: screenWidth / 2 - screenWidth * 0.25,
           justifyContent: "center",
           alignItems: "center",
           alignSelf: "center",
           borderRadius: 10,
           position: "absolute",
-          bottom: "20%",
         }}
         onPressIn={() => {
           if (savedHex == null) {
@@ -198,16 +252,34 @@ export default function ChromaCamera({
           }
         }}
       >
-        <Text
+        <Svg
           style={{
-            textAlign: "center",
-            color: "white",
-            fontSize: 16,
-            bottom: 0,
+            position: "absolute",
+            width: screenHeight / 2,
+            height: screenHeight / 2,
+            zIndex: 0,
+            padding: 10,
+            top: -screenWidth * 0.22,
+            left: -screenWidth * 0.25,
           }}
         >
-          Save
-        </Text>
+          <G>
+            <SectorPath
+              startAngle={-120}
+              endAngle={-60}
+              innerRadius={screenWidth * 0.4}
+              outerRadius={screenWidth * 0.5}
+              hue={hue}
+              saturation={100}
+              lightness={75}
+            />
+          </G>
+        </Svg>
+        <SelectText
+          style={{
+            top: -screenWidth * 0.4,
+          }}
+        ></SelectText>
       </TouchableOpacity>
     </View>
   );

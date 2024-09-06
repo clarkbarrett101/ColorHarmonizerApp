@@ -9,22 +9,37 @@ import {
   PanResponder,
 } from "react-native";
 import masterList from "./masterList.mjs";
-import PaintChip from "./PaintChip";
-import Svg, { Circle, Path, G } from "react-native-svg";
-import SectorPath from "./SectorPath";
 import MixerSector from "./MixerSector";
 import PaintSector from "./PaintSector";
 import MixerCapsule from "./MixerCapsule";
+import TutorialBox from "./TutorialBox";
+import InfoIcon from "./InfoIcon";
+import PaintCapsule from "./PaintCapsule";
 export default function ColorMixer({
   assignedColor = null,
   isDragging,
   onDrop,
-  startDrag,
-  chipPosition,
-  setChipPosition,
+  onDragStart,
+  setSelectedColor,
+  selectedColor,
 }) {
   const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;
+  let sizeMod = 1;
+  let angleRange = [-75, 75];
+  let innerRadius = screenWidth * 0.4;
+  if (screenHeight > screenWidth * 2) {
+    sizeMod = screenWidth;
+  } else {
+    sizeMod = screenHeight * 0.65;
+    angleRange = [-60, 60];
+    innerRadius = sizeMod * 0.37;
+  }
+  const fontMod = sizeMod / 400;
+  const angleStep = (angleRange[1] - angleRange[0]) / 6;
+
+  const outerRadius = sizeMod * 0.88;
+  const outerRing = sizeMod * 0.95;
   const [paintColor, setPaintColor] = useState(null);
   const [stepRate, setStepRate] = useState(6);
   const placeholder = {
@@ -43,6 +58,7 @@ export default function ColorMixer({
   const [closestUV, setClosestUV] = useState(placeholder);
   const [sectorAngles, setSectorAngles] = useState([0, 60, 120, 180, 240, 300]);
   const [selectedSector, setSelectedSector] = useState(null);
+  const [tutorialOpen, setTutorialOpen] = useState(true);
   const ml = masterList[Math.floor(Math.random() * masterList.length)];
   useEffect(() => {
     let angles = [];
@@ -51,7 +67,7 @@ export default function ColorMixer({
       angles.push(angleRange[0] + i * angleStep);
     }
     setSectorAngles(angles);
-  }, [angleRange]);
+  }, [selectedSector]);
   function getTouchedSector(x, y) {
     let sector = null;
     const angle = Math.atan2(y, x) * (180 / Math.PI);
@@ -295,7 +311,7 @@ export default function ColorMixer({
     if (!paintColor) {
       return;
     }
-
+    setSelectedColor(paintColor.hsluv);
     const red = findClosestRYB(paintColor.ryb, paintColor.rgb, 0);
     let yellow = findClosestRYB(paintColor.ryb, paintColor.rgb, 1);
     try {
@@ -317,11 +333,7 @@ export default function ColorMixer({
     setClosestLup(lup);
     setClosestLdown(findClosestLdown(paintColor.hsluv));
   }, [paintColor, stepRate]);
-  const angleRange = [-75, 75];
-  const angleStep = (angleRange[1] - angleRange[0]) / 6;
-  const innerRadius = screenWidth * 0.4;
-  const outerRadius = screenWidth * 0.92;
-  const outerRing = screenWidth;
+
   function getSizeModifier(index) {
     if (index === selectedSector) {
       return 1.1;
@@ -354,7 +366,7 @@ export default function ColorMixer({
           endRotation={angleRange[0] + i * angleStep}
           direction={-1}
           textStyles={{
-            fontSize: 16,
+            fontSize: 16 * fontMod,
             color: "black",
           }}
         />
@@ -384,6 +396,7 @@ export default function ColorMixer({
     for (let i = 0; i < colors.length; i++) {
       sectors.push(
         <MixerSector
+          key={i}
           hues={[colors[i][0]]}
           sats={[colors[i][1]]}
           lits={[colors[i][2]]}
@@ -393,7 +406,7 @@ export default function ColorMixer({
           endAngle={angleRange[0] + (i + 1) * angleStep + 90}
           direction={-1}
           textStyles={{
-            fontSize: 16,
+            fontSize: 16 * fontMod,
             color: "black",
           }}
           label={selectedSector === i ? "" : labels[i]}
@@ -405,8 +418,8 @@ export default function ColorMixer({
   return (
     <View
       style={{
-        top: "40%",
-        right: "-5%",
+        top: "51%",
+        right: "-10%",
         position: "absolute",
         backgroundColor: "white",
       }}
@@ -428,21 +441,72 @@ export default function ColorMixer({
       />
       {getColorSectors()}
 
-      <MixerCapsule
+      <PaintCapsule
         paint={paintColor}
         startRotation={30}
         endRotation={0}
         isDragging={isDragging}
-        onDragStart={startDrag}
+        onDragStart={onDragStart}
         onDrop={onDrop}
         isSaved={false}
-        setChipPosition={setChipPosition}
-        chipPosition={chipPosition}
-        width={screenWidth * 0.4}
+        width={sizeMod * 0.4}
         radiusOffset={0}
         direction={1}
-        position={[-screenWidth * 0.4, -screenWidth * 0.1]}
+        position={[-sizeMod * 0.4, -sizeMod * 0.1]}
+        xOffset={-sizeMod * 1.4}
       />
+      <TutorialBox
+        text={
+          "Pick from a list of paint colors that have more Red, Blue, Yellow, White, Gray, or Black."
+        }
+        style={{
+          position: "absolute",
+          top: -screenHeight / 3,
+          right: screenWidth / 2 - sizeMod * 0.4,
+          zIndex: 100,
+          width: sizeMod,
+          height: sizeMod / 2,
+        }}
+        width={sizeMod}
+        height={sizeMod / 2}
+        textStyle={{
+          fontSize: 20 * fontMod,
+          color: "white",
+          textAlign: "center",
+          top: 0,
+          width: sizeMod,
+          height: sizeMod * 0.5,
+          padding: sizeMod * 0.1,
+          paddingVertical: sizeMod * 0.12,
+          zIndex: 100,
+          fontFamily: "-",
+          position: "absolute",
+        }}
+        isOpen={tutorialOpen}
+        setOpen={setTutorialOpen}
+        selectedColor={selectedColor}
+      />
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          zIndex: 100,
+          padding: 10,
+          borderRadius: 100,
+          top: -screenHeight * 0.37,
+          left: -screenWidth * 1.1,
+          width: sizeMod * 0.1,
+          height: sizeMod * 0.1,
+        }}
+        onPressIn={() => {
+          setTutorialOpen(!tutorialOpen);
+        }}
+      >
+        <InfoIcon
+          width={sizeMod * 0.1}
+          height={sizeMod * 0.1}
+          selectedColor={selectedColor}
+        />
+      </TouchableOpacity>
     </View>
   );
 }

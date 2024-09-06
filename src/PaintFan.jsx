@@ -19,22 +19,16 @@ export default function PaintFan({
   onDrop,
   isSaved,
   isDragging,
-  setChipPosition,
-  chipPosition,
 }) {
-  const [trueStartAngle, setTrueStartAngle] = React.useState(startAngle - 90);
-  const [trueEndAngle, setTrueEndAngle] = React.useState(endAngle - 90);
   const [colorList, setColorList] = React.useState(findColors());
 
   React.useEffect(() => {
     if (hsl) {
       let paintList = findColors();
       let modifier = (6 - paintList.length) / 6;
-      setTrueStartAngle(startAngle - 90 + 30 * modifier);
-      setTrueEndAngle(endAngle - 90 - 30 * modifier);
       setColorList(paintList);
     }
-    if (colors[0]) {
+    if (colors) {
       setColorList(colors);
     }
   }, [hsl, colors]);
@@ -64,29 +58,34 @@ export default function PaintFan({
   }
 
   function getSectors() {
-    let sectors = [];
-    let angleStep = (trueEndAngle - trueStartAngle) / colorList.length;
+    try {
+      let sectors = [];
+      let angleStep = (endAngle - startAngle) / colorList.length;
 
-    for (let i = 0; i < colorList.length; i++) {
-      sectors.push(
-        <PaintCapsule
-          key={i}
-          paint={colorList[i]}
-          startRotation={trueStartAngle}
-          endRotation={trueStartAngle + (i + 0.05) * angleStep}
-          width={outerRadius - innerRadius}
-          direction={direction}
-          radiusOffset={innerRadius}
-          onDragStart={onDragStart}
-          onDrop={onDrop}
-          isSaved={isSaved}
-          isDragging={isDragging}
-          chipPosition={chipPosition}
-          setChipPosition={setChipPosition}
-        />
-      );
+      for (let i = 0; i < colorList.length; i++) {
+        sectors.push(
+          <PaintCapsule
+            key={i}
+            paint={colorList[i]}
+            startRotation={startAngle}
+            endRotation={startAngle + (i + 0.5) * angleStep}
+            width={outerRadius - innerRadius}
+            direction={direction}
+            radiusOffset={innerRadius}
+            onDragStart={onDragStart}
+            onDrop={onDrop}
+            isSaved={isSaved}
+            isDragging={isDragging}
+          />
+        );
+      }
+      return sectors;
+    } catch (e) {
+      console.log(e);
     }
-    return sectors;
+  }
+  if (!colors && !hsl) {
+    return null;
   }
   return (
     <View

@@ -15,6 +15,9 @@ export default function HarmonizerWheel({
   litRange = [40, 90],
   rotationModifier = 0,
   extraSelected = -1,
+  hueOf = (hue) => {
+    return hue;
+  },
 }) {
   const [selected, setSelected] = React.useState(-1);
   const sizeBoost = 0.25;
@@ -26,11 +29,16 @@ export default function HarmonizerWheel({
     }
   }
   const getSizeModifier = (i) => {
-    const rotation = selected / (360 / totalSectors);
+    const rotation = hueOf(selected) / (360 / totalSectors);
+    const extraRotation = hueOf(extraSelected) / (360 / totalSectors);
     if (i > rotation - 0.5 && i < rotation + 0.5) {
       return 1 + sizeBoost;
     } else {
-      if (i === extraSelected) {
+      if (
+        extraSelected > -1 &&
+        i > extraRotation - 0.5 &&
+        i < extraRotation + 0.5
+      ) {
         return 1 + sizeBoost / 2;
       } else {
         return 1;
@@ -59,8 +67,8 @@ export default function HarmonizerWheel({
       sectors.push(
         <ButtonSector
           key={hueStep * i}
-          hue={hueStep * i}
-          angle={angleStep * getSizeModifier(i)}
+          hue={hueOf(hueStep * i)}
+          angle={angleStep * getSizeModifier(i) ** 3}
           startRotation={-90}
           endRotation={angleStep * i + rotationModifier}
           outerRadius={outerRadius * getSizeModifier(i)}
@@ -88,7 +96,7 @@ export default function HarmonizerWheel({
     extraSelected !== -1
       ? sectors.push(
           <ButtonSector
-            hue={extraSelected * (360 / totalSectors)}
+            hue={hueOf(extraSelected)}
             angle={359.9}
             startRotation={-90}
             endRotation={-90}

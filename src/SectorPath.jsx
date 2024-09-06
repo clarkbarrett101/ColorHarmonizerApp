@@ -1,6 +1,5 @@
 import { Path } from "react-native-svg";
 import { Hsluv } from "./hsluv.mjs";
-import dropShadow from "./dropShadow";
 export default function SectorPath({
   hue,
   saturation,
@@ -12,6 +11,7 @@ export default function SectorPath({
   outerRadius,
   style,
   strokeWidth = 0,
+  stroke = "none",
 }) {
   function annulusSectorPath(
     cx,
@@ -91,7 +91,7 @@ export default function SectorPath({
         ...style,
       }}
       strokeWidth={strokeWidth}
-      stroke="black"
+      stroke={stroke}
     />
   );
 }

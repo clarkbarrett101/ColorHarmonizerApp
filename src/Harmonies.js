@@ -1,6 +1,6 @@
 export default function harmonizeColors(color0, color1, numSections = 36) {
   function invertColor(color) {
-    return (color + numSections / 2) % numSections;
+    return (color + 180) % 360;
   }
   let colorA = color0;
   let colorB = color1;
@@ -23,32 +23,18 @@ export default function harmonizeColors(color0, color1, numSections = 36) {
   let different = colorB - colorA;
   let middle = (colorA + colorB) / 2;
   let loopSide = false;
-  if (colorA + numSections - colorB < different) {
-    different = colorA + numSections - colorB;
-    middle = (colorA + numSections + colorB) / 2;
+  if (colorA + 360 - colorB < different) {
+    different = colorA + 360 - colorB;
+    middle = (colorA + 360 + colorB) / 2;
     loopSide = true;
   }
-  const diff = (100 * different) / numSections;
-  if (invertColor(colorA) === colorB) {
+  const diff = (100 * different) / 360;
+  const mod = 360 / numSections;
+  if (diff > 46) {
     complementary.push([colorA, colorB]);
-    tetradic.push([
-      colorA,
-      colorB,
-      colorA + numSections / 4,
-      colorB + numSections / 4,
-    ]);
-    doubleSplitComplementary.push([
-      colorA,
-      colorB,
-      colorA + numSections * 0.08,
-      colorB + numSections * 0.08,
-    ]);
-    doubleSplitComplementary.push([
-      colorA,
-      colorB,
-      colorA - numSections * 0.08,
-      colorB - numSections * 0.08,
-    ]);
+    tetradic.push([colorA, colorB, colorA + 90, colorB + 90]);
+    doubleSplitComplementary.push([colorA, colorB, colorA + 30, colorB + 30]);
+    doubleSplitComplementary.push([colorA, colorB, colorA - 30, colorB - 30]);
   } else {
     if (diff < 28 && diff > 20) {
       tetradic.push([colorA, colorB, invertColor(colorA), invertColor(colorB)]);
@@ -86,14 +72,44 @@ export default function harmonizeColors(color0, color1, numSections = 36) {
       ]);
     }
   }
+  let total = 0;
+  if (analogous.length > 0) {
+    total++;
+  }
+  if (complementary.length > 0) {
+    total++;
+  }
+  if (splitComplementary.length > 0) {
+    total++;
+  }
+  if (triadic.length > 0) {
+    total++;
+  }
+  if (tetradic.length > 0) {
+    total++;
+  }
+  if (doubleSplitComplementary.length > 0) {
+    total++;
+  }
+
+  const flags = {
+    analogous: analogous.length > 0,
+    complementary: complementary.length > 0,
+    splitComplementary: splitComplementary.length > 0,
+    triadic: triadic.length > 0,
+    tetradic: tetradic.length > 0,
+    doubleSplitComplementary: doubleSplitComplementary.length > 0,
+    total: total,
+  };
+
   let output = [
     ...analogous,
     ...complementary,
     ...splitComplementary,
     ...triadic,
-    ...doubleSplitComplementary,
     ...tetradic,
+    ...doubleSplitComplementary,
   ];
 
-  return output;
+  return [output, flags];
 }

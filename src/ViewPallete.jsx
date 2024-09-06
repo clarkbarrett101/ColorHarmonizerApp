@@ -1,111 +1,53 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, Dimensions } from "react-native";
+import PalleteSector from "./PalleteSector";
+import PaintRow from "./PaintRow";
 export default function ViewPallete({ paints }) {
-  console.log(paints);
+  const screenHeight = Dimensions.get("window").height;
+  const screenWidth = Dimensions.get("window").width;
+  console.log(screenWidth, screenHeight);
+  const angleRange = [-60, 60];
   function getPaints() {
-    let paintSwatches = [];
+    if (paints.length === 0) {
+      return <></>;
+    }
+    output = [];
+    const angleStep = (angleRange[1] - angleRange[0]) / paints.length;
     for (let i = 0; i < paints.length; i++) {
-      paintSwatches.push(
-        <View
+      output.push(
+        <PalleteSector
+          paints={[paints[i]]}
+          innerRadius={screenWidth * 0.2}
+          outerRadius={screenWidth}
+          angle={angleStep}
+          startRotation={-90}
+          endRotation={angleRange[0] + angleStep * i}
           style={{
-            backgroundColor: paints[i].hex,
-            width: "100%",
-            height: "7%",
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
+            position: "absolute",
+            top: screenHeight / 2,
+            left: 0,
           }}
-        >
-          <Text
-            style={{
-              color: paints[i].hsluv[2] < 50 ? "white" : "black",
-              textAlign: "center",
-              fontSize: 20,
-              flex: 2,
-              textAlignVertical: "center",
-            }}
-          >
-            {paints[i].name}
-          </Text>
-          <Text
-            style={{
-              color: paints[i].hsluv[2] < 50 ? "white" : "black",
-              textAlign: "center",
-              fontSize: 20,
-              flex: 1,
-            }}
-          >
-            {paints[i].brand}
-          </Text>
-          <Text
-            style={{
-              color: paints[i].hsluv[2] < 50 ? "white" : "black",
-              textAlign: "center",
-              fontSize: 20,
-              flex: 1,
-            }}
-          >
-            {paints[i].label}
-          </Text>
-        </View>
+          textStyles={{
+            fontSize: 12,
+            color: "white",
+            textAlign: "center",
+            flex: 1,
+          }}
+          direction={-1}
+        />
       );
     }
-    return paintSwatches;
+    return output;
   }
+
   return (
     <View
       style={{
-        display: "flex",
-        flexDirection: "column",
-        flexWrap: "wrap",
-
-        flex: 1,
+        position: "absolute",
+        top: 0,
+        left: screenWidth * 1.1,
       }}
     >
-      <View
-        style={{
-          backgroundColor: "rgb(128, 128, 150)",
-          width: "100%",
-          height: "5%",
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            textAlign: "center",
-            fontSize: 20,
-            flex: 2,
-            fontWeight: "bold",
-          }}
-        >
-          Name
-        </Text>
-        <Text
-          style={{
-            color: "white",
-            textAlign: "center",
-            fontSize: 20,
-            flex: 1,
-            fontWeight: "bold",
-          }}
-        >
-          Brand
-        </Text>
-        <Text
-          style={{
-            color: "white",
-            textAlign: "center",
-            fontSize: 20,
-            flex: 1,
-            fontWeight: "bold",
-          }}
-        >
-          Label
-        </Text>
-      </View>
       {getPaints()}
     </View>
   );

@@ -18,6 +18,7 @@ export default function ButtonSector({
   sectors,
   satRange = [75, 75],
   litRange = [40, 95],
+  lock = false,
 }) {
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -37,7 +38,9 @@ export default function ButtonSector({
         <SectorPath
           key={i}
           hue={hue}
-          saturation={satRange[0] + ((satRange[1] - satRange[0]) / sectors) * i}
+          saturation={
+            lock ? 0 : satRange[0] + ((satRange[1] - satRange[0]) / sectors) * i
+          }
           lightness={litRange[0] + ((litRange[1] - litRange[0]) / sectors) * i}
           angle={angle}
           innerRadius={innerRadius + innerWidthStep * i}
@@ -49,10 +52,10 @@ export default function ButtonSector({
     return sectorComponents;
   }
   const screenHeight = Dimensions.get("window").height;
-
+  const rangle = endRotation - startRotation;
   const endPos = [
-    Math.cos((endRotation * Math.PI) / 180) * outerRadius,
-    Math.sin((endRotation * Math.PI) / 180) * outerRadius - screenHeight / 2,
+    Math.cos((angle * Math.PI) / 180) * innerRadius,
+    Math.sin((angle * Math.PI) / 180) * innerRadius,
   ];
 
   return (
@@ -89,9 +92,11 @@ export default function ButtonSector({
         <Text
           style={{
             ...textStyles,
-            fontSize: textStyles.fontSize * (1 + strokeWidth / 5),
-            left: outerRadius + innerRadius,
-            top: outerRadius * 1.05,
+            fontSize:
+              (textStyles.fontSize * (1 + strokeWidth / 5) * 4.5) /
+              Math.sqrt(label.length),
+            left: outerRadius + endPos[0],
+            top: outerRadius + endPos[1],
             width: outerRadius - innerRadius,
             position: "absolute",
             textAlign: "center",
@@ -101,7 +106,7 @@ export default function ButtonSector({
                 scaleX: direction,
               },
               {
-                rotate: "-8deg",
+                rotate: `${-angle / 2}deg`,
               },
             ],
           }}

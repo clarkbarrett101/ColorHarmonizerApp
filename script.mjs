@@ -1,22 +1,26 @@
-import masterList from "./src/masterList.mjs";
-import fs from "fs";
-let unique = [];
-for (let i = 0; i < masterList.length; i++) {
-  const paintColor = masterList[i];
-  let isUnique = true;
-  for (let j = 0; j < masterList.length; j++) {
-    const compare = masterList[j];
-    if (
-      i !== j &&
-      paintColor.name === compare.name &&
-      paintColor.hex === compare.hex &&
-      paintColor.brand === compare.brand
-    ) {
-      isUnique = false;
-    }
+function rybHue2RgbHue(rybHue) {
+  let hue = rybHue;
+  if (hue < 60) {
+    hue *= 2;
+  } else if (hue < 120) {
+    hue += 60;
+  } else if (hue < 180) {
+    hue = 120 + (hue - 60) / 2;
   }
-  if (isUnique) {
-    unique.push(paintColor);
+  return hue;
+}
+function rgbHue2RybHue(rgbHue) {
+  let hue = rgbHue;
+  if (hue < 120) {
+    return hue / 2;
+  } else if (hue < 180) {
+    return 60 + hue - 120;
+  } else if (hue < 240) {
+    return 120 + (hue - 180) * 2;
+  } else {
+    return hue;
   }
 }
-console.log(unique.length, masterList.length);
+for (let i = 0; i < 360; i += 10) {
+  console.log(i, rybHue2RgbHue(i), rgbHue2RybHue(i));
+}

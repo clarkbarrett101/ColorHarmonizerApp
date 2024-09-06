@@ -19,7 +19,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.0.2</string>
+    <string>2.1.0</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -32,7 +32,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>2.0.2</string>
+    <string>2.1.0</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSAppTransportSecurity</key>
@@ -43,7 +43,7 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>ColorHarmonizer needs access to your camera so you can measure undertones and view walls with different paint colors.</string>
+    <string>ColorHarmonizer needs access to your camera so you can measure undertone colors and view walls with different paint colors.</string>
     <key>UIAppFonts</key>
     <array>
       <string>basenji-variable.otf</string>

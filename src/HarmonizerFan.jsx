@@ -19,6 +19,8 @@ export default function HarmonizerFan({
   onDrop,
   isSaved,
   isDragging,
+  chipPosition,
+  setChipPosition,
 }) {
   const [trueStartAngle, setTrueStartAngle] = React.useState(startAngle);
   const [trueEndAngle, setTrueEndAngle] = React.useState(endAngle);
@@ -26,7 +28,7 @@ export default function HarmonizerFan({
   React.useEffect(() => {
     if (hsl) {
       let paintList = findColors();
-      setColorList(paintList);
+      setColorList([...paintList]);
     }
   }, [hsl, colors]);
   function findColors() {
@@ -62,7 +64,7 @@ export default function HarmonizerFan({
       sectors.push(
         <PaintCapsule
           paint={colorList[i]}
-          startRotation={0}
+          startRotation={startAngle}
           endRotation={startAngle + (i + 0.5) * angleStep}
           width={outerRadius - innerRadius}
           direction={direction}
@@ -70,7 +72,8 @@ export default function HarmonizerFan({
           onDragStart={onDragStart}
           onDrop={onDrop}
           isSaved={isSaved}
-          isDummy={false}
+          chipPosition={chipPosition}
+          setChipPosition={setChipPosition}
           isDragging={isDragging}
         />
       );

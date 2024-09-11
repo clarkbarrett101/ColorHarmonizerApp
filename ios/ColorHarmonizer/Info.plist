@@ -46,7 +46,6 @@
     <string>ColorHarmonizer needs access to your camera so you can measure undertone colors and view walls with different paint colors.</string>
     <key>UIAppFonts</key>
     <array>
-      <string>basenji-variable.otf</string>
       <string>Outfit-VariableFont_wght.ttf</string>
     </array>
     <key>UILaunchStoryboardName</key>

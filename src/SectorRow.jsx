@@ -185,6 +185,8 @@ export default function SectorRow({
       {getSectors()}
       {label ? (
         <Text
+          adjustsFontSizeToFit={true}
+          numberOfLines={1}
           style={{
             ...textStyles,
             fontSize: textStyles.fontSize * (1 + strokeWidth / 5),

@@ -158,6 +158,8 @@ export default function MixerCapsule({
         </G>
         <G scaleX={direction}>
           <Text
+            adjustsFontSizeToFit={true}
+            numberOfLines={1}
             fill={textColor}
             fontSize="30"
             x="50%"
@@ -169,6 +171,8 @@ export default function MixerCapsule({
             {paint.name}
           </Text>
           <Text
+            adjustsFontSizeToFit={true}
+            numberOfLines={1}
             fill={textColor}
             fontSize="30"
             x="50%"

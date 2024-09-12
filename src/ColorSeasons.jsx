@@ -289,7 +289,7 @@ export default function ColorSeasons({
           direction={-1}
           textStyles={{
             fontSize: 16 * fontMod,
-            color: "black",
+            color: allColors[i].hsluv[2] > 50 ? "black" : "white",
           }}
         />
       );
@@ -322,7 +322,6 @@ export default function ColorSeasons({
           direction={-1}
           textStyles={{
             fontSize: 16 * fontMod,
-            color: "black",
           }}
           label={i === selectedSector ? "" : labels[i]}
         />

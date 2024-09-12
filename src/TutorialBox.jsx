@@ -34,15 +34,21 @@ export default function TutorialBox({
           <Rect x="0" y="0" width={width} height={height} fill="url(#grad)" />
         </Svg>
         <Text
+          adjustsFontSizeToFit={true}
+          numberOfLines={4}
           style={[
             textStyle,
-            { color: selectedColor[2] > 50 ? "black" : "white" },
+            {
+              color: selectedColor[2] > 50 ? "black" : "white",
+              fontFamily: "Outfit",
+            },
           ]}
         >
           {text}
         </Text>
         {close ? (
           <Text
+            adjustsFontSizeToFit={true}
             style={{
               fontSize: textStyle.fontSize / 2,
               color: selectedColor[2] > 50 ? "black" : "white",

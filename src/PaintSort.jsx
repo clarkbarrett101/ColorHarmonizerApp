@@ -50,7 +50,10 @@ export default function PaintSort({
   }
   return (
     <View style={{ flex: 1 }}>
-      <Text style={{ textAlign: "center", fontSize: 12 }}>
+      <Text
+        adjustsFontSizeToFit={true}
+        style={{ textAlign: "center", fontSize: 12 }}
+      >
         Drag to add to palette
       </Text>
       {getPaintList()}

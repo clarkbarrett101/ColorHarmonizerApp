@@ -367,7 +367,7 @@ export default function ColorMixer({
           direction={-1}
           textStyles={{
             fontSize: 16 * fontMod,
-            color: "black",
+            color: colors[i].hsluv[2] > 50 ? "black" : "white",
           }}
         />
       );

@@ -40,6 +40,7 @@ export default function PayWall({ setPaywall, purchase, restore }) {
         />
       </TouchableOpacity>
       <Text
+        adjustsFontSizeToFit={true}
         style={{
           fontSize: 30 * fontMod,
           textAlign: "center",
@@ -79,6 +80,7 @@ export default function PayWall({ setPaywall, purchase, restore }) {
         />
       </View>
       <Text
+        adjustsFontSizeToFit={true}
         style={{
           fontSize: 17 * fontMod,
           textAlign: "center",
@@ -109,6 +111,7 @@ export default function PayWall({ setPaywall, purchase, restore }) {
         onPress={purchase}
       >
         <Text
+          adjustsFontSizeToFit={true}
           style={{
             color: "white",
             fontWeight: "bold",
@@ -138,6 +141,7 @@ export default function PayWall({ setPaywall, purchase, restore }) {
         onPress={restore}
       >
         <Text
+          adjustsFontSizeToFit={true}
           style={{
             color: "#aa44ff",
             fontWeight: "bold",

@@ -103,6 +103,7 @@ export default function PaintSector({
       </Svg>
       {paint ? (
         <Text
+          adjustsFontSizeToFit={true}
           style={{
             ...textStyles,
             left: outerRadius + innerRadius,
@@ -110,7 +111,7 @@ export default function PaintSector({
             width: outerRadius - innerRadius,
             position: "absolute",
             textAlign: "center",
-            fontFamily: "-",
+            fontFamily: "Outfit",
             transform: [
               {
                 scaleX: direction,

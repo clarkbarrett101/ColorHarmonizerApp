@@ -204,17 +204,19 @@ export default function PaintCapsule({
           </G>
           <G scaleX={direction}>
             <Text
+              adjustsFontSizeToFit={true}
               fill={textColor}
               fontSize="30"
               x="50%"
               y="25%"
               textAnchor="middle"
-              fontFamily="-"
+              fontFamily="Outfit"
               scaleX={direction}
             >
               {paint.name}
             </Text>
             <Text
+              adjustsFontSizeToFit={true}
               fill={textColor}
               fontSize="30"
               x="50%"
@@ -226,6 +228,7 @@ export default function PaintCapsule({
               {"(" + paint.brand + ")"}
             </Text>
             <Text
+              adjustsFontSizeToFit={true}
               fill={textColor}
               fontSize="25"
               x="50%"

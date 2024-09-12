@@ -42,7 +42,10 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/Outfit-VariableFont_wght.ttf"]
+          "fonts": [
+            "./assets/Outfit-VariableFont_wght.ttf",
+            "./assets/Outfit-VariableFont_wght.ttf"
+          ]
         }
       ]
     ]

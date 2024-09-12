@@ -103,6 +103,7 @@ export default function PalleteSector({
           }}
         >
           <Text
+            adjustsFontSizeToFit={true}
             style={{
               ...textStyles,
               fontWeight: "bold",
@@ -115,6 +116,7 @@ export default function PalleteSector({
           {paints.length == 1 ? (
             <>
               <Text
+                adjustsFontSizeToFit={true}
                 style={{
                   ...textStyles,
                   color: paints[0].hsluv[2] > 50 ? "black" : "white",
@@ -123,6 +125,7 @@ export default function PalleteSector({
                 {paints[0].brand}
               </Text>
               <Text
+                adjustsFontSizeToFit={true}
                 style={{
                   ...textStyles,
                   color: paints[0].hsluv[2] >= 50 ? "black" : "white",

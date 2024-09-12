@@ -226,6 +226,8 @@ function WallSwapper({
           }}
         >
           <Text
+            adjustsFontSizeToFit={true}
+            numberOfLines={1}
             style={[
               textStyles,
               {
@@ -251,6 +253,8 @@ function WallSwapper({
             }}
           >
             <Text
+              adjustsFontSizeToFit={true}
+              numberOfLines={1}
               style={[
                 textStyles,
                 {
@@ -261,6 +265,8 @@ function WallSwapper({
               {assignedColor.name}
             </Text>
             <Text
+              adjustsFontSizeToFit={true}
+              numberOfLines={1}
               style={[
                 textStyles,
                 {
@@ -301,6 +307,8 @@ function WallSwapper({
               }}
             >
               <Text
+                adjustsFontSizeToFit={true}
+                numberOfLines={2}
                 style={[
                   textStyles,
                   {
@@ -331,6 +339,8 @@ function WallSwapper({
               }}
             >
               <Text
+                adjustsFontSizeToFit={true}
+                numberOfLines={2}
                 style={[
                   textStyles,
                   {

@@ -90,17 +90,19 @@ export default function ButtonSector({
       <Svg>{getSectors()}</Svg>
       {label ? (
         <Text
+          adjustsFontSizeToFit={true}
+          numberOfLines={1}
           style={{
             ...textStyles,
             fontSize:
               (textStyles.fontSize * (1 + strokeWidth / 5) * 4.5) /
               Math.sqrt(label.length),
             left: outerRadius + endPos[0],
-            top: outerRadius + endPos[1],
+            top: outerRadius + endPos[1] - textStyles.fontSize / 2,
             width: outerRadius - innerRadius,
             position: "absolute",
             textAlign: "center",
-            fontFamily: "-",
+            fontFamily: "Outfit",
             transform: [
               {
                 scaleX: direction,

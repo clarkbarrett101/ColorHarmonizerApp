@@ -485,7 +485,7 @@ export default function Harmonizer({
           padding: sizeMod * 0.1,
           paddingVertical: sizeMod * 0.12,
           zIndex: 100,
-          fontFamily: "-",
+          fontFamily: "Outfit",
           position: "absolute",
         }}
         isOpen={getCorrespondingTutorial()[0]}
@@ -518,7 +518,7 @@ export default function Harmonizer({
             padding: sizeMod * 0.1,
             paddingVertical: sizeMod * 0.12,
             zIndex: 100,
-            fontFamily: "-",
+            fontFamily: "Outfit",
             position: "absolute",
           }}
           isOpen={getCorrespondingTutorial()[0]}
@@ -925,9 +925,11 @@ export default function Harmonizer({
         }}
       >
         <Text
+          adjustsFontSizeToFit={true}
+          numberOfLines={2}
           style={{
             color: "white",
-            fontFamily: "-",
+            fontFamily: "Outfit",
             fontSize: 20 * fontMod,
             textAlign: "center",
             padding: sizeMod * 0.01,

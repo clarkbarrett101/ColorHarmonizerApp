@@ -110,6 +110,13 @@ export default function harmonizeColors(color0, color1, numSections = 36) {
     ...tetradic,
     ...doubleSplitComplementary,
   ];
+  for (let i = 0; i < output.length; i++) {
+    for (let j = 0; j < output[i].length; j++) {
+      if (output[i][j] < 0) {
+        output[i][j] = output[i][j] + 360;
+      }
+    }
+  }
 
   return [output, flags];
 }

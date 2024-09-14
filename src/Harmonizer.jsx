@@ -25,7 +25,6 @@ import SelectText from "./SelectText";
 import SectorPath from "./SectorPath";
 import TutorialBox from "./TutorialBox";
 import InfoIcon from "./InfoIcon";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 export default function Harmonizer({
   assignedColor,
   assignedColor2,
@@ -699,6 +698,7 @@ export default function Harmonizer({
   function getPaintFans() {
     let fans = [];
     let angleStep = 180 / allHSLs.length;
+    console.log(allHSLs);
     for (let i = 0; i < allHSLs.length; i++) {
       fans.push(
         <HarmonizerFan

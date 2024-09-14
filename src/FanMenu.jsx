@@ -73,7 +73,7 @@ export default function FanMenu({
     },
   });
   useEffect(() => {
-    let angleStep = (endAngle - startAngle) / (labels.length - 1);
+    let angleStep = (endAngle - startAngle) / labels.length;
     let ranges = [];
     for (let i = 1; i < labels.length + 1; i++) {
       ranges.push(trueStartAngle + angleStep * lockOffset(i - 1));

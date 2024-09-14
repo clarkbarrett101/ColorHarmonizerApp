@@ -222,36 +222,40 @@ export default function Driver({ premium, setPaywall }) {
   };
 
   function getPage() {
-    if (currentPage === 0) {
-      return (
-        <Home
-          pages={pages}
-          setCurrentPage={setCurrentPage}
-          isPremium={isPremium}
-        />
-      );
-    } else if (currentPage === 3) {
-      return <ColorRadials {...pageProps} />;
-    } else if (currentPage === 1) {
-      return <Harmonizer {...pageProps} />;
-    } else if (currentPage === 4) {
-      return <ColorSeasons {...pageProps} />;
-    } else if (currentPage === 2) {
-      return <ColorMixer {...pageProps} />;
-    } else if (currentPage === 7) {
-      if (isPremium) {
-        return <WallSwapper {...pageProps} swatches={swatches} />;
-      } else {
-        setPaywall(true);
+    try {
+      if (currentPage === 0) {
+        return (
+          <Home
+            pages={pages}
+            setCurrentPage={setCurrentPage}
+            isPremium={isPremium}
+          />
+        );
+      } else if (currentPage === 3) {
+        return <ColorRadials {...pageProps} />;
+      } else if (currentPage === 1) {
+        return <Harmonizer {...pageProps} />;
+      } else if (currentPage === 4) {
+        return <ColorSeasons {...pageProps} />;
+      } else if (currentPage === 2) {
+        return <ColorMixer {...pageProps} />;
+      } else if (currentPage === 7) {
+        if (isPremium) {
+          return <WallSwapper {...pageProps} swatches={swatches} />;
+        } else {
+          setPaywall(true);
+        }
+      } else if (currentPage === 6) {
+        if (isPremium) {
+          return <ChromaCamera {...pageProps} />;
+        } else {
+          setPaywall(true);
+        }
+      } else if (currentPage === 5) {
+        return <ViewPallete paints={swatches} />;
       }
-    } else if (currentPage === 6) {
-      if (isPremium) {
-        return <ChromaCamera {...pageProps} />;
-      } else {
-        setPaywall(true);
-      }
-    } else if (currentPage === 5) {
-      return <ViewPallete paints={swatches} />;
+    } catch (e) {
+      setCurrentPage(0);
     }
   }
 

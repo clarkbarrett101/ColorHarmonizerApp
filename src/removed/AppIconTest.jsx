@@ -1,7 +1,7 @@
 import React from "react";
-import ButtonSector from "./ButtonSector";
+import ButtonSector from "../components/ButtonSector";
 import { Dimensions } from "react-native";
-import { Hsluv } from "./hsluv.mjs";
+import { Hsluv } from "../hsluv.mjs";
 import { Svg, Stop, RadialGradient, Rect } from "react-native-svg";
 export default function AppIconTest() {
   const screenWidth = Dimensions.get("window").width;

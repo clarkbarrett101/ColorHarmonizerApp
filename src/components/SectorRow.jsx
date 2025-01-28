@@ -2,7 +2,7 @@ import { Svg, Path, G } from "react-native-svg";
 import React from "react";
 import { useEffect, useRef } from "react";
 import { Text, View, Animated, Dimensions } from "react-native";
-import { Hsluv } from "./hsluv.mjs";
+import { Hsluv } from "../hsluv.mjs";
 export default function SectorRow({
   hue,
   label,

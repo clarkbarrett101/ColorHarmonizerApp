@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
 import Svg, { G, Text, Path, Defs, TextPath, TSpan } from "react-native-svg";
-import SectorPath from "./SectorPath";
+import SectorPath from "../SectorPath";
 import { Animated } from "react-native";
-export default function MixerSector({
+export default function SeasonSector({
   hues,
   sats,
   lits,
@@ -48,6 +48,19 @@ export default function MixerSector({
       useNativeDriver: false,
     }).start();
   }, [anim]);
+  const pathEndPos = [
+    Math.cos(
+      ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180
+    ) *
+      outerRadius *
+      0.97 +
+      outerRadius,
+    Math.sin(
+      ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180
+    ) *
+      (outerRadius * 0.85) +
+      outerRadius,
+  ];
   function getColors() {
     let sectorComponents = [];
     let angle = (endAngle - startAngle) / sectorNumber;
@@ -55,20 +68,7 @@ export default function MixerSector({
       if (i === modifiedValue) {
         continue;
       }
-      const pathEndPos = [
-        Math.cos(
-          ((180 - (endAngle - startAngle) / 2 - label.length * 0.7) * Math.PI) /
-            180
-        ) *
-          (outerRadius * 0.95) +
-          outerRadius,
-        Math.sin(
-          ((180 - (endAngle - startAngle) / 2 - label.length * 0.7) * Math.PI) /
-            180
-        ) *
-          (outerRadius * 0.95) +
-          outerRadius,
-      ];
+
       sectorComponents.push(
         <Animated.View
           key={i}
@@ -111,43 +111,49 @@ export default function MixerSector({
               />
             </G>
           </Svg>
-          <View
-            style={{
-              position: "absolute",
-              width: outerRadius * 2,
-              height: outerRadius * 2,
-              transform: [
-                {
-                  scaleX: direction,
-                },
-              ],
-            }}
-          >
-            <Svg>
-              <Defs>
-                <Path
-                  id="path"
-                  d={`
-                    M ${pathEndPos[0]},${pathEndPos[1]}
-                 
-                   A ${outerRadius},${outerRadius} 0,0,1  ${
-                    outerRadius * 0.05
-                  },${outerRadius * 0.95}`}
-                />
-              </Defs>
-              <Text
-                fill={lits[0] > 50 ? "black" : "white"}
-                fontSize={textStyles.fontSize}
-                fontFamily="-"
-              >
-                <TextPath href="#path">{label}</TextPath>
-              </Text>
-            </Svg>
-          </View>
         </Animated.View>
       );
     }
-
+    sectorComponents.push(
+      <View
+        style={{
+          position: "absolute",
+          width: outerRadius * 2,
+          height: outerRadius * 2,
+          zIndex: 10,
+          transform: [
+            {
+              translateX: -outerRadius,
+            },
+            {
+              translateY: -outerRadius,
+            },
+            {
+              rotate: `${90 - startAngle}deg`,
+            },
+          ],
+        }}
+      >
+        <Svg>
+          <Defs>
+            <Path
+              id="path"
+              d={`
+                M ${pathEndPos[0]},${pathEndPos[1]}
+             
+               A ${outerRadius},${outerRadius} 0,0,1  ${20},${outerRadius}`}
+            />
+          </Defs>
+          <Text
+            fill={lits[0] > 50 ? "black" : "white"}
+            fontSize={textStyles.fontSize || 20}
+            fontFamily="-"
+          >
+            <TextPath href="#path">{label}</TextPath>
+          </Text>
+        </Svg>
+      </View>
+    );
     return sectorComponents;
   }
 

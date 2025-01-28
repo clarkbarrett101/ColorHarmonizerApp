@@ -1,4 +1,4 @@
-import PaintSector from "./PaintSector";
+import PaintSector from "../PaintSector";
 import React, { useEffect, useRef, useReducer } from "react";
 import { Dimensions, View, Animated, Text } from "react-native";
 import masterList from "./masterList";

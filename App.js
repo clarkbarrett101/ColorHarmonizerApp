@@ -16,20 +16,20 @@ export default class App extends React.Component {
   async componentDidMount() {
     Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
     if (Platform.OS === "android") {
-      await Purchases.configure({ apiKey: "goog_nbjOYQKfQxYVSCBWXbhLvVUzMBA" });
+      this.setState({ isPremium: true });
     } else if (Platform.OS === "ios") {
       await Purchases.configure({
         apiKey: "appl_VkkRztDNPposokHuqhRQIbgbIbV",
       });
-    }
 
-    try {
-      const customer = await Purchases.getCustomerInfo();
-      if (customer.entitlements.active["Premium Features"]) {
-        this.setState({ isPremium: true });
+      try {
+        const customer = await Purchases.getCustomerInfo();
+        if (customer.entitlements.active["Premium Features"]) {
+          this.setState({ isPremium: true });
+        }
+      } catch (e) {
+        console.log("Error getting offerings: ", e);
       }
-    } catch (e) {
-      console.log("Error getting offerings: ", e);
     }
   }
   restore = async () => {

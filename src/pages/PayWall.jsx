@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View, Image, TouchableOpacity, Dimensions } from "react-native";
-import HomeRadialIcon from "./HomeRadialIcon";
+import HomeRadialIcon from "../icons/HomeRadialIcon";
 export default function PayWall({ setPaywall, purchase, restore }) {
   const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;

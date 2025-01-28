@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
 import { Dimensions, PanResponder, View, TouchableOpacity } from "react-native";
-import ColorSector from "./ColorSector";
-import HueWheel from "./HueWheel";
+import ColorSector from "../ColorSector";
+import HueWheel from "../HueWheel";
 import PaintFan from "./PaintFan";
 import TutorialBox from "./TutorialBox";
-import InfoIcon from "./InfoIcon";
+import InfoIcon from "../InfoIcon";
 export default function ColorRadials({
   onDragStart,
   onDrop,

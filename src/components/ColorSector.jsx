@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
-import Svg, { G, Text, Path, Defs, TextPath, TSpan } from "react-native-svg";
-import SectorPath from "./SectorPath";
+import Svg, { G } from "react-native-svg";
+import SectorPath from "../SectorPath";
 import { Animated } from "react-native";
-export default function SeasonSector({
+export default function ColorSector({
   hues,
   sats,
   lits,
@@ -16,8 +16,6 @@ export default function SeasonSector({
   strokeWidth = 0,
   sat,
   lit,
-  label = "",
-  textStyles = {},
 }) {
   let modifiedValue;
   if (sat) {
@@ -48,19 +46,6 @@ export default function SeasonSector({
       useNativeDriver: false,
     }).start();
   }, [anim]);
-  const pathEndPos = [
-    Math.cos(
-      ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180
-    ) *
-      outerRadius *
-      0.97 +
-      outerRadius,
-    Math.sin(
-      ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180
-    ) *
-      (outerRadius * 0.85) +
-      outerRadius,
-  ];
   function getColors() {
     let sectorComponents = [];
     let angle = (endAngle - startAngle) / sectorNumber;
@@ -68,7 +53,6 @@ export default function SeasonSector({
       if (i === modifiedValue) {
         continue;
       }
-
       sectorComponents.push(
         <Animated.View
           key={i}
@@ -88,7 +72,7 @@ export default function SeasonSector({
                 rotate: anim.interpolate({
                   inputRange: [0, 1],
                   outputRange: [
-                    `${0}deg`,
+                    `${90 - startAngle}deg`,
                     `${90 - startAngle + i * angle * direction}deg`,
                   ],
                 }),
@@ -116,41 +100,47 @@ export default function SeasonSector({
     }
     sectorComponents.push(
       <View
+        key={modifiedValue}
         style={{
+          zIndex: 1,
+          width: outerRadius * 2.2,
+          height: outerRadius * 2.2,
           position: "absolute",
-          width: outerRadius * 2,
-          height: outerRadius * 2,
-          zIndex: 10,
+          shadowColor: "black",
+          shadowRadius: 3,
+          shadowOpacity: 0.5,
+          shadowOffset: {
+            width: 0,
+            height: 0,
+          },
           transform: [
             {
-              translateX: -outerRadius,
+              translateX: -outerRadius * 1.1,
             },
             {
-              translateY: -outerRadius,
+              translateY: -outerRadius * 1.1,
             },
             {
-              rotate: `${90 - startAngle}deg`,
+              rotate:
+                90 - startAngle + modifiedValue * angle * direction + "deg",
+            },
+            {
+              scaleX: direction,
             },
           ],
         }}
       >
         <Svg>
-          <Defs>
-            <Path
-              id="path"
-              d={`
-                M ${pathEndPos[0]},${pathEndPos[1]}
-             
-               A ${outerRadius},${outerRadius} 0,0,1  ${20},${outerRadius}`}
+          <G>
+            <SectorPath
+              hue={hues.length > 1 ? hues[modifiedValue] : hues[0]}
+              saturation={sats.length > 1 ? sats[modifiedValue] : sats[0]}
+              lightness={lits.length > 1 ? lits[modifiedValue] : lits[0]}
+              angle={angle}
+              innerRadius={innerRadius}
+              outerRadius={outerRadius * 1.1}
             />
-          </Defs>
-          <Text
-            fill={lits[0] > 50 ? "black" : "white"}
-            fontSize={textStyles.fontSize || 20}
-            fontFamily="-"
-          >
-            <TextPath href="#path">{label}</TextPath>
-          </Text>
+          </G>
         </Svg>
       </View>
     );

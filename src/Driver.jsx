@@ -9,22 +9,22 @@ import Svg, {
   Rect,
   Circle,
 } from "react-native-svg";
-import ColorMixer from "./ColorMixer";
-import Harmonizer from "./Harmonizer";
+import ColorMixer from "./pages/ColorMixer";
+import Harmonizer from "./pages/Harmonizer";
 import ColorSeasons from "./ColorSeasons";
-import WallSwapper from "./WallSwapper";
-import ChromaCamera from "./ChromaCamera";
-import ColorRadials from "./ColorRadials";
-import PaintFan from "./PaintFan";
-import ApplyColorIcon from "./ApplyColorIcon";
-import Home from "./Home";
-import ViewPallete from "./ViewPallete";
-import AddColor from "./AddColor";
-import HomeRadialIcon from "./HomeRadialIcon";
-import DiscardIcon from "./DiscardIcon";
-import TutorialBox from "./TutorialBox";
+import WallSwapper from "./pages/WallSwapper";
+import ChromaCamera from "./pages/ChromaCamera";
+import ColorRadials from "./components/ColorRadials";
+import PaintFan from "./components/PaintFan";
+import ApplyColorIcon from "./icons/ApplyColorIcon";
+import Home from "./pages/Home";
+import ViewPallete from "./components/ViewPalleteViewPallete";
+import AddColor from "./icons/AddColor";
+import HomeRadialIcon from "./icons/HomeRadialIcon";
+import DiscardIcon from "./icons/DiscardIcon";
+import TutorialBox from "./components/TutorialBox";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import PayWall from "./PayWall";
+import PayWall from "./pages/PayWall";
 export default function Driver({ premium, setPaywall }) {
   let testList = startList;
   const [swatches, setSwatches] = useState([]);
@@ -522,8 +522,6 @@ export default function Driver({ premium, setPaywall }) {
       ) : null}
       {!isSaved && isDragging ? (
         <AddColor
-          width={screenWidth * 0.3}
-          height={screenWidth * 0.3}
           style={{
             position: "absolute",
             left: 25,

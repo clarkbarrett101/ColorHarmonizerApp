@@ -1,4 +1,4 @@
-import ButtonSector from "./ButtonSector";
+import ButtonSector from "./components/ButtonSector";
 import React, { useEffect } from "react";
 import { View, TouchableOpacity, PanResponder, Dimensions } from "react-native";
 export default function FanMenu({

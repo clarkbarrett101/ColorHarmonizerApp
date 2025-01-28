@@ -15,8 +15,8 @@ import {
 } from "react-native";
 import { Skia, float } from "@shopify/react-native-skia";
 import { useSharedValue } from "react-native-worklets-core";
-import TutorialBox from "./TutorialBox";
-import InfoIcon from "./InfoIcon";
+import TutorialBox from "../components/TutorialBox";
+import InfoIcon from "../icons/InfoIcon";
 import {
   Svg,
   LinearGradient,

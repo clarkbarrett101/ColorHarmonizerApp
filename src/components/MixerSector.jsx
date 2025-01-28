@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
-import Svg, { G } from "react-native-svg";
-import SectorPath from "./SectorPath";
+import Svg, { G, Text, Path, Defs, TextPath, TSpan } from "react-native-svg";
+import SectorPath from "../SectorPath";
 import { Animated } from "react-native";
-export default function ColorSector({
+export default function MixerSector({
   hues,
   sats,
   lits,
@@ -16,6 +16,8 @@ export default function ColorSector({
   strokeWidth = 0,
   sat,
   lit,
+  label = "",
+  textStyles = {},
 }) {
   let modifiedValue;
   if (sat) {
@@ -53,6 +55,20 @@ export default function ColorSector({
       if (i === modifiedValue) {
         continue;
       }
+      const pathEndPos = [
+        Math.cos(
+          ((180 - (endAngle - startAngle) / 2 - label.length * 0.7) * Math.PI) /
+            180
+        ) *
+          (outerRadius * 0.95) +
+          outerRadius,
+        Math.sin(
+          ((180 - (endAngle - startAngle) / 2 - label.length * 0.7) * Math.PI) /
+            180
+        ) *
+          (outerRadius * 0.95) +
+          outerRadius,
+      ];
       sectorComponents.push(
         <Animated.View
           key={i}
@@ -72,7 +88,7 @@ export default function ColorSector({
                 rotate: anim.interpolate({
                   inputRange: [0, 1],
                   outputRange: [
-                    `${90 - startAngle}deg`,
+                    `${0}deg`,
                     `${90 - startAngle + i * angle * direction}deg`,
                   ],
                 }),
@@ -95,55 +111,43 @@ export default function ColorSector({
               />
             </G>
           </Svg>
+          <View
+            style={{
+              position: "absolute",
+              width: outerRadius * 2,
+              height: outerRadius * 2,
+              transform: [
+                {
+                  scaleX: direction,
+                },
+              ],
+            }}
+          >
+            <Svg>
+              <Defs>
+                <Path
+                  id="path"
+                  d={`
+                    M ${pathEndPos[0]},${pathEndPos[1]}
+                 
+                   A ${outerRadius},${outerRadius} 0,0,1  ${
+                    outerRadius * 0.05
+                  },${outerRadius * 0.95}`}
+                />
+              </Defs>
+              <Text
+                fill={lits[0] > 50 ? "black" : "white"}
+                fontSize={textStyles.fontSize}
+                fontFamily="-"
+              >
+                <TextPath href="#path">{label}</TextPath>
+              </Text>
+            </Svg>
+          </View>
         </Animated.View>
       );
     }
-    sectorComponents.push(
-      <View
-        key={modifiedValue}
-        style={{
-          zIndex: 1,
-          width: outerRadius * 2.2,
-          height: outerRadius * 2.2,
-          position: "absolute",
-          shadowColor: "black",
-          shadowRadius: 3,
-          shadowOpacity: 0.5,
-          shadowOffset: {
-            width: 0,
-            height: 0,
-          },
-          transform: [
-            {
-              translateX: -outerRadius * 1.1,
-            },
-            {
-              translateY: -outerRadius * 1.1,
-            },
-            {
-              rotate:
-                90 - startAngle + modifiedValue * angle * direction + "deg",
-            },
-            {
-              scaleX: direction,
-            },
-          ],
-        }}
-      >
-        <Svg>
-          <G>
-            <SectorPath
-              hue={hues.length > 1 ? hues[modifiedValue] : hues[0]}
-              saturation={sats.length > 1 ? sats[modifiedValue] : sats[0]}
-              lightness={lits.length > 1 ? lits[modifiedValue] : lits[0]}
-              angle={angle}
-              innerRadius={innerRadius}
-              outerRadius={outerRadius * 1.1}
-            />
-          </G>
-        </Svg>
-      </View>
-    );
+
     return sectorComponents;
   }
 

@@ -17,14 +17,14 @@ import {
 } from "./CurvedLabel";
 import Svg, { G, Path } from "react-native-svg";
 import { useState } from "react";
-import HarmonizerWheel from "./HarmonizerWheel";
-import harmonizeColors from "./Harmonies";
-import SectorRow from "./SectorRow";
+import HarmonizerWheel from "../HarmonizerWheel";
+import harmonizeColors from "../Harmonies";
+import SectorRow from "../components/SectorRow";
 import HarmonizerFan from "./HarmonizerFan";
-import SelectText from "./SelectText";
-import SectorPath from "./SectorPath";
-import TutorialBox from "./TutorialBox";
-import InfoIcon from "./InfoIcon";
+import SelectText from "../components/SelectText";
+import SectorPath from "../SectorPath";
+import TutorialBox from "../components/TutorialBox";
+import InfoIcon from "../InfoIcon";
 export default function Harmonizer({
   assignedColor,
   assignedColor2,
@@ -371,6 +371,29 @@ export default function Harmonizer({
     } else if (hue < 360) {
       // 300-360 => 330-360
       hue = 330 + (hue - 300) / 2;
+    }
+    return hue;
+  }
+  function rgbHue2RygbHue(rgbHue) {
+    // 0-60 => 0-120
+    // 60-120 => 120-180
+    // 120-180 => 180-210
+    // 180-240 => 210-240
+    // 240-300 => 240-330
+    // 300-360 => 330-360
+    let hue = rgbHue;
+    if (hue < 60) {
+      hue *= 2;
+    } else if (hue < 120) {
+      hue = 120 + (hue - 60);
+    } else if (hue < 180) {
+      hue = 180 + (hue - 120) * 0.5;
+    } else if (hue < 240) {
+      hue = 210 + (hue - 180) * 0.5;
+    } else if (hue < 300) {
+      hue = 240 + ((hue - 240) * 3) / 2;
+    } else if (hue < 360) {
+      hue = 330 + (hue - 300) * 0.5;
     }
     return hue;
   }

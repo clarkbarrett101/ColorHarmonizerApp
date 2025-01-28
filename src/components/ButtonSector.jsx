@@ -1,7 +1,7 @@
 import { Svg, Path, G } from "react-native-svg";
 import React from "react";
 import { useEffect, useRef } from "react";
-import SectorPath from "./SectorPath";
+import SectorPath from "../SectorPath";
 import { Text, View, Animated, Dimensions } from "react-native";
 export default function ButtonSector({
   hue,

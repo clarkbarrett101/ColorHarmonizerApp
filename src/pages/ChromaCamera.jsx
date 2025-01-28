@@ -6,14 +6,14 @@ import {
   useCameraPermission,
 } from "react-native-vision-camera";
 import { useSharedValue } from "react-native-worklets-core";
-import { Hsluv } from "./hsluv.mjs";
+import { Hsluv } from "../hsluv.mjs";
 import { View, Image, TouchableOpacity, Text, Dimensions } from "react-native";
 import Svg, { Line, Circle, G } from "react-native-svg";
-import ColorSector from "./ColorSector.jsx";
-import SectorPath from "./SectorPath.jsx";
-import SelectText from "./SelectText.jsx";
-import TutorialBox from "./TutorialBox.jsx";
-import InfoIcon from "./InfoIcon.jsx";
+import ColorSector from "../components/ColorSector.jsx";
+import SectorPath from "../SectorPath.jsx";
+import SelectText from "../components/SelectText.jsx";
+import TutorialBox from "../components/TutorialBox.jsx";
+import InfoIcon from "../icons/InfoIcon.jsx";
 
 export default function ChromaCamera({
   setCurrentPage,

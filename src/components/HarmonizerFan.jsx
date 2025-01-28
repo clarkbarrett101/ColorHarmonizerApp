@@ -4,7 +4,7 @@ import { Dimensions, View, Animated, Text } from "react-native";
 import masterList from "./masterList";
 import { Svg, Path, G } from "react-native-svg";
 import { Hsluv } from "./hsluv";
-import PaintCapsule from "./PaintCapsule";
+import PaintCapsule from "../PaintCapsule";
 
 export default function HarmonizerFan({
   hsl,

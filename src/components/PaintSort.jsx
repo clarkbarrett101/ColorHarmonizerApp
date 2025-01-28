@@ -1,7 +1,7 @@
 import React from "react";
 import { Hsluv } from "./hsluv";
 import PaintFan from "./PaintFan";
-import masterList from "./masterList.mjs";
+import masterList from "../masterList.mjs";
 import { View, Dimensions, Text } from "react-native";
 export default function PaintSort({
   hue,

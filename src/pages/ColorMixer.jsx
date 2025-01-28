@@ -8,13 +8,13 @@ import {
   Dimensions,
   PanResponder,
 } from "react-native";
-import masterList from "./masterList.mjs";
-import MixerSector from "./MixerSector";
-import PaintSector from "./PaintSector";
-import MixerCapsule from "./MixerCapsule";
-import TutorialBox from "./TutorialBox";
-import InfoIcon from "./InfoIcon";
-import PaintCapsule from "./PaintCapsule";
+import masterList from "../masterList.mjs";
+import MixerSector from "../MixerSector";
+import PaintSector from "../components/PaintSector";
+import MixerCapsule from "../MixerCapsule";
+import TutorialBox from "../components/TutorialBox";
+import InfoIcon from "../InfoIcon";
+import PaintCapsule from "../PaintCapsule";
 export default function ColorMixer({
   assignedColor = null,
   isDragging,

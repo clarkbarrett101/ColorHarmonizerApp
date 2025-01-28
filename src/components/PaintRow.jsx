@@ -1,11 +1,11 @@
-import PaintSector from "./PaintSector";
+import PaintSector from "../PaintSector";
 import React, { useEffect, useRef, useReducer } from "react";
 import { Dimensions, View, Animated, Text } from "react-native";
 import masterList from "./masterList";
 import { Svg, Path, G } from "react-native-svg";
 import { Hsluv } from "./hsluv";
 import PaintCapsule from "./PaintCapsule";
-import CardSwapIcon from "./CardSwapIcon";
+import CardSwapIcon from "../icons/CardSwapIcon";
 
 export default function PaintRow({
   paints,

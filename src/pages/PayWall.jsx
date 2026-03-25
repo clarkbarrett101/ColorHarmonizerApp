@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View, Image, TouchableOpacity, Dimensions } from "react-native";
-import HomeRadialIcon from "../icons/HomeRadialIcon";
+import { HomeRadialIcon } from "../icons";
 export default function PayWall({ setPaywall, purchase, restore }) {
   const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;
@@ -71,11 +71,11 @@ export default function PayWall({ setPaywall, purchase, restore }) {
         }}
       >
         <Image
-          source={require("../assets/Undertone.png")}
+          source={require("../../assets/Undertone.png")}
           style={{ width: "50%", height: "100%", resizeMode: "contain" }}
         />
         <Image
-          source={require("../assets/Wall.png")}
+          source={require("../../assets/Wall.png")}
           style={{ width: "50%", height: "100%", resizeMode: "contain" }}
         />
       </View>

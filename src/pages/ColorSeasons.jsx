@@ -1,13 +1,15 @@
-import masterList from "./masterList";
+import masterList from "../masterList";
 import React, { useState, useEffect } from "react";
-import PaintSector from "./PaintSector";
-import MixerCapsule from "./MixerCapsule";
-import SeasonSector from "./SeasonSector";
+import {
+  PaintSector,
+  MixerCapsule,
+  SeasonSector,
+  TutorialBox,
+  PaintCapsule,
+} from "../components";
 import { TouchableOpacity } from "react-native";
-import TutorialBox from "./TutorialBox";
-import InfoIcon from "./InfoIcon";
+import { InfoIcon } from "../icons";
 import { View, Dimensions, PanResponder } from "react-native";
-import PaintCapsule from "./PaintCapsule";
 export default function ColorSeasons({
   assignedColor = null,
   isDragging,
@@ -20,7 +22,7 @@ export default function ColorSeasons({
   const screenHeight = Dimensions.get("window").height;
   const stepRate = 5;
   const [mainColor, setMainColor] = useState(
-    masterList[Math.floor(Math.random() * masterList.length)]
+    masterList[Math.floor(Math.random() * masterList.length)],
   );
   let sizeMod = 1;
   let angleRange = [-75, 75];
@@ -53,21 +55,21 @@ export default function ColorSeasons({
     onPanResponderGrant: (e, gestureState) => {
       let sector = getTouchedSector(
         screenWidth - e.nativeEvent.pageX,
-        e.nativeEvent.pageY - screenHeight / 2
+        e.nativeEvent.pageY - screenHeight / 2,
       );
       setSelectedSector(sector);
     },
     onPanResponderMove: (e, gestureState) => {
       let sector = getTouchedSector(
         screenWidth - e.nativeEvent.pageX,
-        e.nativeEvent.pageY - screenHeight / 2
+        e.nativeEvent.pageY - screenHeight / 2,
       );
       setSelectedSector(sector);
     },
     onPanResponderRelease: (e, gestureState) => {
       let sector = getTouchedSector(
         screenWidth - e.nativeEvent.pageX,
-        e.nativeEvent.pageY - screenHeight / 2
+        e.nativeEvent.pageY - screenHeight / 2,
       );
       setSelectedSector(null);
       if (sector === -1) {
@@ -291,7 +293,7 @@ export default function ColorSeasons({
             fontSize: 16 * fontMod,
             color: allColors[i].hsluv[2] > 50 ? "black" : "white",
           }}
-        />
+        />,
       );
     }
     return sectors;
@@ -324,7 +326,7 @@ export default function ColorSeasons({
             fontSize: 16 * fontMod,
           }}
           label={i === selectedSector ? "" : labels[i]}
-        />
+        />,
       );
     }
     return sectors;

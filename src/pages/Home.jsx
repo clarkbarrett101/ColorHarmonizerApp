@@ -8,8 +8,8 @@ import {
   Image,
 } from "react-native";
 
-import FanMenu from "./FanMenu";
-import Logo from "./Logo";
+import { FanMenu } from "../components";
+import { Logo } from "../icons";
 
 export default function Home({ pages, setCurrentPage, isPremium }) {
   const width = Dimensions.get("window").height / 2;

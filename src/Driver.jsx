@@ -9,22 +9,23 @@ import Svg, {
   Rect,
   Circle,
 } from "react-native-svg";
-import ColorMixer from "./pages/ColorMixer";
-import Harmonizer from "./pages/Harmonizer";
-import ColorSeasons from "./ColorSeasons";
-import WallSwapper from "./pages/WallSwapper";
-import ChromaCamera from "./pages/ChromaCamera";
-import ColorRadials from "./components/ColorRadials";
-import PaintFan from "./components/PaintFan";
-import ApplyColorIcon from "./icons/ApplyColorIcon";
-import Home from "./pages/Home";
-import ViewPallete from "./components/ViewPalleteViewPallete";
-import AddColor from "./icons/AddColor";
-import HomeRadialIcon from "./icons/HomeRadialIcon";
-import DiscardIcon from "./icons/DiscardIcon";
-import TutorialBox from "./components/TutorialBox";
+import {
+  ColorMixer,
+  Harmonizer,
+  ColorSeasons,
+  WallSwapper,
+  ChromaCamera,
+  Home,
+  ColorRadials,
+  PaintFan,
+  ViewPallete,
+  TutorialBox,
+  ApplyColorIcon,
+  HomeRadialIcon,
+  DiscardIcon,
+  AddColor,
+} from "./index";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import PayWall from "./pages/PayWall";
 export default function Driver({ premium, setPaywall }) {
   let testList = startList;
   const [swatches, setSwatches] = useState([]);

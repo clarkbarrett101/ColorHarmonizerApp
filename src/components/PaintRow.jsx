@@ -1,11 +1,11 @@
-import PaintSector from "../PaintSector";
+import PaintSector from "./PaintSector";
 import React, { useEffect, useRef, useReducer } from "react";
 import { Dimensions, View, Animated, Text } from "react-native";
-import masterList from "./masterList";
+import masterList from "../masterList.mjs";
 import { Svg, Path, G } from "react-native-svg";
-import { Hsluv } from "./hsluv";
+import { Hsluv } from "../hsluv.mjs";
 import PaintCapsule from "./PaintCapsule";
-import CardSwapIcon from "../icons/CardSwapIcon";
+import { CardSwapIcon } from "../icons";
 
 export default function PaintRow({
   paints,
@@ -48,7 +48,7 @@ export default function PaintRow({
             setChipPosition={setChipPosition}
             twist={twist}
             shadows={false}
-          />
+          />,
         );
       }
 

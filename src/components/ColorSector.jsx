@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
 import Svg, { G } from "react-native-svg";
-import SectorPath from "../SectorPath";
+import SectorPath from "./SectorPath";
 import { Animated } from "react-native";
 export default function ColorSector({
   hues,
@@ -95,7 +95,7 @@ export default function ColorSector({
               />
             </G>
           </Svg>
-        </Animated.View>
+        </Animated.View>,
       );
     }
     sectorComponents.push(
@@ -142,7 +142,7 @@ export default function ColorSector({
             />
           </G>
         </Svg>
-      </View>
+      </View>,
     );
     return sectorComponents;
   }

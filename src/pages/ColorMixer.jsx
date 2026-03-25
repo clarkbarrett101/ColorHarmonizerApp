@@ -9,12 +9,8 @@ import {
   PanResponder,
 } from "react-native";
 import masterList from "../masterList.mjs";
-import MixerSector from "../MixerSector";
-import PaintSector from "../components/PaintSector";
-import MixerCapsule from "../MixerCapsule";
-import TutorialBox from "../components/TutorialBox";
-import InfoIcon from "../InfoIcon";
-import PaintCapsule from "../PaintCapsule";
+import { InfoIcon } from "../icons";
+import { MixerSector, PaintSector, PaintCapsule } from "../components";
 export default function ColorMixer({
   assignedColor = null,
   isDragging,
@@ -110,7 +106,7 @@ export default function ColorMixer({
       }
       let sector = getTouchedSector(
         screenWidth - evt.nativeEvent.pageX,
-        evt.nativeEvent.pageY - screenHeight / 2
+        evt.nativeEvent.pageY - screenHeight / 2,
       );
       if (sector >= 0) {
         setSelectedSector(sector);
@@ -122,7 +118,7 @@ export default function ColorMixer({
       }
       let sector = getTouchedSector(
         screenWidth - evt.nativeEvent.pageX,
-        evt.nativeEvent.pageY - screenHeight / 2
+        evt.nativeEvent.pageY - screenHeight / 2,
       );
       if (sector >= 0) {
         setSelectedSector(sector);
@@ -369,7 +365,7 @@ export default function ColorMixer({
             fontSize: 16 * fontMod,
             color: colors[i].hsluv[2] > 50 ? "black" : "white",
           }}
-        />
+        />,
       );
     }
     return sectors;
@@ -410,7 +406,7 @@ export default function ColorMixer({
             color: "black",
           }}
           label={selectedSector === i ? "" : labels[i]}
-        />
+        />,
       );
     }
     return sectors;

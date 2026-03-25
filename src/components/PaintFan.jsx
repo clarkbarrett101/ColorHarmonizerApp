@@ -1,10 +1,7 @@
-import PaintSector from "../PaintSector";
-import React, { useEffect, useRef, useReducer } from "react";
-import { Dimensions, View, Animated, Text } from "react-native";
-import masterList from "./masterList";
-import { Svg, Path, G } from "react-native-svg";
-import { Hsluv } from "./hsluv";
 import PaintCapsule from "./PaintCapsule";
+import { useEffect, useState } from "react";
+import { View } from "react-native";
+import masterList from "../masterList.mjs";
 
 export default function PaintFan({
   hsl,
@@ -20,12 +17,10 @@ export default function PaintFan({
   isSaved,
   isDragging,
 }) {
-  const [colorList, setColorList] = React.useState(findColors());
-
-  React.useEffect(() => {
+  const [colorList, setColorList] = useState(findColors());
+  useEffect(() => {
     if (hsl) {
       let paintList = findColors();
-      let modifier = (6 - paintList.length) / 6;
       setColorList(paintList);
     }
     if (colors) {
@@ -76,7 +71,7 @@ export default function PaintFan({
             onDrop={onDrop}
             isSaved={isSaved}
             isDragging={isDragging}
-          />
+          />,
         );
       }
       return sectors;

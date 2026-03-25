@@ -1,5 +1,5 @@
 import React from "react";
-import ButtonSector from "../components/ButtonSector";
+import { ButtonSector } from "../components";
 import { Dimensions } from "react-native";
 import { Hsluv } from "../hsluv.mjs";
 import { Svg, Stop, RadialGradient, Rect } from "react-native-svg";
@@ -69,7 +69,7 @@ export default function AppIconTest() {
           sectors={4}
           litRange={i == selected ? [60, 110] : [60, 107]}
           satRange={[100, 75]}
-        />
+        />,
       );
     }
     return sectors;

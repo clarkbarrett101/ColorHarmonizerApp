@@ -1,10 +1,10 @@
 import PaintSector from "./PaintSector";
 import React, { useEffect, useRef } from "react";
 import { Dimensions, View, Animated, Text } from "react-native";
-import masterList from "./masterList";
+import masterList from "../masterList.mjs";
 import { Svg, Path, G } from "react-native-svg";
-import { Hsluv } from "./hsluv";
-import PaintCapsule from "../PaintCapsule";
+import { Hsluv } from "../hsluv.mjs";
+import PaintCapsule from "./PaintCapsule";
 
 export default function HarmonizerFan({
   hsl,
@@ -75,7 +75,7 @@ export default function HarmonizerFan({
           chipPosition={chipPosition}
           setChipPosition={setChipPosition}
           isDragging={isDragging}
-        />
+        />,
       );
     }
     return sectors;

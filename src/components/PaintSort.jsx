@@ -1,5 +1,5 @@
 import React from "react";
-import { Hsluv } from "./hsluv";
+import { Hsluv } from "../hsluv.mjs";
 import PaintFan from "./PaintFan";
 import masterList from "../masterList.mjs";
 import { View, Dimensions, Text } from "react-native";

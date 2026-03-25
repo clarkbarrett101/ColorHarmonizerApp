@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { View, Animated, PanResponder, Dimensions } from "react-native";
-import { Hsluv } from "./hsluv";
+import { Hsluv } from "../hsluv.mjs";
 import { Svg, Path, G, Text } from "react-native-svg";
 export default function MixerCapsule({
   paint,

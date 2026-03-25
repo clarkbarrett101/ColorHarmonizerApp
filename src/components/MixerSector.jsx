@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
 import Svg, { G, Text, Path, Defs, TextPath, TSpan } from "react-native-svg";
-import SectorPath from "../SectorPath";
+import SectorPath from "./SectorPath";
 import { Animated } from "react-native";
 export default function MixerSector({
   hues,
@@ -58,13 +58,13 @@ export default function MixerSector({
       const pathEndPos = [
         Math.cos(
           ((180 - (endAngle - startAngle) / 2 - label.length * 0.7) * Math.PI) /
-            180
+            180,
         ) *
           (outerRadius * 0.95) +
           outerRadius,
         Math.sin(
           ((180 - (endAngle - startAngle) / 2 - label.length * 0.7) * Math.PI) /
-            180
+            180,
         ) *
           (outerRadius * 0.95) +
           outerRadius,
@@ -131,8 +131,8 @@ export default function MixerSector({
                     M ${pathEndPos[0]},${pathEndPos[1]}
                  
                    A ${outerRadius},${outerRadius} 0,0,1  ${
-                    outerRadius * 0.05
-                  },${outerRadius * 0.95}`}
+                     outerRadius * 0.05
+                   },${outerRadius * 0.95}`}
                 />
               </Defs>
               <Text
@@ -144,7 +144,7 @@ export default function MixerSector({
               </Text>
             </Svg>
           </View>
-        </Animated.View>
+        </Animated.View>,
       );
     }
 

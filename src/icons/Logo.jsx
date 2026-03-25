@@ -13,7 +13,6 @@ export default function Logo({ style, heightRatio = 1 }) {
   } else {
     sizeMod = screenWidth;
   }
-  fontMod = sizeMod / 400;
   const colors = [
     [0.556, 0.546, 0.002],
     [0.515, 0.257, 0.003],

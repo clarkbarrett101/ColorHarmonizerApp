@@ -14,17 +14,17 @@ import {
   SplitComplementary,
   Tetradic,
   Triadic,
-} from "./CurvedLabel";
+  HarmonizerWheel,
+  SectorRow,
+  HarmonizerFan,
+  SelectText,
+  SectorPath,
+  TutorialBox,
+} from "../components";
 import Svg, { G, Path } from "react-native-svg";
 import { useState } from "react";
-import HarmonizerWheel from "../HarmonizerWheel";
 import harmonizeColors from "../Harmonies";
-import SectorRow from "../components/SectorRow";
-import HarmonizerFan from "./HarmonizerFan";
-import SelectText from "../components/SelectText";
-import SectorPath from "../SectorPath";
-import TutorialBox from "../components/TutorialBox";
-import InfoIcon from "../InfoIcon";
+import { InfoIcon } from "../icons";
 export default function Harmonizer({
   assignedColor,
   assignedColor2,
@@ -98,7 +98,7 @@ export default function Harmonizer({
             currentCenter += 360;
           }
           currentCenter = Math.floor(
-            (currentCenter * totalSectors) / totalSectors
+            (currentCenter * totalSectors) / totalSectors,
           );
           setExtraSelected(currentCenter);
         }
@@ -144,7 +144,7 @@ export default function Harmonizer({
       let colorHarmonies = harmonizeColors(
         selected,
         extraSelected,
-        totalSectors
+        totalSectors,
       );
       let harmonies = colorHarmonies[0];
       setHarmonyFlags(colorHarmonies[1]);
@@ -212,7 +212,7 @@ export default function Harmonizer({
       } else if (stage === 2) {
         getColorTouched(
           screenWidth - evt.nativeEvent.pageX,
-          evt.nativeEvent.pageY - screenHeight / 2
+          evt.nativeEvent.pageY - screenHeight / 2,
         );
       }
     },
@@ -227,7 +227,7 @@ export default function Harmonizer({
     if (stage === 1) {
       let scheme = getSectorTouched(
         screenWidth - evt.nativeEvent.pageX,
-        evt.nativeEvent.pageY - screenHeight / 2
+        evt.nativeEvent.pageY - screenHeight / 2,
       );
 
       if (scheme > -1) {
@@ -237,7 +237,7 @@ export default function Harmonizer({
     } else if (stage === 2) {
       getColorTouched(
         screenWidth - evt.nativeEvent.pageX,
-        evt.nativeEvent.pageY - screenHeight / 2
+        evt.nativeEvent.pageY - screenHeight / 2,
       );
     }
   }
@@ -294,7 +294,7 @@ export default function Harmonizer({
     startAngle,
     endAngle,
     innerRadius,
-    outerRadius
+    outerRadius,
   ) {
     let schemes = [];
     let totalColors = harmonies.length - 1;
@@ -310,8 +310,8 @@ export default function Harmonizer({
           startAngle + angleStep * totalColors,
           startAngle + angleStep * (totalColors + harmonies[i].length),
           innerRadius,
-          outerRadius
-        )
+          outerRadius,
+        ),
       );
       totalColors += harmonies[i].length + 1;
     }
@@ -339,7 +339,7 @@ export default function Harmonizer({
           }}
           sectors={4}
           litRange={[60, 90]}
-        />
+        />,
       );
     }
     return scheme;
@@ -447,7 +447,7 @@ export default function Harmonizer({
           }}
           sectors={5}
           litRange={newLitRange}
-        />
+        />,
       );
     }
     return scheme;
@@ -513,7 +513,7 @@ export default function Harmonizer({
         isOpen={getCorrespondingTutorial()[0]}
         setOpen={getCorrespondingTutorial()[1]}
         selectedColor={selectedColor}
-      />
+      />,
     );
     if (stage !== 1) {
       tutorials.push(
@@ -546,7 +546,7 @@ export default function Harmonizer({
           isOpen={getCorrespondingTutorial()[0]}
           setOpen={getCorrespondingTutorial()[1]}
           selectedColor={selectedColor}
-        />
+        />,
       );
     }
     return tutorials;
@@ -586,7 +586,7 @@ export default function Harmonizer({
             litRange={[litRange[0], litRange[1]]}
             satRange={[satRange[0] + satStep * i, satRange[0] + satStep * i]}
             hsl={allHSLs[c]}
-          />
+          />,
         );
       }
     }
@@ -620,7 +620,7 @@ export default function Harmonizer({
               ],
             },
           ]}
-        />
+        />,
       );
       console.log("a" + rotation);
       rotation -= angleStep;
@@ -637,7 +637,7 @@ export default function Harmonizer({
               transform: [{ rotate: `${rotation}deg` }, { translateY: -dist }],
             },
           ]}
-        />
+        />,
       );
       console.log("c" + rotation);
       rotation -= angleStep;
@@ -656,7 +656,7 @@ export default function Harmonizer({
               ],
             },
           ]}
-        />
+        />,
       );
       console.log("sc" + rotation);
       rotation -= angleStep;
@@ -672,7 +672,7 @@ export default function Harmonizer({
               transform: [{ rotate: `${rotation}deg` }, { translateY: -dist }],
             },
           ]}
-        />
+        />,
       );
       console.log("tri" + rotation);
       rotation -= angleStep;
@@ -691,7 +691,7 @@ export default function Harmonizer({
               ],
             },
           ]}
-        />
+        />,
       );
       console.log("te" + rotation);
       rotation -= angleStep;
@@ -710,7 +710,7 @@ export default function Harmonizer({
               ],
             },
           ]}
-        />
+        />,
       );
       console.log("dc" + rotation);
       rotation -= angleStep;
@@ -744,7 +744,7 @@ export default function Harmonizer({
             top: screenHeight / 2 - sizeMod * 0.07,
             zIndex: 4,
           }}
-        />
+        />,
       );
     }
     return fans;
@@ -771,7 +771,7 @@ export default function Harmonizer({
             right: "-5%",
           }}
           hueOf={hueOf}
-        />
+        />,
       );
       output.push(
         <TouchableOpacity
@@ -785,7 +785,7 @@ export default function Harmonizer({
           onPressIn={() => {
             if (extraSelected === -1) {
               setExtraSelected(
-                hueOf(Math.floor(selected * totalSectors) / totalSectors)
+                hueOf(Math.floor(selected * totalSectors) / totalSectors),
               );
             } else {
               setCurrentScheme([selected, extraSelected]);
@@ -825,7 +825,7 @@ export default function Harmonizer({
               />
             </G>
           </Svg>
-        </TouchableOpacity>
+        </TouchableOpacity>,
       );
       output.push(getShortcut());
     } else {
@@ -874,7 +874,7 @@ export default function Harmonizer({
               opacity={0.5}
             />
           </Svg>
-        </TouchableOpacity>
+        </TouchableOpacity>,
       );
       if (stage === 1) {
         output.push(
@@ -883,8 +883,8 @@ export default function Harmonizer({
             schemesAngleRange[0],
             schemesAngleRange[1],
             sizeMod * 0.5,
-            sizeMod * 1
-          )
+            sizeMod * 1,
+          ),
         );
         output.push(getSchemeLabels());
       } else if (stage === 2) {
@@ -923,7 +923,7 @@ export default function Harmonizer({
           }}
           selectedColor={selectedColor}
         />
-      </TouchableOpacity>
+      </TouchableOpacity>,
     );
     output.push(getTutorials());
     return output;

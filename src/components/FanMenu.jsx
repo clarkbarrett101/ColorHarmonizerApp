@@ -1,4 +1,4 @@
-import ButtonSector from "./components/ButtonSector";
+import ButtonSector from "./ButtonSector";
 import React, { useEffect } from "react";
 import { View, TouchableOpacity, PanResponder, Dimensions } from "react-native";
 export default function FanMenu({
@@ -117,7 +117,7 @@ export default function FanMenu({
           strokeWidth={0}
           sectors={4}
           lock={lock.includes(i)}
-        />
+        />,
       );
     }
 

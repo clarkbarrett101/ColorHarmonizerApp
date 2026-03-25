@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
 import { Dimensions, PanResponder, View, TouchableOpacity } from "react-native";
-import ColorSector from "../ColorSector";
-import HueWheel from "../HueWheel";
+import ColorSector from "./ColorSector";
+import HueWheel from "./HueWheel";
 import PaintFan from "./PaintFan";
 import TutorialBox from "./TutorialBox";
-import InfoIcon from "../InfoIcon";
+import { InfoIcon } from "../icons";
 export default function ColorRadials({
   onDragStart,
   onDrop,
@@ -75,7 +75,7 @@ export default function ColorRadials({
     onStartShouldSetPanResponderCapture: () => false,
     onPanResponderGrant: (e, gestureState) => {
       setTouchedComponent(
-        getTouchedComponent(e.nativeEvent.pageX, e.nativeEvent.pageY)
+        getTouchedComponent(e.nativeEvent.pageX, e.nativeEvent.pageY),
       );
     },
     onPanResponderMove: (e, gestureState) => {
@@ -86,7 +86,7 @@ export default function ColorRadials({
           rotationModifier - (dy * 360) / screenHeight;
         setRotationModifier(
           (newRotationModifier / (360 / totalHueSectors)) *
-            (360 / totalHueSectors)
+            (360 / totalHueSectors),
         );
         handleEndHueRotation();
       } else if (touchedComponent === components[2]) {
@@ -94,8 +94,8 @@ export default function ColorRadials({
           setSat(
             Math.round(
               ((angle - satAngles[0]) / (satAngles[1] - satAngles[0])) *
-                (sats[sats.length - 1] - sats[0])
-            ) + sats[0]
+                (sats[sats.length - 1] - sats[0]),
+            ) + sats[0],
           );
         }
       } else if (touchedComponent === components[3]) {
@@ -103,8 +103,8 @@ export default function ColorRadials({
           setLit(
             Math.round(
               ((angle - litAngles[0]) / (litAngles[1] - litAngles[0])) *
-                (lits[lits.length - 1] - lits[0])
-            ) + lits[0]
+                (lits[lits.length - 1] - lits[0]),
+            ) + lits[0],
           );
         }
       }
@@ -113,7 +113,7 @@ export default function ColorRadials({
       if (touchedComponent === components[1]) {
         setRotationModifier(
           Math.round(rotationModifier / (360 / totalHueSectors)) *
-            (360 / totalHueSectors)
+            (360 / totalHueSectors),
         );
         handleEndHueRotation();
       }
@@ -123,7 +123,7 @@ export default function ColorRadials({
       if (touchedComponent === components[1]) {
         setRotationModifier(
           Math.round(rotationModifier / (360 / totalHueSectors)) *
-            (360 / totalHueSectors)
+            (360 / totalHueSectors),
         );
         handleEndHueRotation();
       }

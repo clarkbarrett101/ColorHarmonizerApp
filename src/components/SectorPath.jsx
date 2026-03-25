@@ -1,5 +1,5 @@
 import { Path } from "react-native-svg";
-import { Hsluv } from "./hsluv.mjs";
+import { Hsluv } from "../hsluv.mjs";
 export default function SectorPath({
   hue,
   saturation,
@@ -19,7 +19,7 @@ export default function SectorPath({
     innerRadius,
     outerRadius,
     startAngle,
-    endAngle
+    endAngle,
   ) {
     // Convert angles from degrees to radians
     const startRad = (Math.PI / 180) * startAngle;
@@ -73,7 +73,7 @@ export default function SectorPath({
     }
 
     return `rgb(${Math.round(hsluv.rgb_r * 255)}, ${Math.round(
-      hsluv.rgb_g * 255
+      hsluv.rgb_g * 255,
     )}, ${Math.round(hsluv.rgb_b * 255)})`;
   }
   return (
@@ -84,7 +84,7 @@ export default function SectorPath({
         innerRadius,
         outerRadius,
         angle ? 0 : startAngle,
-        angle ? angle : endAngle
+        angle ? angle : endAngle,
       )}
       fill={rgbString()}
       style={{

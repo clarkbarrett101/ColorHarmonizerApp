@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
 import Svg, { G, Text, Path, Defs, TextPath, TSpan } from "react-native-svg";
-import SectorPath from "../SectorPath";
+import SectorPath from "./SectorPath";
 import { Animated } from "react-native";
 export default function SeasonSector({
   hues,
@@ -50,13 +50,13 @@ export default function SeasonSector({
   }, [anim]);
   const pathEndPos = [
     Math.cos(
-      ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180
+      ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180,
     ) *
       outerRadius *
       0.97 +
       outerRadius,
     Math.sin(
-      ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180
+      ((180 - (endAngle - startAngle) / 2 - label.length / 2) * Math.PI) / 180,
     ) *
       (outerRadius * 0.85) +
       outerRadius,
@@ -111,7 +111,7 @@ export default function SeasonSector({
               />
             </G>
           </Svg>
-        </Animated.View>
+        </Animated.View>,
       );
     }
     sectorComponents.push(
@@ -152,7 +152,7 @@ export default function SeasonSector({
             <TextPath href="#path">{label}</TextPath>
           </Text>
         </Svg>
-      </View>
+      </View>,
     );
     return sectorComponents;
   }

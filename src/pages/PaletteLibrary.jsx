@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, Dimensions, PanResponder, Animated } from "react-native";
-import PaintRow from "./PaintRow";
+import { PaintRow } from "../components";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import masterList from "./masterList";
+import masterList from "../masterList";
 import { Svg, Circle, Rect } from "react-native-svg";
 export default function PaletteLibrary({
   swatches,
@@ -135,7 +135,7 @@ export default function PaletteLibrary({
           isDragging={isDragging}
           chipPosition={chipPosition}
           setChipPosition={setChipPosition}
-        />
+        />,
       );
     }
     output.reverse();

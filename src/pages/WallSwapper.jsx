@@ -15,8 +15,8 @@ import {
 } from "react-native";
 import { Skia, float } from "@shopify/react-native-skia";
 import { useSharedValue } from "react-native-worklets-core";
-import TutorialBox from "../components/TutorialBox";
-import InfoIcon from "../icons/InfoIcon";
+import { TutorialBox } from "../components";
+import { InfoIcon } from "../icons";
 import {
   Svg,
   LinearGradient,
@@ -115,7 +115,7 @@ function WallSwapper({
   const imageFilter = Skia.ImageFilter.MakeRuntimeShader(
     shaderBuilder,
     null,
-    null
+    null,
   );
   const paint = useSharedValue(Skia.Paint());
   paint.value.setImageFilter(imageFilter);
@@ -150,7 +150,7 @@ function WallSwapper({
     const imageFilter = Skia.ImageFilter.MakeRuntimeShader(
       shaderBuilder,
       null,
-      null
+      null,
     );
     const newPaint = Skia.Paint();
     newPaint.setImageFilter(imageFilter);
@@ -168,7 +168,7 @@ function WallSwapper({
     },
     onPanResponderMove: (evt, gestureState) => {
       setThreshold(
-        Math.max(0.001, Math.min(0.5, threshold - gestureState.dy / sizeMod))
+        Math.max(0.001, Math.min(0.5, threshold - gestureState.dy / sizeMod)),
       );
     },
   });

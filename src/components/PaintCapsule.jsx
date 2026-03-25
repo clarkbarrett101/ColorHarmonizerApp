@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
 import { View, PanResponder, Dimensions } from "react-native";
-import { Hsluv } from "./hsluv";
+import { Hsluv } from "../hsluv.mjs";
 import { Svg, Path, G, Text } from "react-native-svg";
 import {
   Gesture,
@@ -77,7 +77,7 @@ export default function PaintCapsule({
       withTiming([endPos[0], endPos[1]], {
         duration: 125,
         easing: Easing.linear,
-      })
+      }),
     );
   }, [startRotation, endRotation]);
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function PaintCapsule({
         rotation.value = withTiming(endRotation);
         runOnJS(onDrop)([e.absoluteX, e.absoluteY], paint, isSaved);
         console.log("end");
-      })
+      }),
   );
   const tap = React.useMemo(() =>
     Gesture.Tap()
@@ -139,7 +139,7 @@ export default function PaintCapsule({
         console.log("tapped");
         onDragStart(paint, isSaved);
         console.log(pan);
-      })
+      }),
   );
   const simGesture = Gesture.Simultaneous(tap, pan);
   const animStyle = useAnimatedStyle(() => {

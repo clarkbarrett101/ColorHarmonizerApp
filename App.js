@@ -5,8 +5,7 @@ import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Purchases from "react-native-purchases";
 import { LOG_LEVEL } from "react-native-purchases";
-import PayWall from "./src/PayWall";
-import AppIconTest from "./src/AppIconTest";
+import PayWall from "./src/pages/PayWall";
 
 export default class App extends React.Component {
   state = {

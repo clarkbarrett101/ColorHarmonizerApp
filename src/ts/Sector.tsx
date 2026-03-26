@@ -1,6 +1,7 @@
 import React from "react";
 import { Svg, Path, G } from "react-native-svg";
-import { acl } from "./acl";
+import { clark2RGB } from "./acl";
+import { get } from "react-native/Libraries/NativeComponent/NativeComponentRegistry";
 function MakeSectorPath(
   cx: number,
   cy: number,
@@ -32,75 +33,68 @@ function MakeSectorPath(
 type Sector = {
   angles: [number, number];
   radii: [number, number];
-  color: acl;
+  color: [number, number, number];
 };
 const SectorComp = ({ angles, radii, color }: Sector) => {
   const path = MakeSectorPath(0, 0, radii[0], radii[1], angles[0], angles[1]);
-  const { r, g, b } = color.toRGB();
+  const [r, g, b] = clark2RGB(color[0], color[1], color[2]);
   const fill = `rgb(${r}, ${g}, ${b})`;
   return <Path d={path} fill={fill} />;
 };
-type colorRange = {
-  hue: [number, number];
-  saturation: [number, number];
-  lightness: [number, number];
-  dimensions: [number, number, number];
-};
-type SectorGrid = {
-  angles: [number, number];
-  radii: [number, number];
-  colors?: [number, number, number][][];
-  colorRange?: colorRange;
-};
-const SectorGridComp = ({ angles, radii, colors, colorRange }: SectorGrid) => {
-  let colorMatrix: [number, number, number][][] = [];
-  if (colorRange) {
-    const hueStep =
-      (colorRange.hue[1] - colorRange.hue[0]) / (colorRange.dimensions[0] - 1);
-    const satStep =
-      (colorRange.saturation[1] - colorRange.saturation[0]) /
-      (colorRange.dimensions[1] - 1);
-    const lightStep =
-      (colorRange.lightness[1] - colorRange.lightness[0]) /
-      (colorRange.dimensions[2] - 1);
-    for (let i = 0; i < colorRange.dimensions[0]; i++) {
-      colorMatrix[i] = [];
-      for (let j = 0; j < colorRange.dimensions[1]; j++) {
-        for (let k = 0; k < colorRange.dimensions[2]; k++) {
-          const h = colorRange.hue[0] + i * hueStep;
-          const s = colorRange.saturation[0] + j * satStep;
-          const l = colorRange.lightness[0] + k * lightStep;
-          const color = new acl(h, s, l);
-          const { r, g, b } = color.toRGB();
-          colorMatrix[i][j] = [r, g, b];
-        }
+function ColorRange(
+  chromas: [number, number],
+  lightness: [number, number],
+  angles: [number, number],
+  steps: [number, number, number],
+): [number, number, number][] {
+  const chromaStep = (chromas[1] - chromas[0]) / steps[0];
+  const lightnessStep = (lightness[1] - lightness[0]) / steps[1];
+  const angleStep = (angles[1] - angles[0]) / steps[2];
+  const colors = [];
+  for (let k = 0; k < steps[2]; k++) {
+    for (let j = 0; j < steps[1]; j++) {
+      for (let i = 0; i < steps[0]; i++) {
+        const chroma = chromas[0] + chromaStep * i;
+        const light = lightness[0] + lightnessStep * j;
+        const angle = angles[0] + angleStep * k;
+        console.log(
+          `Angle: ${angle}, Chroma: ${chroma.toFixed(2)}, Lightness: ${light.toFixed(2)}`,
+        );
+        colors.push([chroma, light, angle]);
       }
     }
-  } else {
-    colorMatrix = colors!;
   }
+  return colors;
+}
+type SectorGrid = {
+  rowLength: number;
+  angles: [number, number];
+  radii: [number, number];
+  colors: [number, number, number][];
+};
+const SectorGridComp = ({ rowLength, angles, radii, colors }: SectorGrid) => {
   const sectors = () => {
+    const angleStep = (angles[1] - angles[0]) / (colors.length / rowLength);
+    const radiusStep = (radii[1] - radii[0]) / rowLength;
     let sectors = [];
-    const radiusPerRow = (radii[1] - radii[0]) / colorMatrix.length;
-    const anglePerSector = (angles[1] - angles[0]) / colorMatrix[0].length;
-    for (let i = 0; i < colorMatrix.length; i++) {
-      for (let j = 0; j < colorMatrix[i].length; j++) {
-        const sectorStartAngle = angles[0] + j * anglePerSector;
-        const sectorEndAngle = sectorStartAngle + anglePerSector;
-        const sectorInnerRadius = radii[0] + i * radiusPerRow;
-        const sectorOuterRadius = sectorInnerRadius + radiusPerRow;
+    for (let i = 0; i < colors.length / rowLength; i++) {
+      for (let j = 0; j < rowLength; j++) {
+        console.log(
+          `Creating sector with angles [${angles[0] + angleStep * i}, ${
+            angles[0] + angleStep * (i + 1)
+          }] and radii [${radii[0] + radiusStep * j}, ${
+            radii[0] + radiusStep * (j + 1)
+          }] and color rgb(${colors[i * rowLength + j].join(", ")})`,
+        );
         sectors.push(
           <SectorComp
             key={`${i}-${j}`}
-            radii={[sectorInnerRadius, sectorOuterRadius]}
-            angles={[sectorStartAngle, sectorEndAngle]}
-            color={
-              new acl(
-                (colorMatrix[i][j][0] / 255) * 360,
-                (colorMatrix[i][j][1] / 255) * 100,
-                (colorMatrix[i][j][2] / 255) * 100,
-              )
-            }
+            radii={[radii[0] + radiusStep * j, radii[0] + radiusStep * (j + 1)]}
+            angles={[
+              angles[0] + angleStep * i,
+              angles[0] + angleStep * (i + 1),
+            ]}
+            color={colors[i * rowLength + j]}
           />,
         );
       }
@@ -109,4 +103,4 @@ const SectorGridComp = ({ angles, radii, colors, colorRange }: SectorGrid) => {
   };
   return <G>{sectors()}</G>;
 };
-export { SectorComp, SectorGridComp };
+export { SectorComp, SectorGridComp, ColorRange };

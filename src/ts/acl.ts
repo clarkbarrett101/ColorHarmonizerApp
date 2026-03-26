@@ -1,28 +1,15 @@
-class acl {
-    angle: number;
-    chroma: number;
-    lightness: number;
-  constructor(angle: number, chroma: number, lightness: number) {
-    this.angle = angle;
-    this.chroma = chroma;
-    this.lightness = lightness;
-  }
-  function toYUV(){
-    const y = this.lightness;
-    const u = this.chroma * Math.cos((this.angle * Math.PI) / 180);
-    const v = this.chroma * Math.sin((this.angle * Math.PI) / 180);
-    return { y, u, v };
-  }
- function toRGB(){
-    const { y, u, v } = this.toYUV();
-    const r = y + 1.13983 * v;
-    const g = y - 0.39465 * u - 0.58060 * v;
-    const b = y + 2.03211 * u;
-    return {
-      r: Math.round(Math.max(0, Math.min(255, r))),
-      g: Math.round(Math.max(0, Math.min(255, g))),
-      b: Math.round(Math.max(0, Math.min(255, b))),
-    };
-  }
+function clark2RGB(chroma: number, lightness: number, angle: number): [number, number, number] {
+    const [y, u, v] = clark2YUV(chroma, lightness, angle);
+    const r =( y + 1.13983 * v)*255;
+    const g = (y - 0.39465 * u - 0.58060 * v)*255;
+    const b = (y + 2.03211 * u)*255;
+    return [r, g, b];
 }
-export { acl };
+function clark2YUV(chroma: number, lightness: number, angle: number): [number, number, number] {
+    const u = chroma * Math.cos((angle * Math.PI) / 180);
+    const v = chroma * Math.sin((angle * Math.PI) / 180);
+    const y = lightness;
+    return [y, u, v];
+}
+
+export { clark2RGB, clark2YUV };

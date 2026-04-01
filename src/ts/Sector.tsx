@@ -1,106 +1,178 @@
-import React from "react";
-import { Svg, Path, G } from "react-native-svg";
-import { clark2RGB } from "./acl";
+import Animated, {
+  DerivedValue,
+  SharedValue,
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+} from "react-native-reanimated";
+import { CLAColor } from "./CLAcolor";
+import Svg, { Filter, Path, FeDropShadow } from "react-native-svg";
+import { useEffect } from "react";
 import { get } from "react-native/Libraries/NativeComponent/NativeComponentRegistry";
-function MakeSectorPath(
-  cx: number,
-  cy: number,
-  innerRadius: number,
-  outerRadius: number,
-  startAngle: number,
-  endAngle: number,
-) {
-  const startRad = (Math.PI / 180) * startAngle;
-  const endRad = (Math.PI / 180) * endAngle;
-  const x1 = cx + outerRadius * Math.cos(startRad);
-  const y1 = cy + outerRadius * Math.sin(startRad);
-  const x2 = cx + outerRadius * Math.cos(endRad);
-  const y2 = cy + outerRadius * Math.sin(endRad);
-  const x3 = cx + innerRadius * Math.cos(endRad);
-  const y3 = cy + innerRadius * Math.sin(endRad);
-  const x4 = cx + innerRadius * Math.cos(startRad);
-  const y4 = cy + innerRadius * Math.sin(startRad);
-  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+type tSector = {
+  color?: CLAColor;
+  radii?: [number, number];
+  rc?: { rings: number; chords: number };
+  arcLength?: number;
+  sectorGroupID?: number;
+  maxRadius?: number;
+};
+const Sector = ({
+  arcLength = 360,
+  radii = [20, 200],
+  color,
+  sectorGroupID = 0,
+  maxRadius = radii[1],
+  rc = { rings: 5, chords: 18 },
+}: tSector) => {
+  const path = fMakePetalPath({
+    arcLength,
+    radii,
+    maxRadius,
+    rc,
+  });
+  const fill = color ? color.toString() : "transparent";
+  return <Path d={path} fill={fill} stroke={fill} strokeWidth={1} />;
+};
+function fMakeSectorPath({ radii, arcLength }: tSector): string {
+  const startRad = ((Math.PI / 180) * -arcLength) / 2;
+  const endRad = ((Math.PI / 180) * arcLength) / 2;
+  const x1 = radii[1] * Math.cos(startRad);
+  const y1 = radii[1] * Math.sin(startRad);
+  const x2 = radii[1] * Math.cos(endRad);
+  const y2 = radii[1] * Math.sin(endRad);
+  const x3 = radii[0] * Math.cos(endRad);
+  const y3 = radii[0] * Math.sin(endRad);
+  const x4 = radii[0] * Math.cos(startRad);
+  const y4 = radii[0] * Math.sin(startRad);
+  const largeArcFlag = arcLength <= 180 ? "0" : "1";
   const path = `
                 M ${x1} ${y1}                 
-                A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2} 
+                A ${radii[1]} ${radii[1]} 0 ${largeArcFlag} 1 ${x2} ${y2} 
                 L ${x3} ${y3}        
-                A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4}  
+                A ${radii[0]} ${radii[0]} 0 ${largeArcFlag} 0 ${x4} ${y4}  
                 Z                              
             `.trim();
   return path;
 }
-type Sector = {
-  angles: [number, number];
-  radii: [number, number];
-  color: [number, number, number];
-};
-const SectorComp = ({ angles, radii, color }: Sector) => {
-  const path = MakeSectorPath(0, 0, radii[0], radii[1], angles[0], angles[1]);
-  const [r, g, b] = clark2RGB(color[0], color[1], color[2]);
-  const fill = `rgb(${r}, ${g}, ${b})`;
-  return <Path d={path} fill={fill} />;
-};
-function ColorRange(
-  chromas: [number, number],
-  lightness: [number, number],
-  angles: [number, number],
-  steps: [number, number, number],
-): [number, number, number][] {
-  const chromaStep = (chromas[1] - chromas[0]) / steps[0];
-  const lightnessStep = (lightness[1] - lightness[0]) / steps[1];
-  const angleStep = (angles[1] - angles[0]) / steps[2];
-  const colors = [];
-  for (let k = 0; k < steps[2]; k++) {
-    for (let j = 0; j < steps[1]; j++) {
-      for (let i = 0; i < steps[0]; i++) {
-        const chroma = chromas[0] + chromaStep * i;
-        const light = lightness[0] + lightnessStep * j;
-        const angle = angles[0] + angleStep * k;
-        console.log(
-          `Angle: ${angle}, Chroma: ${chroma.toFixed(2)}, Lightness: ${light.toFixed(2)}`,
-        );
-        colors.push([chroma, light, angle]);
-      }
-    }
-  }
-  return colors;
+function fMakePetalPath({ maxRadius, radii, arcLength }: tSector): string {
+  const endRad = ((Math.PI / 180) * arcLength) / 2;
+  const x1 = maxRadius * Math.cos(endRad) - (maxRadius - radii[1]);
+  const x2 = maxRadius * Math.cos(-endRad) - (maxRadius - radii[1]);
+  const y1 = maxRadius * Math.sin(endRad);
+  const y2 = maxRadius * Math.sin(-endRad);
+  const x3 = x2 - (radii[1] - radii[0]);
+  const x4 = x1 - (radii[1] - radii[0]);
+  const y3 = y2;
+  const y4 = y1;
+  const largeArcFlag = arcLength <= 180 ? "0" : "1";
+  const path = `
+                  M ${x1} ${y1}                 
+                  A ${radii[1]} ${radii[1]}  0 ${largeArcFlag} 0 ${x2} ${y2} 
+                  L ${x3} ${y3} 
+                  A ${radii[0]} ${radii[1]}  0 ${largeArcFlag} 1 ${x4} ${y4}       
+                  Z                              
+              `.trim();
+  return path;
 }
-type SectorGrid = {
-  rowLength: number;
-  angles: [number, number];
-  radii: [number, number];
-  colors: [number, number, number][];
+const AnimatedSvg = Animated.createAnimatedComponent(Svg);
+type tSelectionRange = {
+  angle: number | [number, number];
+  radial?: number | [number, number];
 };
-const SectorGridComp = ({ rowLength, angles, radii, colors }: SectorGrid) => {
-  const sectors = () => {
-    const angleStep = (angles[1] - angles[0]) / (colors.length / rowLength);
-    const radiusStep = (radii[1] - radii[0]) / rowLength;
-    let sectors = [];
-    for (let i = 0; i < colors.length / rowLength; i++) {
-      for (let j = 0; j < rowLength; j++) {
-        console.log(
-          `Creating sector with angles [${angles[0] + angleStep * i}, ${
-            angles[0] + angleStep * (i + 1)
-          }] and radii [${radii[0] + radiusStep * j}, ${
-            radii[0] + radiusStep * (j + 1)
-          }] and color rgb(${colors[i * rowLength + j].join(", ")})`,
-        );
-        sectors.push(
-          <SectorComp
-            key={`${i}-${j}`}
-            radii={[radii[0] + radiusStep * j, radii[0] + radiusStep * (j + 1)]}
-            angles={[
-              angles[0] + angleStep * i,
-              angles[0] + angleStep * (i + 1),
-            ]}
-            color={colors[i * rowLength + j]}
-          />,
-        );
-      }
-    }
-    return sectors;
-  };
-  return <G>{sectors()}</G>;
+type tSectorGroup = tSector & {
+  rotation?: number;
+  rotationOffset?: SharedValue<number> | { value: number };
+  direction?: 1 | -1;
+  style?: any;
+  sectors?: tSector[];
+  children?: React.ReactNode;
+  props?: any;
+  selection?: DerivedValue<[number, number]> | { value: [number, number] };
+  offsetMultiplier?: number;
 };
-export { SectorComp, SectorGridComp, ColorRange };
+const SectorGroup = ({
+  rotation = 0,
+  direction = 1,
+  sectors = [],
+  children = null,
+  props = {},
+  rotationOffset,
+  style = {},
+  maxRadius = 200,
+  selection,
+  offsetMultiplier = 0,
+}: tSectorGroup) => {
+  const distanceFromSelected = useDerivedValue(() => {
+    let rot = [
+      Math.sin((rotation / 180) * Math.PI),
+      Math.cos((rotation / 180) * Math.PI),
+    ];
+    let selectionRange = [
+      [
+        Math.sin((selection.value[0] / 180) * Math.PI),
+        Math.cos((selection.value[0] / 180) * Math.PI),
+      ],
+      [
+        Math.sin((selection.value[1] / 180) * Math.PI),
+        Math.cos((selection.value[1] / 180) * Math.PI),
+      ],
+    ];
+    let selectionMid = [
+      (selectionRange[0][0] + selectionRange[1][0]) / 2,
+      (selectionRange[0][1] + selectionRange[1][1]) / 2,
+    ];
+    let dotProduct = rot[0] * selectionMid[0] + rot[1] * selectionMid[1];
+    dotProduct /=
+      Math.sqrt(rot[0] * rot[0] + rot[1] * rot[1]) *
+      Math.sqrt(
+        selectionMid[0] * selectionMid[0] + selectionMid[1] * selectionMid[1],
+      );
+    let selectionWidth =
+      selectionRange[0][0] * selectionMid[0] +
+      selectionRange[0][1] * selectionMid[1];
+    let distanceFromSelected =
+      Math.max(0, dotProduct - selectionWidth) / (1 - selectionWidth);
+
+    return distanceFromSelected;
+  }, [rotationOffset, rotation, selection]);
+
+  const animatedProps = useAnimatedProps(
+    () => ({
+      transform: [
+        {
+          rotate: `${-rotationOffset?.value * direction + rotation}deg`,
+        },
+        {
+          translateX: distanceFromSelected.value * offsetMultiplier,
+        },
+      ],
+    }),
+    [rotationOffset, offsetMultiplier],
+  );
+  return (
+    <AnimatedSvg
+      {...props}
+      animatedProps={animatedProps}
+      width={maxRadius * 2}
+      height={maxRadius * 2}
+      viewBox={`-${maxRadius} -${maxRadius} ${maxRadius * 2} ${maxRadius * 2}`}
+      style={{
+        margin: -maxRadius,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 6,
+        ...style,
+      }}
+    >
+      {sectors?.map((sector, index) => (
+        <Sector {...sector} key={index} />
+      ))}
+      {children}
+    </AnimatedSvg>
+  );
+};
+
+export { tSector, Sector, tSectorGroup, SectorGroup, tSelectionRange };

@@ -1,4 +1,4 @@
-class CLAColor {
+export class CLAColor {
   c: number;
   l: number;
   a: number;
@@ -34,6 +34,3 @@ class CLAColor {
         return `#${rHex}${gHex}${bHex}`;
     }
 }
-
-
-export { CLAColor};

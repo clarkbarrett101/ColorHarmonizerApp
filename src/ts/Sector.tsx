@@ -6,36 +6,36 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 import { CLAColor } from "./CLAcolor";
-import Svg, { Filter, Path, FeDropShadow } from "react-native-svg";
-import { useEffect } from "react";
-import { get } from "react-native/Libraries/NativeComponent/NativeComponentRegistry";
-
-type tSector = {
+import Svg, { Path } from "react-native-svg";
+export type tSector = {
   color?: CLAColor;
   radii?: [number, number];
   rc?: { rings: number; chords: number };
   arcLength?: number;
   sectorGroupID?: number;
   maxRadius?: number;
+  pathFunction?: (sector: tSector) => string;
 };
-const Sector = ({
+export const Sector = ({
   arcLength = 360,
   radii = [20, 200],
   color,
   sectorGroupID = 0,
   maxRadius = radii[1],
   rc = { rings: 5, chords: 18 },
+  pathFunction = fMakePetalPath,
 }: tSector) => {
-  const path = fMakePetalPath({
+  const path = pathFunction({
     arcLength,
     radii,
     maxRadius,
     rc,
   });
+
   const fill = color ? color.toString() : "transparent";
   return <Path d={path} fill={fill} stroke={fill} strokeWidth={1} />;
 };
-function fMakeSectorPath({ radii, arcLength }: tSector): string {
+export function fMakeSectorPath({ radii, arcLength }: tSector): string {
   const startRad = ((Math.PI / 180) * -arcLength) / 2;
   const endRad = ((Math.PI / 180) * arcLength) / 2;
   const x1 = radii[1] * Math.cos(startRad);
@@ -56,7 +56,11 @@ function fMakeSectorPath({ radii, arcLength }: tSector): string {
             `.trim();
   return path;
 }
-function fMakePetalPath({ maxRadius, radii, arcLength }: tSector): string {
+export function fMakePetalPath({
+  maxRadius,
+  radii,
+  arcLength,
+}: tSector): string {
   const endRad = ((Math.PI / 180) * arcLength) / 2;
   const x1 = maxRadius * Math.cos(endRad) - (maxRadius - radii[1]);
   const x2 = maxRadius * Math.cos(-endRad) - (maxRadius - radii[1]);
@@ -69,19 +73,19 @@ function fMakePetalPath({ maxRadius, radii, arcLength }: tSector): string {
   const largeArcFlag = arcLength <= 180 ? "0" : "1";
   const path = `
                   M ${x1} ${y1}                 
-                  A ${radii[1]} ${radii[1]}  0 ${largeArcFlag} 0 ${x2} ${y2} 
+                  A ${maxRadius} ${maxRadius}  0 ${largeArcFlag} 0 ${x2} ${y2} 
                   L ${x3} ${y3} 
-                  A ${radii[0]} ${radii[1]}  0 ${largeArcFlag} 1 ${x4} ${y4}       
+                  A ${maxRadius} ${maxRadius}  0 ${largeArcFlag} 1 ${x4} ${y4}       
                   Z                              
               `.trim();
   return path;
 }
-const AnimatedSvg = Animated.createAnimatedComponent(Svg);
-type tSelectionRange = {
+export const AnimatedSvg = Animated.createAnimatedComponent(Svg);
+export type tSelectionRange = {
   angle: number | [number, number];
   radial?: number | [number, number];
 };
-type tSectorGroup = tSector & {
+export type tSectorGroup = tSector & {
   rotation?: number;
   rotationOffset?: SharedValue<number> | { value: number };
   direction?: 1 | -1;
@@ -92,7 +96,7 @@ type tSectorGroup = tSector & {
   selection?: DerivedValue<[number, number]> | { value: [number, number] };
   offsetMultiplier?: number;
 };
-const SectorGroup = ({
+export const SectorGroup = ({
   rotation = 0,
   direction = 1,
   sectors = [],
@@ -105,6 +109,7 @@ const SectorGroup = ({
   offsetMultiplier = 0,
 }: tSectorGroup) => {
   const distanceFromSelected = useDerivedValue(() => {
+    if (!selection) return 1;
     let rot = [
       Math.sin((rotation / 180) * Math.PI),
       Math.cos((rotation / 180) * Math.PI),
@@ -135,7 +140,7 @@ const SectorGroup = ({
     let distanceFromSelected =
       Math.max(0, dotProduct - selectionWidth) / (1 - selectionWidth);
 
-    return distanceFromSelected;
+    return distanceFromSelected ** 1.5;
   }, [rotationOffset, rotation, selection]);
 
   const animatedProps = useAnimatedProps(
@@ -168,11 +173,12 @@ const SectorGroup = ({
       }}
     >
       {sectors?.map((sector, index) => (
-        <Sector {...sector} key={index} />
+        <Sector
+          {...sector}
+          key={`${index}-${sector.color?.toString() || "transparent"}`}
+        />
       ))}
       {children}
     </AnimatedSvg>
   );
 };
-
-export { tSector, Sector, tSectorGroup, SectorGroup, tSelectionRange };

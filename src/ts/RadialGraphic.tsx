@@ -1,11 +1,11 @@
-import React, { useRef, useState } from "react";
+import React, { use, useEffect, useRef, useState } from "react";
 import { PanResponder, Dimensions } from "react-native";
-import { SectorGroup, tSector, tSectorGroup } from "./Sector";
+import { fMakePetalPath, SectorGroup, tSector, tSectorGroup } from "./Sector";
 import { CLAColor } from "./CLAcolor";
 import { View } from "react-native";
 import { SharedValue, withTiming } from "react-native-reanimated";
 
-type tRadialGraphic = tSectorGroup & {
+export type tRadialGraphic = tSectorGroup & {
   colorRange: CLAColor[][] | tColorRange;
   onSectorPress?: ({ ring, chord }: { ring: number; chord: number }) => void;
   onSectorRelease?: () => void;
@@ -15,9 +15,11 @@ type tRadialGraphic = tSectorGroup & {
   draggable?: boolean;
   position?: [number, number];
   onOverTravel?: () => void;
+  angleToChord?: (angle: number) => number;
+  chordToAngle?: (chord: number) => number;
 };
 
-export default function RadialGraphic({
+export function RadialGraphic({
   rotation = 0,
   arcLength = 360,
   rc = { rings: 5, chords: 18 },
@@ -34,18 +36,30 @@ export default function RadialGraphic({
   onSectorRelease = () => {},
   onOverTravel = () => {},
   selection,
+  angleToChord = (angle: number) => {
+    const adjustedAngle = angle - rotation;
+    const chord = Math.floor(adjustedAngle / (arcLength / rc.chords));
+    return chord;
+  },
+  chordToAngle = (chord: number) => {
+    return (chord + 0.5) * (arcLength / rc.chords) + rotation;
+  },
+  pathFunction = fMakePetalPath,
   ...props
 }: tRadialGraphic) {
-  const colors = Array.isArray(colorRange)
+  if (angleToChord(chordToAngle(0)) !== 0)
+    throw new Error(
+      `angleToChord:${angleToChord(chordToAngle(0))} and chordToAngle:${chordToAngle(0)} are not consistent with each other`,
+    );
+
+  let colors: CLAColor[][] = Array.isArray(colorRange)
     ? colorRange
     : fGetColorsFromGrid({
         ...colorRange,
         dimensions: [rc.rings, rc.chords],
       });
-
   //// Init sectors ////
-
-  const arcStep = (arcLength - rotation) / rc.chords;
+  const arcStep = arcLength / rc.chords;
   const radStep = (radii[1] - radii[0]) / rc.rings;
   const sectors = [];
   for (let r = 0; r < rc.rings; r++) {
@@ -63,6 +77,7 @@ export default function RadialGraphic({
         rc: { rings: r, chords: c },
         sectorGroupID: c,
         maxRadius: radii[1],
+        pathFunction: pathFunction,
       };
       if (sectorModifier) {
         sector = sectorModifier(sector);
@@ -78,15 +93,15 @@ export default function RadialGraphic({
     const groupID = sector.sectorGroupID || 0;
     let group = groups[groupID];
     if (!group) {
-      const sectorArc = rotation + (sector.rc.chords + 0.5) * arcStep;
+      const sectorArc = chordToAngle(sector.rc.chords);
       group = {
         ...sector,
         sectorGroupID: groupID,
         rotationOffset: rotationOffset,
         rotation: sectorArc,
         direction: direction,
-        rc: sector.rc,
         selection: selection,
+        maxRadius: radii[1],
       };
       group = sectorGroupModifier(group);
       groups[groupID] = group;
@@ -121,13 +136,7 @@ export default function RadialGraphic({
       angle += 360;
     }
     const radius = Math.sqrt(dx * dx + dy * dy);
-    const chord =
-      rc.chords -
-      Math.round(
-        ((angle - rotation + 360 + ((rotationOffset?.value || 0) % 360)) %
-          360) /
-          arcStep,
-      );
+    const chord = angleToChord(angle);
     const ring = Math.floor((radius - radii[0]) / radStep);
     return { ring, chord, angle };
   }
@@ -168,6 +177,7 @@ export default function RadialGraphic({
       onSectorRelease();
     },
   });
+  useEffect(() => {}, [colorRange]);
 
   //// Render ////
 
@@ -205,25 +215,14 @@ export function fGetColorsFromGrid({
   dimensions,
 }: tColorRange) {
   const colors: CLAColor[][] = [];
-  const rdc = Math.pow(
-    R0A0.c / R1A0.c,
-    1 / (dimensions ? dimensions[0] - 1 : 1),
-  );
-  const rdl = Math.pow(
-    R0A0.l / R1A0.l,
-    1 / (dimensions ? dimensions[0] - 1 : 1),
-  );
-  const adc = Math.pow(
-    R0A0.c / R0A1.c,
-    1 / (dimensions ? dimensions[1] - 1 : 1),
-  );
-  const adl = Math.pow(
-    R0A0.l / R0A1.l,
-    1 / (dimensions ? dimensions[1] - 1 : 1),
-  );
+  let [rings, chords] = dimensions || [1, 1];
+  const rdc = Math.pow(R0A0.c / R1A0.c, 1 / Math.max(rings - 1, 1));
+  const rdl = Math.pow(R0A0.l / R1A0.l, 1 / Math.max(rings - 1, 1));
+  const adc = Math.pow(R0A0.c / R0A1.c, 1 / Math.max(chords - 1, 1));
+  const adl = Math.pow(R0A0.l / R0A1.l, 1 / Math.max(chords - 1, 1));
   const radialDelta = [R1A0.c - R0A0.c, R1A0.l - R0A0.l, R1A0.a - R0A0.a];
   const angularDelta = [R0A1.c - R0A0.c, R0A1.l - R0A0.l, R0A1.a - R0A0.a];
-  const [rings, chords] = dimensions || [1, 1];
+
   for (let c = 0; c < chords; c++) {
     const chordColors: CLAColor[] = [];
     const chromaMax = R1A0.c * Math.pow(adc, c);
@@ -234,18 +233,18 @@ export function fGetColorsFromGrid({
         interpolation == "expo"
           ? chromaMax * Math.pow(rdc, rings - r - 1)
           : R0A0.c +
-            radialDelta[0] * (r / (rings - 1)) +
-            angularDelta[0] * (c / (chords - 1));
+            radialDelta[0] * (r / Math.max(rings - 1, 1)) +
+            angularDelta[0] * (c / Math.max(chords - 1, 1));
       const lightness =
         interpolation == "expo"
           ? lightnessMax * Math.pow(rdl, rings - r - 1)
           : R0A0.l +
-            radialDelta[1] * (r / (rings - 1)) +
-            angularDelta[1] * (c / (chords - 1));
+            radialDelta[1] * (r / Math.max(rings - 1, 1)) +
+            angularDelta[1] * (c / Math.max(chords - 1, 1));
       const angle =
         R0A0.a +
-        radialDelta[2] * (r / (rings - 1)) +
-        angularDelta[2] * (c / (chords - 1));
+        radialDelta[2] * (r / Math.max(rings - 1, 1)) +
+        angularDelta[2] * (c / Math.max(chords - 1, 1));
       chordColors.push(new CLAColor(chroma, lightness, angle));
     }
     colors.push(chordColors);

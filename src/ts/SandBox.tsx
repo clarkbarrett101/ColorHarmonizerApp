@@ -2,18 +2,15 @@ import { View } from "react-native";
 import { ColorWheel } from "./ColorWheel";
 import { Menu } from "./Menu";
 import { TintSelector } from "./TintSelector";
-import { CLAColor } from "./CLAcolor";
+import { CLARColor } from "./CLAcolor";
 import { useState } from "react";
+import ColorMixer from "./ColorMixer";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 export default function SandBox() {
-  const [color, setColor] = useState(new CLAColor(0.5, 0.4, 180));
+  const [color, setColor] = useState(new CLARColor(0.5, 0.4, 22 / 7));
   return (
-    <View>
-      <ColorWheel
-        arcLength={360}
-        rotation={0}
-        radii={[20, 200]}
-        rc={{ rings: 5, chords: 18 }}
-      />
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ColorMixer />
+    </GestureHandlerRootView>
   );
 }

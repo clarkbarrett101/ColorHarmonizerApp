@@ -1,11 +1,14 @@
-export class CLAColor {
+export class CLARColor {
   c: number;
   l: number;
-  a: number;
-  constructor(chroma: number, lightness: number, angle: number) {
+  ar: number;
+  constructor(chroma: number, lightness: number, angleR: number) {
     this.c = chroma;
     this.l = lightness;
-    this.a = angle;
+    this.ar = angleR;
+    if(angleR>88/7){
+      console.log("High angle:", angleR);
+    }
   }
   toRGB() {
     const [y, u, v] = this.toYUV();
@@ -15,8 +18,8 @@ export class CLAColor {
     return [r, g, b];
   }
   toYUV() {  
-    let u = Math.cos((this.a * Math.PI) / 180)*.5;
-    let v = Math.sin((this.a * Math.PI) / 180)*.5;
+    let u = Math.cos(this.ar)*.5;
+    let v = Math.sin(this.ar) *.5;
     u = this.c * u ;
     v = this.c * v ;
     const y = this.l;
@@ -33,4 +36,22 @@ export class CLAColor {
         const bHex = Math.round(b).toString(16).padStart(2, '0');
         return `#${rHex}${gHex}${bHex}`;
     }
+    distanceFrom(other: CLARColor) {
+        const deltaC = this.c - other.c;
+        const deltaL = this.l - other.l;
+        const deltaA = Math.min(
+            Math.abs(this.ar - other.ar),
+            22/7 - Math.abs(this.ar - other.ar)
+        ) ;
+        return Math.sqrt(deltaC * deltaC + deltaL * deltaL + deltaA * deltaA);
+    }
+    toArray() {
+        return [this.c, this.l, this.ar];
+    }
 }
+
+export type tCLARColor = {
+  c: number;
+  l: number;
+  ar: number;
+};

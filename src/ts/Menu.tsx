@@ -78,9 +78,9 @@ function Menu({
       angleToChord={angleToChord}
       chordToAngle={chordToAngle}
       colorRange={{
-        R0A0: new CLAColor(0.5, 0.4, 0),
-        R1A0: new CLAColor(0.8, 0.7, 0),
-        R0A1: new CLAColor(0.5, 0.4, 270),
+        R0C0: new CLAColor(0.5, 0.4, 0),
+        R1C0: new CLAColor(0.8, 0.7, 0),
+        R0C1: new CLAColor(0.5, 0.4, 270),
         interpolation: "expo",
       }}
       sectorModifier={(sector) => {

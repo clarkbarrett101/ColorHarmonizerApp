@@ -45,6 +45,7 @@ export function RadialGraphic({
   const arcStep = arcLength / rc.chords;
   const radStep = (radii[1] - radii[0]) / rc.rings;
   const sectors = [];
+
   for (let r = rc.rings - 1; r >= 0; r--) {
     for (let c = 0; c < rc.chords; c++) {
       const sectorRadii: [number, number] = [
@@ -56,7 +57,7 @@ export function RadialGraphic({
         arcLength: arcStep,
         radii: sectorRadii,
         rc: { rings: r, chords: c },
-        sectorGroupID: c,
+        sectorGroupID: direction == 1 ? c : rc.chords - 1 - c,
       };
       if (sectorModifier) {
         sector = sectorModifier(sector);
@@ -82,7 +83,6 @@ export function RadialGraphic({
         ...sector,
         sectorGroupID: groupID,
         rotationR: sectorArc,
-        direction,
       };
     }
     group.sectors = group.sectors || [];

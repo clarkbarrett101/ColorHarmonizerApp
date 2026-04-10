@@ -13,6 +13,7 @@ import Svg, { G, Line, Path, Circle } from "react-native-svg";
 import { fMakeSectorPath } from "./Sector";
 import { Dimensions, View } from "react-native";
 import { runOnJS } from "react-native-worklets";
+import { useRadialContext } from "./RadialContext";
 
 type tRadialZone = {
   panPos: SharedValue<{ angle: number; radius: number }>;
@@ -25,6 +26,7 @@ type tRadialZone = {
   onLeave?: () => void;
   highlight?: boolean;
   travelLimit?: number;
+  priority?: number;
 };
 const RadialZone = ({
   origin,
@@ -43,8 +45,8 @@ const RadialZone = ({
     >
       <Path
         d={path}
-        fill={highlight ? "rgba(255,255,255,0.5)" : "transparent"}
-        stroke="black"
+        fill={highlight ? "rgba(255,255,255,0.25)" : "transparent"}
+        stroke="rgba(0,0,0,0.1)"
       />
     </G>
   );
@@ -66,8 +68,10 @@ export function usePanManager() {
 
 export default function PanManager({
   children,
+  drawSectors = false,
 }: {
   children: React.ReactNode;
+  drawSectors?: boolean;
 }) {
   const panPos = useSharedValue([0, 0]);
   const zones = useSharedValue<tRadialZone[]>([]);
@@ -76,7 +80,7 @@ export default function PanManager({
   const currentZone = useSharedValue(-1);
   const [zoneRefs, setZoneRefs] = useState<tRadialZone[]>([]);
   const [zoneState, setZoneState] = useState(-1);
-
+  const { direction = 1 } = useRadialContext();
   useEffect(() => {
     zones.value = zoneRefs;
   }, [zoneRefs]);
@@ -86,7 +90,10 @@ export default function PanManager({
 
   const registerZone = useCallback(
     (zone: tRadialZone) => {
-      setZoneRefs((refs) => [...refs, zone]);
+      const newZone = { ...zone, priority: zone.priority || 0 };
+      setZoneRefs((refs) =>
+        [...refs, newZone].sort((a, b) => b.priority - a.priority),
+      );
       return zoneRefs.length;
     },
     [zoneRefs],
@@ -95,6 +102,7 @@ export default function PanManager({
   const unregisterZone = useCallback((i: number) => {
     setZoneRefs((refs) => refs.filter((_, index) => index !== i));
   }, []);
+
   const panUpdate = (e) => {
     `worklet`;
     let foundZone = false;
@@ -110,6 +118,10 @@ export default function PanManager({
       if (angle < 0) {
         angle += 44 / 7;
       }
+      if (direction === -1) {
+        angle = 44 / 7 - angle;
+      }
+
       const inArc =
         angle > zone.rotationR - zone.arcLength / 2 &&
         angle < zone.rotationR + zone.arcLength / 2;
@@ -118,7 +130,6 @@ export default function PanManager({
         distance <= (zone.radii?.[1] || Infinity);
       if (inArc && inRadius) {
         zone.panPos.value = { angle: angle, radius: distance };
-        console.log(zone.panPos.value);
         foundZone = true;
         if (
           currentZone.value !== i ||
@@ -130,10 +141,8 @@ export default function PanManager({
             currentZone.value !== -1 &&
             zones.value[currentZone.value].onLeave
           ) {
-            console.log("Leaving zone:", currentZone.value);
             runOnJS(zones.value[currentZone.value].onLeave)();
           }
-          console.log("Activating zone:", i);
           if (zone.drag) {
             dragStart.value = zone.drag.value;
           }
@@ -149,7 +158,6 @@ export default function PanManager({
       }
     }
     if (!foundZone && currentZone.value !== -1) {
-      console.log("Leaving zone:", currentZone.value);
       if (zones.value[currentZone.value].onLeave) {
         runOnJS(zones.value[currentZone.value].onLeave)();
       }
@@ -161,9 +169,7 @@ export default function PanManager({
     onUpdate: panUpdate,
     onDeactivate() {
       if (currentZone.value !== -1) {
-        console.log("Deactivating from zone:", currentZone.value);
         if (zones.value[currentZone.value].drag) {
-          console.log("Drag:", zones.value[currentZone.value].drag.value);
         }
         if (zones.value[currentZone.value].onLeave) {
           runOnJS(zones.value[currentZone.value].onLeave)();
@@ -203,9 +209,17 @@ export default function PanManager({
             height: "100%",
           }}
         >
-          {zoneRefs.map((zone, index) => (
-            <RadialZone {...zone} key={index} highlight={zoneState === index} />
-          ))}
+          {drawSectors &&
+            zoneRefs.map((zone, index) => (
+              <RadialZone
+                {...zone}
+                rotationR={
+                  direction === 1 ? zone.rotationR : 44 / 7 - zone.rotationR
+                }
+                key={index}
+                highlight={zoneState === index}
+              />
+            ))}
         </Svg>
       </GestureDetector>
     </Ctx.Provider>

@@ -10,7 +10,6 @@ export type tSector = {
 };
 export type tSectorGroup = tSector & {
   rotationR?: number;
-  direction?: 1 | -1;
   style?: any;
   sectors?: tSector[];
   children?: React.ReactNode;

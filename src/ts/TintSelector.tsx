@@ -41,7 +41,8 @@ export function TintSelector({
 }: tTintSelector) {
   const { registerZone, unregisterZone } = usePanManager();
   const context = useRadialContext();
-  const { origin, selectColor, angleToChord, chordToAngle } = context;
+  const { origin, selectColor, angleToChord, chordToAngle, setSelectColor } =
+    context;
   const [zoneId, setZoneId] = useState<number | null>(null);
   const onEnter = () => {
     let nearestSectorAngle = chordToAngle(
@@ -51,12 +52,13 @@ export function TintSelector({
       rotationR,
     );
     panPos.value = { ...panPos.value, angle: nearestSectorAngle };
+    setSelectColor({ ...selectColor.value });
   };
   useEffect(() => {
     const id = registerZone({
       panPos,
       radii,
-      arcLength,
+      arcLength: (arcLength * (rc.chords - 1)) / rc.chords,
       rotationR,
       origin,
       onEnter,
@@ -77,11 +79,11 @@ export function TintSelector({
         (src.chords + 0.5) * (arcLength / rc.chords) +
         rotationR -
         arcLength / 2;
-      let diff = Math.abs(panPos.value.angle - angle);
-      if (diff > arcLength / rc.chords / 2) {
-        return 0;
-      }
-      diff = (1 - diff / (arcLength / rc.chords / 2)) * 20;
+      let diff = Math.min(
+        Math.abs(angle - panPos.value.angle) / (arcLength / rc.chords),
+        1,
+      );
+      diff = (1 - diff) * 20;
       return diff;
     },
     [],

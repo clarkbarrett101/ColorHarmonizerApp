@@ -46,18 +46,20 @@ function ColorWheel({
     const rdl = Math.pow(0.5, 1 / Math.max(rc.rings - 1, 1));
     let c = Math.pow(rdc, rc.rings - 1 - src.rings) * selectColor.value.c;
     let l = Math.pow(rdl, rc.rings - 1 - src.rings) * selectColor.value.l;
-    let ar = (src.chords / rc.chords) * (44 / 7);
+    let ar = ((src.chords + 0.5) / rc.chords) * (44 / 7);
     return { c, l, ar };
   }, []);
 
   const groupModifier = useMemo(() => {
     return (group: tSectorGroup) => {
       group.style = {
-        zIndex: (group.sectorGroupID - selectedSector + rc.chords) % rc.chords,
+        zIndex:
+          (group.sectorGroupID - selectedSector * direction + rc.chords) %
+          rc.chords,
       };
       return group;
     };
-  }, [selectedSector]);
+  }, [selectedSector, direction, rc.chords]);
 
   const onLeave = () => {
     let nearestSectorAngle = chordToAngle(
@@ -79,14 +81,6 @@ function ColorWheel({
       l: selectColor.value.l,
       ar: adjustedAngle,
     });
-    console.log(
-      "Selected sector:",
-      selectedSector,
-      adjustedAngle.toFixed(2),
-      nearestSectorAngle.toFixed(2),
-      rotationROffset.value.toFixed(2),
-      selectColor.value.c,
-    );
     rotationROffset.value = withTiming(nearestSectorAngle, {
       duration: 300,
     });
@@ -104,29 +98,22 @@ function ColorWheel({
       drag: rotationROffset,
       origin: origin,
       travelLimit: arcLength / rc.chords,
+      priority: 10,
     });
-  }, []);
-  const colorModifier = useCallback((color: tCLARColor) => {
-    "worklet";
-    return {
-      c: selectColor.value.c * color.c,
-      l: selectColor.value.l * color.l,
-      ar: color.ar,
-    };
+    onLeave();
   }, []);
   const offset = useCallback(
-    (rc: { rings: number; chords: number }, rotation: number) => {
+    (src: { rings: number; chords: number }, rotation: number) => {
       "worklet";
-      let diff = Math.abs(
-        rotation - (((rotationROffset.value % (44 / 7)) + 44 / 7) % (44 / 7)),
-      );
+      let diff = Math.abs(rotation - selectColor.value.ar);
       if (diff > 22 / 7) {
         diff = 44 / 7 - diff;
       }
-      if (diff > arcLength / rc.chords) {
-        return 0;
-      }
-      return (1 - diff / (arcLength / rc.chords)) * 50;
+      diff =
+        Math.max(0, (2 * arcLength) / rc.chords - diff) /
+        ((2 * arcLength) / rc.chords);
+
+      return diff * 100;
     },
     [],
   );
@@ -145,7 +132,6 @@ function ColorWheel({
         rc={rc}
         arcLength={arcLength}
         rotationR={rotationR}
-        direction={direction}
         sectorModifier={(sector) => {
           return {
             ...sector,
@@ -153,6 +139,13 @@ function ColorWheel({
           };
         }}
         sectorGroupModifier={groupModifier}
+        style={{
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.25,
+          shadowRadius: 10,
+          zIndex: 10,
+        }}
       />
     </RadialContext>
   );

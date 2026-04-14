@@ -16,14 +16,14 @@ import { runOnJS } from "react-native-worklets";
 import { useRadialContext } from "./RadialContext";
 
 type tRadialZone = {
-  panPos: SharedValue<{ angle: number; radius: number }>;
-  drag?: SharedValue<number>;
+  vPanPos: SharedValue<{ angle: number; radius: number }>;
+  vDrag?: SharedValue<number>;
   origin: [number, number];
   radii: [number, number];
   arcLength: number;
   rotationR: number;
-  onEnter?: (angle: number, radius: number) => void;
-  onLeave?: () => void;
+  fOnEnter?: (angle: number, radius: number) => void;
+  fOnLeave?: () => void;
   highlight?: boolean;
   travelLimit?: number;
   priority?: number;
@@ -73,19 +73,19 @@ export default function PanManager({
   children: React.ReactNode;
   drawSectors?: boolean;
 }) {
-  const panPos = useSharedValue([0, 0]);
-  const zones = useSharedValue<tRadialZone[]>([]);
-  const startAngle = useSharedValue(0);
-  const dragStart = useSharedValue(0);
-  const currentZone = useSharedValue(-1);
+  const vPanPos = useSharedValue([0, 0]);
+  const vZones = useSharedValue<tRadialZone[]>([]);
+  const vStartAngle = useSharedValue(0);
+  const vDragStart = useSharedValue(0);
+  const vCurrentZone = useSharedValue(-1);
   const [zoneRefs, setZoneRefs] = useState<tRadialZone[]>([]);
   const [zoneState, setZoneState] = useState(-1);
-  const { direction = 1 } = useRadialContext();
+  const { direction = 1, radii, origin } = useRadialContext();
   useEffect(() => {
-    zones.value = zoneRefs;
+    vZones.value = zoneRefs;
   }, [zoneRefs]);
   useEffect(() => {
-    currentZone.value = zoneState;
+    vCurrentZone.value = zoneState;
   }, [zoneState]);
 
   const registerZone = useCallback(
@@ -106,9 +106,9 @@ export default function PanManager({
   const panUpdate = (e) => {
     `worklet`;
     let foundZone = false;
-    panPos.value = [e.absoluteX, e.absoluteY];
-    for (let i = 0; i < zones.value.length; i++) {
-      const zone = zones.value[i];
+    vPanPos.value = [e.absoluteX, e.absoluteY];
+    for (let i = 0; i < vZones.value.length; i++) {
+      const zone = vZones.value[i];
       const x = e.absoluteX;
       const y = e.absoluteY;
       const dx = x - zone.origin[0];
@@ -129,37 +129,37 @@ export default function PanManager({
         distance >= (zone.radii?.[0] || 0) &&
         distance <= (zone.radii?.[1] || Infinity);
       if (inArc && inRadius) {
-        zone.panPos.value = { angle: angle, radius: distance };
+        zone.vPanPos.value = { angle: angle, radius: distance };
         foundZone = true;
         if (
-          currentZone.value !== i ||
+          vCurrentZone.value !== i ||
           (zone.travelLimit &&
-            Math.abs(startAngle.value - angle) > zone.travelLimit)
+            Math.abs(vStartAngle.value - angle) > zone.travelLimit)
         ) {
-          startAngle.value = angle;
+          vStartAngle.value = angle;
           if (
-            currentZone.value !== -1 &&
-            zones.value[currentZone.value].onLeave
+            vCurrentZone.value !== -1 &&
+            vZones.value[vCurrentZone.value].fOnLeave
           ) {
-            runOnJS(zones.value[currentZone.value].onLeave)();
+            runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
           }
-          if (zone.drag) {
-            dragStart.value = zone.drag.value;
+          if (zone.vDrag) {
+            vDragStart.value = zone.vDrag.value;
           }
-          if (zone.onEnter) {
-            runOnJS(zone.onEnter)(angle, distance);
+          if (zone.fOnEnter) {
+            runOnJS(zone.fOnEnter)(angle, distance);
           }
           runOnJS(setZoneState)(i);
         }
-        if (zone.drag) {
-          zone.drag.value = startAngle.value + dragStart.value - angle;
+        if (zone.vDrag) {
+          zone.vDrag.value = vStartAngle.value + vDragStart.value - angle;
         }
         break;
       }
     }
-    if (!foundZone && currentZone.value !== -1) {
-      if (zones.value[currentZone.value].onLeave) {
-        runOnJS(zones.value[currentZone.value].onLeave)();
+    if (!foundZone && vCurrentZone.value !== -1) {
+      if (vZones.value[vCurrentZone.value].fOnLeave) {
+        runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
       }
       runOnJS(setZoneState)(-1);
     }
@@ -168,11 +168,11 @@ export default function PanManager({
     onBegin: panUpdate,
     onUpdate: panUpdate,
     onDeactivate() {
-      if (currentZone.value !== -1) {
-        if (zones.value[currentZone.value].drag) {
+      if (vCurrentZone.value !== -1) {
+        if (vZones.value[vCurrentZone.value].vDrag) {
         }
-        if (zones.value[currentZone.value].onLeave) {
-          runOnJS(zones.value[currentZone.value].onLeave)();
+        if (vZones.value[vCurrentZone.value].fOnLeave) {
+          runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
         }
         runOnJS(setZoneState)(-1);
       }
@@ -191,8 +191,6 @@ export default function PanManager({
           position: "absolute",
           top: 0,
           left: 0,
-          width: "100%",
-          height: "100%",
           zIndex: 0,
         }}
       >
@@ -203,11 +201,12 @@ export default function PanManager({
         <Svg
           style={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
+            top: origin[1] - radii[1] * 1.25,
+            left: origin[0] - radii[1] * 1.25,
+            width: radii[1] * 2.5,
+            height: radii[1] * 2.5,
           }}
+          viewBox={`${origin[0] - radii[1] * 1.25} ${origin[1] - radii[1] * 1.25} ${radii[1] * 2.5} ${radii[1] * 2.5}`}
         >
           {drawSectors &&
             zoneRefs.map((zone, index) => (

@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { Dimensions, View } from "react-native";
 import { ColorWheel } from "./ColorWheel";
 import { Menu } from "./Menu";
 import { TintSelector } from "./TintSelector";
@@ -6,11 +6,27 @@ import { CLARColor } from "./CLAcolor";
 import { useState } from "react";
 import ColorMixer from "./ColorMixer";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { PaintChip } from "./PaintChip";
 export default function SandBox() {
   const [color, setColor] = useState(new CLARColor(0.5, 0.4, 22 / 7));
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ColorMixer />
+      <PaintChip
+        paint={{
+          name: "Test Paint",
+          brand: "Test Brand",
+          rgb: [255, 0, 0],
+          ryb: [255, 0, 0],
+          hsluv: [0, 100, 50],
+          clarColor: new CLARColor(0.5, 0.4, 22 / 7),
+          hex: "#ff0000",
+          yuv: [255, 128, 128],
+          label: "Test Paint",
+        }}
+        startPosition={[0, Dimensions.get("window").height / 2 - 25]}
+        grabbed={false}
+      />
+      <ColorMixer radii={[50, 225]} />
     </GestureHandlerRootView>
   );
 }

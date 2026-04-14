@@ -6,7 +6,6 @@ export type tSector = {
   rc?: { rings: number; chords: number };
   arcLength?: number;
   sectorGroupID?: number;
-  pathFunction?: (sector: tSector) => string;
 };
 export type tSectorGroup = tSector & {
   rotationR?: number;

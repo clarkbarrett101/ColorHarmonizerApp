@@ -15,133 +15,146 @@ import {
   withTiming,
 } from "react-native-reanimated";
 import { usePanManager } from "./PanManager";
-import { RadialContext, useRadialContext } from "./RadialContext";
+import {
+  RadialContext,
+  useRadialContext,
+  wDefaultAngleToChord,
+} from "./RadialContext";
 import { SharedValue } from "react-native-gesture-handler/lib/typescript/v3/types";
 type tColorWheel = {
   radii?: [number, number];
   rc?: { rings: number; chords: number };
-  rotationROffset?: SharedValue<number>;
+  vRotationROffset?: SharedValue<number>;
+  wheelCenter?: number;
+  colorState?: tCLARColor;
 };
 function ColorWheel({
   radii = [20, 200],
   rc = { rings: 5, chords: 18 },
-  rotationROffset,
+  vRotationROffset,
+  wheelCenter = 11 / 7,
+  colorState,
 }: tColorWheel) {
   const arcLength = 43.9 / 7;
-  const rotationR = 22 / 7;
   const context = useRadialContext();
   const {
     origin,
     direction,
-    angleToChord,
-    chordToAngle,
-    selectColor,
+    wAngleToChord,
+    wChordToAngle,
+    vSelectColor,
     setSelectColor,
   } = context;
-  const [selectedSector, setSelectedSector] = useState(0);
+  const wGetColor = useCallback(
+    (src: { rings: number; chords: number }) => {
+      "worklet";
+      const rdc = Math.pow(0.5, 1 / Math.max(rc.rings - 1, 1));
+      const rdl = Math.pow(0.5, 1 / Math.max(rc.rings - 1, 1));
+      let c = Math.pow(rdc, rc.rings - 1 - src.rings) * vSelectColor.value.c;
+      let l = Math.pow(rdl, rc.rings - 1 - src.rings) * vSelectColor.value.l;
+      let ar = wChordToAngle(src.chords, arcLength, rc.chords, 0);
+      return { c, l, ar };
+    },
+    [vSelectColor, rc.rings, rc.chords, arcLength],
+  );
 
-  const getColor = useCallback((src: { rings: number; chords: number }) => {
-    "worklet";
-    const rdc = Math.pow(0.5, 1 / Math.max(rc.rings - 1, 1));
-    const rdl = Math.pow(0.5, 1 / Math.max(rc.rings - 1, 1));
-    let c = Math.pow(rdc, rc.rings - 1 - src.rings) * selectColor.value.c;
-    let l = Math.pow(rdl, rc.rings - 1 - src.rings) * selectColor.value.l;
-    let ar = ((src.chords + 0.5) / rc.chords) * (44 / 7);
-    return { c, l, ar };
-  }, []);
+  const wGetZIndex = useCallback(
+    (src: { rings: number; chords: number }) => {
+      "worklet";
+      const selectedSector = wAngleToChord(
+        vSelectColor.value.ar,
+        arcLength,
+        rc.chords,
+        0,
+      );
+      let diff = Math.abs(src.chords - selectedSector) % rc.chords;
+      if (diff > rc.chords / 2) {
+        diff = rc.chords - diff;
+      }
+      return Math.round((rc.chords / 2 - diff) * 100);
+    },
+    [rc.rings, rc.chords],
+  );
 
   const groupModifier = useMemo(() => {
     return (group: tSectorGroup) => {
-      group.style = {
-        zIndex:
-          (group.sectorGroupID - selectedSector * direction + rc.chords) %
-          rc.chords,
-      };
       return group;
     };
-  }, [selectedSector, direction, rc.chords]);
+  }, [direction, rc.chords, colorState]);
 
-  const onLeave = () => {
-    let nearestSectorAngle = chordToAngle(
-      angleToChord(rotationROffset.value, arcLength, rc.chords, rotationR),
+  const fOnLeave = () => {
+    let nearestSectorAngle = wChordToAngle(
+      wAngleToChord(vRotationROffset.value, arcLength, rc.chords, 0),
       arcLength,
       rc.chords,
-      rotationR,
+      0,
     );
-    const adjustedAngle = ((nearestSectorAngle % (44 / 7)) + 44 / 7) % (44 / 7);
-    const selectedSector = angleToChord(
-      adjustedAngle,
-      arcLength,
-      rc.chords,
-      rotationR,
-    );
-    setSelectedSector(selectedSector);
-    setSelectColor({
-      c: selectColor.value.c,
-      l: selectColor.value.l,
-      ar: adjustedAngle,
-    });
-    rotationROffset.value = withTiming(nearestSectorAngle, {
-      duration: 300,
-    });
+    vRotationROffset.value = nearestSectorAngle;
+    setSelectColor({ ...vSelectColor.value });
   };
-  const panPos = useSharedValue({ angle: 0, radius: 0 });
-
+  const vPanPos = useSharedValue({ angle: 0, radius: 0 });
+  useEffect(() => {
+    console.log("Selected Chord:", colorState.ar);
+  }, [colorState]);
   const { registerZone } = usePanManager();
   useEffect(() => {
     registerZone({
-      onLeave,
+      fOnLeave,
       radii,
-      rotationR,
+      rotationR: wheelCenter,
       arcLength,
-      panPos,
-      drag: rotationROffset,
+      vPanPos,
+      vDrag: vRotationROffset,
       origin: origin,
-      travelLimit: arcLength / rc.chords,
+      travelLimit: (arcLength / rc.chords) * 2,
       priority: 10,
     });
-    onLeave();
+    fOnLeave();
   }, []);
-  const offset = useCallback(
-    (src: { rings: number; chords: number }, rotation: number) => {
+  const wMatrix = useCallback(
+    (src: { rings: number; chords: number }, rotationR: number) => {
       "worklet";
-      let diff = Math.abs(rotation - selectColor.value.ar);
+      /*  const adjustedRotationROffset =
+        (((vRotationROffset.value + wheelCenter) % (44 / 7)) + 44 / 7) %
+        (44 / 7);
+        */
+      const adjustedRotationROffset = vSelectColor.value.ar;
+      const rotation = wChordToAngle(src.chords, arcLength, rc.chords, 0);
+      let diff = Math.abs(rotation - adjustedRotationROffset) % (44 / 7);
       if (diff > 22 / 7) {
         diff = 44 / 7 - diff;
       }
       diff =
         Math.max(0, (2 * arcLength) / rc.chords - diff) /
         ((2 * arcLength) / rc.chords);
-
-      return diff * 100;
+      if (diff > 1) {
+        console.log({ diff, rotationR, adjustedRotationROffset });
+      }
+      const vR = (rotationR + -vRotationROffset.value) * direction;
+      const vT = { x: Math.cos(vR) * diff * 10, y: Math.sin(vR) * diff * 10 };
+      return { vT, vR, vS: 1 + diff * 0.3 };
     },
-    [],
+    [direction, rc.chords],
   );
 
   return (
     <RadialContext
       value={{
         radii,
-        pathFunction: fMakePetalPath,
-        rotationROffset,
-        offset,
-        getColor,
+        fPathFunction: fMakePetalPath,
+        wGetColor,
+        wTransformMatrix: wMatrix,
+        wGetZIndex,
       }}
     >
       <RadialGraphic
         rc={rc}
         arcLength={arcLength}
-        rotationR={rotationR}
-        sectorModifier={(sector) => {
-          return {
-            ...sector,
-            zGroupID: sector.rc.chords % rc.chords,
-          };
-        }}
-        sectorGroupModifier={groupModifier}
+        rotationR={wheelCenter}
+        fSectorGroupModifier={groupModifier}
         style={{
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 0 },
+          shadowOffset: { width: 0, height: 20 },
           shadowOpacity: 0.25,
           shadowRadius: 10,
           zIndex: 10,

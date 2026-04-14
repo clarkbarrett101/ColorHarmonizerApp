@@ -10,23 +10,18 @@ import {
   useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
-import {
-  fDefaultAngleToChord,
-  fDefaultChordToAngle,
-  RadialContext,
-  useRadialContext,
-} from "./RadialContext";
+import { RadialContext, useRadialContext } from "./RadialContext";
 
 export type tTintSelector = {
   rc?: { rings: number; chords: number };
   arcLength?: number;
   rotationR?: number;
   radii?: [number, number];
-  sectorModifier?: (sector: tSector) => tSector;
-  sectorGroupModifier?: (group: tSectorGroup) => any;
-  panPos?: SharedValue<{ angle: number; radius: number }>;
+  fSectorModifier?: (sector: tSector) => tSector;
+  fSectorGroupModifier?: (group: tSectorGroup) => any;
+  vPanPos?: SharedValue<{ angle: number; radius: number }>;
   onSelect?: (color: CLARColor) => void;
-  getColor?: (rc: { rings: number; chords: number }) => tCLARColor;
+  wGetColor?: (rc: { rings: number; chords: number }) => tCLARColor;
 };
 
 export function TintSelector({
@@ -34,36 +29,42 @@ export function TintSelector({
   arcLength = 30,
   rotationR = 22 / 7,
   radii = [150, 300],
-  panPos,
-  sectorModifier,
-  sectorGroupModifier,
-  getColor,
+  vPanPos,
+  fSectorModifier,
+  fSectorGroupModifier,
+  wGetColor,
 }: tTintSelector) {
   const { registerZone, unregisterZone } = usePanManager();
   const context = useRadialContext();
-  const { origin, selectColor, angleToChord, chordToAngle, setSelectColor } =
-    context;
+  const {
+    origin,
+    vSelectColor,
+    wAngleToChord,
+    wChordToAngle,
+    setSelectColor,
+    direction,
+  } = context;
   const [zoneId, setZoneId] = useState<number | null>(null);
-  const onEnter = () => {
-    let nearestSectorAngle = chordToAngle(
-      angleToChord(panPos.value.angle, arcLength, rc.chords, rotationR),
+  const fOnEnter = () => {
+    let nearestSectorAngle = wChordToAngle(
+      wAngleToChord(vPanPos.value.angle, arcLength, rc.chords, rotationR),
       arcLength,
       rc.chords,
       rotationR,
     );
-    panPos.value = { ...panPos.value, angle: nearestSectorAngle };
-    setSelectColor({ ...selectColor.value });
+    vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
+    setSelectColor({ ...vSelectColor.value });
   };
   useEffect(() => {
     const id = registerZone({
-      panPos,
+      vPanPos,
       radii,
       arcLength: (arcLength * (rc.chords - 1)) / rc.chords,
       rotationR,
       origin,
-      onEnter,
-      onLeave: onEnter,
-      travelLimit: 1,
+      fOnEnter,
+      fOnLeave: fOnEnter,
+      travelLimit: (arcLength / rc.chords) * 2,
     });
     setZoneId(id);
     return () => {
@@ -72,38 +73,50 @@ export function TintSelector({
       }
     };
   }, []);
-  const offset = useCallback(
-    (src: { rings: number; chords: number }, rotation: number) => {
+  const wMatrix = useCallback((src: { rings: number; chords: number }) => {
+    "worklet";
+    let angle = wChordToAngle(src.chords, arcLength, rc.chords, rotationR);
+    let diff = Math.min(
+      Math.abs(angle - vPanPos.value.angle) / (arcLength / rc.chords),
+      1,
+    );
+    diff = 1 - diff;
+    angle = angle * direction;
+    return {
+      vT: { x: 0, y: 0 },
+      vR: angle,
+      vS: 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0),
+    };
+  }, []);
+  const wGetZIndex = useCallback(
+    (src: { rings: number; chords: number }) => {
       "worklet";
-      let angle =
-        (src.chords + 0.5) * (arcLength / rc.chords) +
-        rotationR -
-        arcLength / 2;
-      let diff = Math.min(
-        Math.abs(angle - panPos.value.angle) / (arcLength / rc.chords),
-        1,
+      let angle = wChordToAngle(src.chords, arcLength, rc.chords, rotationR);
+      let diff = Math.max(
+        Math.abs(vPanPos.value.angle - angle) / (arcLength / rc.chords),
+        0,
       );
-      diff = (1 - diff) * 20;
-      return diff;
+      return Math.round((1 - diff) * 100);
     },
-    [],
+    [rc.rings, rc.chords],
   );
   return (
     <RadialContext
       value={{
         radii,
-        pathFunction: fMakePetalPath,
-        getColor,
-        offset: offset,
-        panPos,
+        fPathFunction: fMakePetalPath,
+        wGetColor,
+        wTransformMatrix: wMatrix,
+        vPanPos,
+        wGetZIndex,
       }}
     >
       <RadialGraphic
         rotationR={rotationR}
         arcLength={arcLength}
         rc={rc}
-        sectorModifier={sectorModifier}
-        sectorGroupModifier={sectorGroupModifier}
+        fSectorModifier={fSectorModifier}
+        fSectorGroupModifier={fSectorGroupModifier}
       />
     </RadialContext>
   );

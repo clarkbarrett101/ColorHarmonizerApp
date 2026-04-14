@@ -18,15 +18,20 @@ export const Sector = ({
   rc = { rings: 5, chords: 18 },
 }: tSector) => {
   const context = useRadialContext();
-  const { pathFunction, getColor, radii: contextRadii, selectColor } = context;
-  const path = pathFunction
-    ? pathFunction(radii, arcLength, contextRadii[1])
+  const {
+    fPathFunction,
+    wGetColor,
+    radii: contextRadii,
+    vSelectColor: selectColor,
+  } = context;
+  const path = fPathFunction
+    ? fPathFunction(radii, arcLength, contextRadii[1])
     : "";
 
-  const fill = useDerivedValue(() => {
+  const dFill = useDerivedValue(() => {
     const _ = selectColor?.value;
-    const fillColor = getColor
-      ? getColor({ rings: rc.rings, chords: rc.chords })
+    const fillColor = wGetColor
+      ? wGetColor({ rings: rc.rings, chords: rc.chords })
       : { c: 0, l: 0, ar: 0 };
     let u = Math.cos(fillColor.ar) * 0.5;
     let v = Math.sin(fillColor.ar) * 0.5;
@@ -37,10 +42,11 @@ export const Sector = ({
     const g = (y - 0.39465 * u - 0.5806 * v) * 255;
     const b = (y + 2.03211 * u) * 255;
     return `rgb(${r}, ${g}, ${b})`;
-  }, [getColor]);
+  }, [wGetColor]);
   const animatedProps = useAnimatedProps(() => ({
-    fill: fill.value,
-    stroke: fill.value,
+    fill: dFill.value,
+    stroke: dFill.value,
+    filter: "url(#shadow)",
   }));
   return (
     <AnimatedPath d={path} animatedProps={animatedProps} strokeWidth={1} />

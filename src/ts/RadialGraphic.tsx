@@ -8,20 +8,20 @@ import { SharedValue, withTiming } from "react-native-reanimated";
 import { useRadialContext } from "./RadialContext";
 
 export type tRadialGraphic = tSectorGroup & {
-  sectorModifier?: (sector: tSector) => tSector;
-  sectorGroupModifier?: (group: tSectorGroup) => any;
+  fSectorModifier?: (sector: tSector) => tSector;
+  fSectorGroupModifier?: (group: tSectorGroup) => any;
 };
 
 export function RadialGraphic({
   rotationR = 0,
   arcLength = 44 / 7,
   rc = { rings: 5, chords: 18 },
-  sectorModifier = (sector) => sector,
-  sectorGroupModifier = (group) => group,
+  fSectorModifier = (sector) => sector,
+  fSectorGroupModifier = (group) => group,
   style = {},
   ...props
 }: tRadialGraphic) {
-  const { origin, direction, angleToChord, chordToAngle, radii } =
+  const { origin, direction, wAngleToChord, wChordToAngle, radii } =
     useRadialContext();
   if (!origin) {
     throw new Error(
@@ -29,15 +29,15 @@ export function RadialGraphic({
     );
   }
   if (
-    angleToChord(
-      chordToAngle(0, arcLength, rc.chords, rotationR),
+    wAngleToChord(
+      wChordToAngle(0, arcLength, rc.chords, rotationR),
       arcLength,
       rc.chords,
       rotationR,
     ) !== 0
   )
     throw new Error(
-      `angleToChord:${angleToChord(chordToAngle(0, arcLength, rc.chords, rotationR), arcLength, rc.chords, rotationR)} and chordToAngle:${chordToAngle(0, arcLength, rc.chords, rotationR)} are not consistent with each other`,
+      `angleToChord:${wAngleToChord(wChordToAngle(0, arcLength, rc.chords, rotationR), arcLength, rc.chords, rotationR)} and chordToAngle:${wChordToAngle(0, arcLength, rc.chords, rotationR)} are not consistent with each other`,
     );
 
   //// Init sectors ////
@@ -59,8 +59,8 @@ export function RadialGraphic({
         rc: { rings: r, chords: c },
         sectorGroupID: direction == 1 ? c : rc.chords - 1 - c,
       };
-      if (sectorModifier) {
-        sector = sectorModifier(sector);
+      if (fSectorModifier) {
+        sector = fSectorModifier(sector);
       }
       sectors.push(sector);
     }
@@ -71,23 +71,23 @@ export function RadialGraphic({
   let groups: tSectorGroup[] = [];
   sectors.forEach((sector: tSector) => {
     const groupID = sector.sectorGroupID || 0;
+    const rotation = wChordToAngle(
+      sector.rc.chords,
+      arcLength,
+      rc.chords,
+      rotationR,
+    );
     let group = groups[groupID];
     if (!group) {
-      const sectorArc = chordToAngle(
-        sector.rc.chords,
-        arcLength,
-        rc.chords,
-        rotationR,
-      );
       group = {
         ...sector,
         sectorGroupID: groupID,
-        rotationR: sectorArc,
       };
     }
     group.sectors = group.sectors || [];
     group.sectors.push(sector);
-    group = sectorGroupModifier(group);
+    group.rotationR = rotation;
+    group = fSectorGroupModifier(group);
     groups[groupID] = group;
   });
   const zGroups = () => {

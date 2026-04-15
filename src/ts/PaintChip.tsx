@@ -2,6 +2,7 @@ import { opacity } from "react-native-reanimated/lib/typescript/Colors";
 import Svg, { Path, G, Defs, LinearGradient, Stop } from "react-native-svg";
 import { tCLARColor } from "./CLAcolor";
 import Animated, {
+  useAnimatedProps,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -12,11 +13,13 @@ import {
   GestureDetector,
   usePanGesture,
 } from "react-native-gesture-handler";
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { fMakePetalPath } from "./Sector";
 import { useAnimatedMatrix } from "./AnimatedMatrix";
 import { AnimatedSvg } from "./SectorGroup";
-
+import { transform } from "@babel/core";
+import { runOnJS } from "react-native-worklets";
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 export type tPaint = {
   name: string;
   brand: string;
@@ -34,27 +37,43 @@ export type tPaintChip = {
   startPosition: [number, number];
   grabbed: boolean;
   size?: [number, number];
-  rotationR?: number;
+  startRotation?: number;
 };
 
 export const PaintChip = ({
   paint,
   startPosition,
   size = [120, 75],
-  rotationR = 0,
+  startRotation = 0,
 }: tPaintChip) => {
   const animatedMatrix = useAnimatedMatrix({
     vT: { x: startPosition[0], y: startPosition[1] },
-    vR: rotationR,
+    vR: 0,
     vS: 1,
   });
   const animatedStyle = useAnimatedStyle(() => {
     return { transform: [{ matrix: animatedMatrix.style.value }] };
-  }, [animatedMatrix.style]);
-
+  }, [animatedMatrix.style, startPosition, startRotation]);
+  useEffect(() => {
+    setSRotation(startRotation);
+    animatedMatrix.wMatrix({
+      vT: { x: startPosition[0], y: startPosition[1] },
+      vR: startRotation,
+      vS: 1,
+    });
+  }, [startRotation]);
+  const [sRotation, setSRotation] = useState(() => startRotation);
   const panGesture = usePanGesture({
     onBegin: (event) => {
-      animatedMatrix.wS(1.25);
+      animatedMatrix.wMatrix({
+        vT: {
+          x: event.absoluteX - size[0] / 2,
+          y: event.absoluteY - size[1] / 2,
+        },
+        vR: 0,
+        vS: 1,
+      });
+      runOnJS(setSRotation)(0);
     },
     onUpdate: (event) => {
       animatedMatrix.wT({
@@ -64,14 +83,19 @@ export const PaintChip = ({
       animatedMatrix.wR(event.velocityX / 1000);
     },
     onFinalize: (event) => {
-      animatedMatrix.wS(1);
-      animatedMatrix.wR(rotationR);
+      animatedMatrix.wMatrix({
+        vT: { x: startPosition[0], y: startPosition[1] },
+        vR: startRotation,
+        vS: 1,
+      });
+      runOnJS(setSRotation)(startRotation);
     },
   });
+
   return (
     <Animated.View style={[{ position: "absolute" }, animatedStyle]}>
       <GestureDetector gesture={panGesture}>
-        <AnimatedSvg
+        <Svg
           viewBox={`0 0 32 20`}
           style={{
             width: size[0],
@@ -83,7 +107,13 @@ export const PaintChip = ({
           }}
         >
           <Defs>
-            <LinearGradient id="grad" x1="40%" y1="20%" x2="60%" y2="80%">
+            <LinearGradient
+              id="grad"
+              x1={`${Math.cos(sRotation) * 50 + 50}%`}
+              y1={`${Math.sin(sRotation) * 50 + 50}%`}
+              x2={`${Math.cos(sRotation + Math.PI) * 50 + 50}%`}
+              y2={`${Math.sin(sRotation + Math.PI) * 50 + 50}%`}
+            >
               <Stop offset="0%" stopColor="#fff" stopOpacity=".4" />
               <Stop offset="50%" stopColor={paint.hex} stopOpacity="0" />
               <Stop offset="100%" stopColor="#000" stopOpacity=".2" />
@@ -100,7 +130,7 @@ export const PaintChip = ({
               fill={paint.hex}
             />
           </G>
-        </AnimatedSvg>
+        </Svg>
       </GestureDetector>
     </Animated.View>
   );

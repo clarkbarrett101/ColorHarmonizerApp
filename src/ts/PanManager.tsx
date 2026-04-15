@@ -52,8 +52,9 @@ const RadialZone = ({
   );
 };
 type tPanManager = {
-  registerZone: (zone: tRadialZone) => number;
+  registerZone: (zone: tRadialZone) => void;
   unregisterZone: (i: number) => void;
+  selectedZone: number;
 };
 
 const Ctx = React.createContext<tPanManager | null>(null);
@@ -86,18 +87,21 @@ export default function PanManager({
   }, [zoneRefs]);
   useEffect(() => {
     vCurrentZone.value = zoneState;
+    console.log("Current zone:", zoneState);
   }, [zoneState]);
 
-  const registerZone = useCallback(
-    (zone: tRadialZone) => {
-      const newZone = { ...zone, priority: zone.priority || 0 };
-      setZoneRefs((refs) =>
-        [...refs, newZone].sort((a, b) => b.priority - a.priority),
+  const registerZone = useCallback((zone: tRadialZone) => {
+    setZoneRefs((refs) => {
+      const newZone = {
+        ...zone,
+        priority: zone.priority || 0,
+      };
+      const updated = [...refs, newZone].sort(
+        (a, b) => b.priority - a.priority,
       );
-      return zoneRefs.length;
-    },
-    [zoneRefs],
-  );
+      return updated;
+    });
+  }, []);
 
   const unregisterZone = useCallback((i: number) => {
     setZoneRefs((refs) => refs.filter((_, index) => index !== i));
@@ -184,6 +188,7 @@ export default function PanManager({
       value={{
         registerZone,
         unregisterZone,
+        selectedZone: zoneState,
       }}
     >
       <View

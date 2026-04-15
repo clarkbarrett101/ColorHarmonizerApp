@@ -1,6 +1,6 @@
 import React from "react";
 import { DerivedValue, SharedValue } from "react-native-reanimated";
-import { CLARColor, tCLARColor } from "./CLAcolor";
+import { tCLARColor } from "./CLAcolor";
 import { tSector, tSectorGroup } from "./sectorTypes";
 
 export const wDefaultAngleToChord = (
@@ -46,8 +46,9 @@ type tRadialContext = {
     chords: number,
     rotationOffset: number,
   ) => number;
-  vSelectColor?: SharedValue<tCLARColor>;
-  setSelectColor?: (color: tCLARColor) => void;
+  dC?: DerivedValue<number>;
+  dL?: DerivedValue<number>;
+  dAR?: DerivedValue<number>;
   vRotationROffset?: SharedValue<number> | { value: number };
   wTransformMatrix?: (
     src: { rings: number; chords: number },
@@ -58,8 +59,10 @@ type tRadialContext = {
     vS: number;
   };
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
-  wGetColor?: (rc: { rings: number; chords: number }) => tCLARColor;
+  wGetColor?: (rc: { rings: number; chords: number }) => string;
   wGetZIndex?: (rc: { rings: number; chords: number }) => number;
+  deps?: SharedValue<any>[];
+  isSelected?: boolean;
 };
 
 const Ctx = React.createContext<tRadialContext>({
@@ -69,13 +72,12 @@ const Ctx = React.createContext<tRadialContext>({
   fPathFunction: (radii, arcLength, maxRadius) => "",
   wAngleToChord: wDefaultAngleToChord,
   wChordToAngle: wDefaultChordToAngle,
-  vSelectColor: undefined,
-  setSelectColor: () => {},
   vRotationROffset: { value: 0 },
   wTransformMatrix: () => ({ vT: { x: 0, y: 0 }, vR: 0, vS: 1 }),
   vPanPos: undefined,
-  wGetColor: () => ({ c: 0, l: 0, ar: 0 }),
+  wGetColor: () => "#000000",
   wGetZIndex: () => 0,
+  isSelected: false,
 });
 export const useRadialContext = () => React.useContext(Ctx);
 export const RadialContext = ({
@@ -95,13 +97,15 @@ export const RadialContext = ({
         fPathFunction: (radii, arcLength, maxRadius) => "",
         wAngleToChord: wDefaultAngleToChord,
         wChordToAngle: wDefaultChordToAngle,
-        vSelectColor: undefined,
-        setSelectColor: () => {},
+        dAR: undefined,
+        dC: undefined,
+        dL: undefined,
         vRotationROffset: { value: 0 },
         wTransformMatrix: () => ({ vT: { x: 0, y: 0 }, vR: 0, vS: 1 }),
         vPanPos: undefined,
-        wGetColor: () => ({ c: 0, l: 0, ar: 0 }),
+        wGetColor: () => "#000000",
         wGetZIndex: () => 0,
+        isSelected: false,
         ...context,
         ...value,
       }}

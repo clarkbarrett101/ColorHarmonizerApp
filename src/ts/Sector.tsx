@@ -1,12 +1,8 @@
 import Animated, {
-  DerivedValue,
-  SharedValue,
   useAnimatedProps,
   useDerivedValue,
-  useSharedValue,
 } from "react-native-reanimated";
-import { CLARColor, tCLARColor } from "./CLAcolor";
-import Svg, { Circle, Path } from "react-native-svg";
+import { Path } from "react-native-svg";
 import { useRadialContext } from "./RadialContext";
 import { tSector } from "./sectorTypes";
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -17,39 +13,25 @@ export const Sector = ({
   sectorGroupID = 0,
   rc = { rings: 5, chords: 18 },
 }: tSector) => {
-  const context = useRadialContext();
   const {
     fPathFunction,
     wGetColor,
     radii: contextRadii,
-    vSelectColor: selectColor,
-  } = context;
-  const path = fPathFunction
-    ? fPathFunction(radii, arcLength, contextRadii[1])
-    : "";
+    deps,
+  } = useRadialContext();
+  const path = fPathFunction(radii, arcLength, contextRadii[1]);
 
   const dFill = useDerivedValue(() => {
-    const _ = selectColor?.value;
-    const fillColor = wGetColor
-      ? wGetColor({ rings: rc.rings, chords: rc.chords })
-      : { c: 0, l: 0, ar: 0 };
-    let u = Math.cos(fillColor.ar) * 0.5;
-    let v = Math.sin(fillColor.ar) * 0.5;
-    u = fillColor.c * u;
-    v = fillColor.c * v;
-    const y = fillColor.l;
-    const r = (y + 1.13983 * v) * 255;
-    const g = (y - 0.39465 * u - 0.5806 * v) * 255;
-    const b = (y + 2.03211 * u) * 255;
-    return `rgb(${r}, ${g}, ${b})`;
-  }, [wGetColor]);
+    deps?.forEach((dep) => dep.value);
+    const color = wGetColor(rc);
+    return color;
+  }, []);
   const animatedProps = useAnimatedProps(() => ({
     fill: dFill.value,
-    stroke: dFill.value,
-    filter: "url(#shadow)",
   }));
+
   return (
-    <AnimatedPath d={path} animatedProps={animatedProps} strokeWidth={1} />
+    <AnimatedPath animatedProps={animatedProps} d={path} strokeWidth={1} />
   );
 };
 export const fMakeSectorPath = (

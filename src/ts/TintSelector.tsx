@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CLARColor, tCLARColor } from "./CLAcolor";
+import { tCLARColor } from "./CLAcolor";
 import { fGetColorsFromGrid, RadialGraphic } from "./RadialGraphic";
 import { fMakePetalPath } from "./Sector";
 import { usePanManager } from "./PanManager";
@@ -20,8 +20,7 @@ export type tTintSelector = {
   fSectorModifier?: (sector: tSector) => tSector;
   fSectorGroupModifier?: (group: tSectorGroup) => any;
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
-  onSelect?: (color: CLARColor) => void;
-  wGetColor?: (rc: { rings: number; chords: number }) => tCLARColor;
+  wGetColor?: (rc: { rings: number; chords: number }) => string;
 };
 
 export function TintSelector({
@@ -34,17 +33,12 @@ export function TintSelector({
   fSectorGroupModifier,
   wGetColor,
 }: tTintSelector) {
-  const { registerZone, unregisterZone } = usePanManager();
+  const { registerZone, unregisterZone, selectedZone } = usePanManager();
+  const [isSelected, setIsSelected] = useState(false);
   const context = useRadialContext();
-  const {
-    origin,
-    vSelectColor,
-    wAngleToChord,
-    wChordToAngle,
-    setSelectColor,
-    direction,
-  } = context;
-  const [zoneId, setZoneId] = useState<number | null>(null);
+  const { origin, wAngleToChord, wChordToAngle, direction, dAR, dL, dC } =
+    context;
+  const [zoneId, setZoneId] = useState<number>(-10);
   const fOnEnter = () => {
     let nearestSectorAngle = wChordToAngle(
       wAngleToChord(vPanPos.value.angle, arcLength, rc.chords, rotationR),
@@ -53,22 +47,23 @@ export function TintSelector({
       rotationR,
     );
     vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
-    setSelectColor({ ...vSelectColor.value });
   };
+  function fAssignZoneID(id: number) {
+    setZoneId(id);
+  }
   useEffect(() => {
-    const id = registerZone({
+    registerZone({
       vPanPos,
       radii,
       arcLength: (arcLength * (rc.chords - 1)) / rc.chords,
       rotationR,
       origin,
-      fOnEnter,
-      fOnLeave: fOnEnter,
+      fOnEnter: () => (setIsSelected(true), fOnEnter()),
+      fOnLeave: () => (setIsSelected(false), fOnEnter()),
       travelLimit: (arcLength / rc.chords) * 2,
     });
-    setZoneId(id);
     return () => {
-      if (zoneId !== null) {
+      if (zoneId !== -10) {
         unregisterZone(zoneId);
       }
     };
@@ -100,6 +95,7 @@ export function TintSelector({
     },
     [rc.rings, rc.chords],
   );
+
   return (
     <RadialContext
       value={{
@@ -109,6 +105,8 @@ export function TintSelector({
         wTransformMatrix: wMatrix,
         vPanPos,
         wGetZIndex,
+        deps: [dAR, dL, dC],
+        isSelected,
       }}
     >
       <RadialGraphic

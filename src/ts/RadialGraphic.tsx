@@ -2,7 +2,7 @@ import React, { use, useEffect, useRef, useState } from "react";
 import { PanResponder, Dimensions } from "react-native";
 import { tSector, tSectorGroup } from "./sectorTypes";
 import { SectorGroup } from "./SectorGroup";
-import { CLARColor, tCLARColor } from "./CLAcolor";
+import { tCLARColor } from "./CLAcolor";
 import { View } from "react-native";
 import { SharedValue, withTiming } from "react-native-reanimated";
 import { useRadialContext } from "./RadialContext";

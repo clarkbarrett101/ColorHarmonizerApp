@@ -56,13 +56,14 @@ type tRadialContext = {
   ) => {
     vT: { x: number; y: number };
     vR: number;
-    vS: number;
+    vS: { x: number; y: number };
   };
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
   wGetColor?: (rc: { rings: number; chords: number }) => string;
   wGetZIndex?: (rc: { rings: number; chords: number }) => number;
   deps?: SharedValue<any>[];
   isSelected?: boolean;
+  selectedRing?: number;
 };
 
 const Ctx = React.createContext<tRadialContext>({
@@ -73,11 +74,12 @@ const Ctx = React.createContext<tRadialContext>({
   wAngleToChord: wDefaultAngleToChord,
   wChordToAngle: wDefaultChordToAngle,
   vRotationROffset: { value: 0 },
-  wTransformMatrix: () => ({ vT: { x: 0, y: 0 }, vR: 0, vS: 1 }),
+  wTransformMatrix: () => ({ vT: { x: 0, y: 0 }, vR: 0, vS: { x: 1, y: 1 } }),
   vPanPos: undefined,
   wGetColor: () => "#000000",
   wGetZIndex: () => 0,
   isSelected: false,
+  selectedRing: 0,
 });
 export const useRadialContext = () => React.useContext(Ctx);
 export const RadialContext = ({
@@ -101,11 +103,16 @@ export const RadialContext = ({
         dC: undefined,
         dL: undefined,
         vRotationROffset: { value: 0 },
-        wTransformMatrix: () => ({ vT: { x: 0, y: 0 }, vR: 0, vS: 1 }),
+        wTransformMatrix: () => ({
+          vT: { x: 0, y: 0 },
+          vR: 0,
+          vS: { x: 1, y: 1 },
+        }),
         vPanPos: undefined,
         wGetColor: () => "#000000",
         wGetZIndex: () => 0,
         isSelected: false,
+        selectedRing: 0,
         ...context,
         ...value,
       }}

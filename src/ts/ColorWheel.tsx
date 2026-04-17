@@ -6,6 +6,8 @@ import { tSectorGroup } from "./sectorTypes";
 import { useSharedValue, SharedValue } from "react-native-reanimated";
 import { usePanManager } from "./PanManager";
 import { RadialContext, useRadialContext } from "./RadialContext";
+import { transform } from "@babel/core";
+import { translate } from "@shopify/react-native-skia";
 
 type tColorWheel = {
   radii?: [number, number];
@@ -47,7 +49,7 @@ function ColorWheel({
       if (diff > rc.chords / 2) {
         diff = rc.chords - diff;
       }
-      return Math.round((rc.chords / 2 - diff) * 100);
+      return Math.round(rc.chords / 2 - diff);
     },
     [dAR, rc.chords, arcLength],
   );
@@ -67,21 +69,31 @@ function ColorWheel({
         console.log({ diff, rotationR, adjustedRotationROffset });
       }
       const vR = (rotationR + -vRotationROffset.value) * direction;
-      const vT = { x: Math.cos(vR) * diff * 10, y: Math.sin(vR) * diff * 10 };
-      return { vT, vR, vS: 1 + diff * 0.3 };
+      const vT = {
+        x: Math.cos(vR) * diff * 30,
+        y: Math.sin(vR) * diff * 30,
+      };
+      const vS = 1 + (diff > 0.75 ? 0.3 : 0);
+      return { vT, vR, vS: { x: vS, y: vS } };
     },
     [],
   );
-
+  const [selectedRing, setSelectedRing] = useState(-1);
   const fOnLeave = () => {
+    let nearestSector = wAngleToChord(dAR.value, arcLength, rc.chords, 0);
     let nearestSectorAngle = wChordToAngle(
-      wAngleToChord(vRotationROffset.value, arcLength, rc.chords, 0),
+      nearestSector,
       arcLength,
       rc.chords,
       0,
     );
     vRotationROffset.value = nearestSectorAngle;
+    setSelectedRing(nearestSector);
   };
+  const fSectorGroupModifier = (sectorGroup: tSectorGroup) => {
+    return sectorGroup;
+  };
+
   const [zoneID, setZoneID] = useState(-10);
 
   useEffect(() => {
@@ -94,7 +106,7 @@ function ColorWheel({
       vPanPos,
       vDrag: vRotationROffset,
       origin: origin,
-      travelLimit: (arcLength / rc.chords) * 2,
+      travelLimit: arcLength / rc.chords,
       priority: 10,
     });
     fOnLeave();
@@ -115,9 +127,15 @@ function ColorWheel({
         wGetZIndex,
         deps: [dC, dL],
         isSelected,
+        selectedRing,
       }}
     >
-      <RadialGraphic rc={rc} arcLength={arcLength} rotationR={wheelCenter} />
+      <RadialGraphic
+        rc={rc}
+        arcLength={arcLength}
+        rotationR={wheelCenter}
+        fSectorGroupModifier={fSectorGroupModifier}
+      />
     </RadialContext>
   );
 }

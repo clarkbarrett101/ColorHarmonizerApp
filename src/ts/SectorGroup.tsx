@@ -9,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Sector } from "./Sector";
 import Svg, { FeDropShadow, Filter, G } from "react-native-svg";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { tSector, tSectorGroup } from "./sectorTypes";
 import { useRadialContext } from "./RadialContext";
 import { useAnimatedMatrix } from "./AnimatedMatrix";
@@ -22,9 +22,15 @@ export const SectorGroup = ({
   children = null,
   props = {},
   style = {},
+  selectedStyle = {},
   rotationR = 0,
+  sectorGroupID = 0,
 }: tSectorGroup) => {
-  const { wTransformMatrix, wGetZIndex } = useRadialContext();
+  const { wTransformMatrix, wGetZIndex, selectedRing } = useRadialContext();
+  const [isSelected, setIsSelected] = useState(selectedRing === sectorGroupID);
+  useEffect(() => {
+    setIsSelected(selectedRing === sectorGroupID);
+  }, [selectedRing, sectorGroupID]);
   const radii = sectors.reduce(
     (acc, sector) => {
       if (!acc[0] || sector.radii?.[0] < acc[0]) acc[0] = sector.radii?.[0];
@@ -40,16 +46,19 @@ export const SectorGroup = ({
   const animatedMatrix = useAnimatedMatrix({
     vT: { x: 0, y: 0 },
     vR: 0,
-    vS: 1,
+    vS: { x: 1, y: 1 },
   });
   const dMatrix = useDerivedValue(() => {
     animatedMatrix.wMatrix(wTransformMatrix(rc, rotationR));
     return animatedMatrix.style.value;
   }, [animatedMatrix]);
-  const animatedProps = useAnimatedProps(() => ({
-    zIndex: wGetZIndex ? wGetZIndex(rc) : 0,
-    transform: [{ matrix: dMatrix.value }],
-  }));
+  const animatedProps = useAnimatedProps(() => {
+    const z = wGetZIndex ? wGetZIndex(rc) : 0;
+    return {
+      zIndex: z,
+      transform: [{ matrix: dMatrix.value }],
+    };
+  });
   return (
     <AnimatedSvg
       {...props}
@@ -64,6 +73,7 @@ export const SectorGroup = ({
         shadowOpacity: 0.5,
         shadowRadius: 5,
         ...style,
+        ...(isSelected ? selectedStyle : {}),
       }}
     >
       {sectors?.map((sector, index) => (

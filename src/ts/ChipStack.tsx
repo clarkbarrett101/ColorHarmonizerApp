@@ -19,10 +19,13 @@ export const ChipStack = ({
         const chip: tPaintChip = {
           paint,
           startPosition: [
-            origin[0] + Math.cos(rotationR + 11 / 7) * index * size[1] * 0.55,
-            origin[1] - Math.sin(rotationR + 11 / 7) * index * size[1] * 0.55,
+            origin[0] +
+              Math.cos(rotationR + 11 / 7) * index * size[1] * 0.55 -
+              size[0] / 2,
+            origin[1] -
+              Math.sin(rotationR + 11 / 7) * index * size[1] * 0.55 -
+              size[1] / 2,
           ],
-          grabbed: false,
           size,
           startRotation: -rotationR,
         };
@@ -56,4 +59,47 @@ export const ChipWheel = ({
     chordStack.push(<ChipStack key={i} {...chipStack} />);
   }
   return <>{chordStack}</>;
+};
+
+export type tChipFan = tChipStack & {
+  arcLength: number;
+  radius: number;
+  direction?: 1 | -1;
+};
+
+export const ChipFan = ({
+  paints,
+  origin,
+  size = [120, 75],
+  rotationR = 0,
+  arcLength,
+  radius,
+  direction = 1,
+}: tChipFan) => {
+  const chipStack = [];
+  for (let i = 0; i < paints.length; i++) {
+    const chip: tPaintChip = {
+      paint: paints[i],
+      origin,
+      radialOffset: radius,
+      startPosition: [
+        origin[0] +
+          Math.cos(
+            rotationR + arcLength * ((i - paints.length / 2) / paints.length),
+          ) *
+            radius,
+        origin[1] +
+          Math.sin(
+            rotationR + arcLength * ((i - paints.length / 2) / paints.length),
+          ) *
+            radius,
+      ],
+      size,
+      startRotation:
+        -direction *
+        (rotationR + arcLength * ((i - paints.length / 2) / paints.length)),
+    };
+    chipStack.push(<PaintChip key={i} {...chip} />);
+  }
+  return <>{chipStack}</>;
 };

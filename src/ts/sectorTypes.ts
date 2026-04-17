@@ -1,5 +1,5 @@
 import { SharedValue } from "react-native-reanimated";
-import{ CLARColor, tCLARColor } from "./CLAcolor";
+import{  tCLARColor } from "./CLAcolor";
 
 export type tSector = {
   radii?: [number, number];
@@ -10,6 +10,7 @@ export type tSector = {
 export type tSectorGroup = tSector & {
   rotationR?: number;
   style?: any;
+  selectedStyle?: any;
   sectors?: tSector[];
   children?: React.ReactNode;
   props?: any;

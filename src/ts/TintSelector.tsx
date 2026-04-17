@@ -77,10 +77,11 @@ export function TintSelector({
     );
     diff = 1 - diff;
     angle = angle * direction;
+    const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
     return {
       vT: { x: 0, y: 0 },
       vR: angle,
-      vS: 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0),
+      vS: { x: vs, y: vs },
     };
   }, []);
   const wGetZIndex = useCallback(
@@ -91,7 +92,7 @@ export function TintSelector({
         Math.abs(vPanPos.value.angle - angle) / (arcLength / rc.chords),
         0,
       );
-      return Math.round((1 - diff) * 100);
+      return Math.round((1 - diff) * rc.chords);
     },
     [rc.rings, rc.chords],
   );

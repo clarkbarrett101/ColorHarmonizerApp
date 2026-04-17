@@ -57,7 +57,7 @@ export function RadialGraphic({
         arcLength: arcStep,
         radii: sectorRadii,
         rc: { rings: r, chords: c },
-        sectorGroupID: direction == 1 ? c : rc.chords - 1 - c,
+        sectorGroupID: c,
       };
       if (fSectorModifier) {
         sector = fSectorModifier(sector);

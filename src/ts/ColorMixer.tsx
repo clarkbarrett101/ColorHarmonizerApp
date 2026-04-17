@@ -37,7 +37,7 @@ export default function ColorMixer({
   const dimensions = Dimensions.get("window");
   const vWheelRotation = useSharedValue(wheelCenter);
   const vChromaPanPos = useSharedValue({
-    angle: chromaArcRotation[1] + chromaArcRotation[0] / 4,
+    angle: chromaArcRotation[1] + chromaArcRotation[0] / 3,
     radius: radii[1],
   });
   const vLightnessPanPos = useSharedValue({

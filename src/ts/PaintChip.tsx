@@ -7,56 +7,29 @@ import Svg, {
   Text,
   TSpan,
 } from "react-native-svg";
-import { fCLARColorToString, tCLARColor } from "./CLAcolor";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { tPaint } from "./CLAcolor";
+import Animated, {
+  useAnimatedStyle,
+  useDerivedValue,
+} from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import { useEffect, useState } from "react";
-import { useAnimatedMatrix } from "./AnimatedMatrix";
+import { useEffect, useRef, useState } from "react";
+import { useAnimatedMatrix, tMatrix, AnimatedMatrix } from "./AnimatedMatrix";
 import { runOnJS } from "react-native-worklets";
-export type tPaint = {
-  name: string;
-  brand: string;
-  rgb: [number, number, number];
-  ryb: [number, number, number];
-  hsluv: [number, number, number];
-  clarColor: tCLARColor;
-  hex: string;
-  yuv: [number, number, number];
-  label: string;
-};
-
-export const fRandomPaints = (count: number) => {
-  const paints = [];
-  for (let i = 0; i < count; i++) {
-    const color = {
-      c: Math.random(),
-      l: Math.random(),
-      ar: (Math.random() * 44) / 7,
-    };
-    const randomPaint: tPaint = {
-      name: "Random Paint",
-      brand: "Random Brand",
-      rgb: [0, 0, 0],
-      ryb: [0, 0, 0],
-      hsluv: [0, 0, 0],
-      clarColor: color,
-      hex: fCLARColorToString(color),
-      yuv: [0, 0, 0],
-      label: "Random Paint",
-    };
-    paints.push(randomPaint);
-  }
-  return paints;
-};
+import { View } from "react-native";
+import { useUserContext } from "./UserContext";
 
 export type tPaintChip = {
   paint: tPaint;
-  startPosition: [number, number];
+  startPosition: { x: number; y: number };
   size?: [number, number];
   startRotation?: number;
   zIndex?: number;
   radialOffset?: number;
-  origin?: [number, number];
+  shadow?: boolean;
+  chipID?: [number, number];
+  wMatrixModifier?: (matrix: Partial<tMatrix>) => Partial<tMatrix>;
+  simultaneousHandlers?: any;
 };
 
 export const PaintChip = ({
@@ -66,62 +39,96 @@ export const PaintChip = ({
   startRotation = 0,
   zIndex = 0,
   radialOffset = 0,
-  origin = [0, 0],
+  shadow = true,
+  wMatrixModifier,
+  simultaneousHandlers,
+  chipID = [0, 0],
 }: tPaintChip) => {
-  const [position, setPosition] = useState({
-    x: startPosition[0],
-    y: startPosition[1],
-  });
+  const { vPanX, vPanY, vVelocityX, vHeldChip, holdChip } = useUserContext();
+
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [grabbed, setGrabbed] = useState(false);
   const animatedMatrix = useAnimatedMatrix({
-    vT: { x: origin[0], y: origin[1] },
-    vR: 0,
+    vT: startPosition,
+    vR: 22 / 7,
     vS: { x: 1, y: 1 },
+    vRadialOffset: radialOffset,
+    mass: 0.1,
+    duration: 500,
   });
-  const animatedStyle = useAnimatedStyle(() => {
-    return { transform: [{ matrix: animatedMatrix.style.value }] };
-  }, [animatedMatrix.style, startPosition, startRotation]);
-  useEffect(() => {
-    animatedMatrix.wOrbit({
-      center: { x: origin[0], y: origin[1] },
-      radius: radialOffset,
-      startAngle: 0,
-      endAngle: startRotation,
-    });
-  }, [startRotation]);
+
   const [sRotation, setSRotation] = useState(() => startRotation);
+
   const panGesture = usePanGesture({
-    onBegin: (event) => {
-      runOnJS(setPosition)(animatedMatrix.vT.value);
-      animatedMatrix.wMatrix({
-        vT: {
-          x: event.absoluteX - size[0] / 2,
-          y: event.absoluteY - size[1] / 2,
-        },
-        vR: startRotation > 0 ? 22 / 7 : -22 / 7,
-        vS: { x: 1.3, y: 1.3 },
-      });
+    onActivate: (event) => {
+      const matrixPosition = animatedMatrix.wGetPosition();
+      runOnJS(setPosition)(matrixPosition);
+      holdChip(chipID);
       runOnJS(setSRotation)(0);
       runOnJS(setGrabbed)(true);
     },
     onUpdate: (event) => {
-      animatedMatrix.wMatrix({
-        vT: {
-          x: event.absoluteX - size[0] / 2,
-          y: event.absoluteY - size[1] / 2,
-        },
-        vR: event.velocityX / 1000 + (startRotation > 0 ? 22 / 7 : -22 / 7),
-        vS: { x: 1.3, y: 1.3 },
-      });
+      vPanX.value = event.absoluteX;
+      vPanY.value = event.absoluteY;
+      vVelocityX.value = event.velocityX;
     },
-    onFinalize: (event) => {
-      animatedMatrix.wT(position);
-      animatedMatrix.wR(startRotation);
-      animatedMatrix.wS({ x: 1, y: 1 });
+    onDeactivate: (event) => {
+      holdChip();
+      animatedMatrix.wMatrixSpring(
+        {
+          vT: position,
+          vR: startRotation,
+          vS: { x: 1, y: 1 },
+          vRadialOffset: 0,
+          duration: 500,
+          mass: 0.1,
+        },
+        () => {
+          "worklet";
+          animatedMatrix.wMatrixInstant({
+            vT: startPosition,
+            vR: startRotation,
+            vS: { x: 1, y: 1 },
+            vRadialOffset: radialOffset,
+          });
+        },
+      );
       runOnJS(setSRotation)(startRotation);
       runOnJS(setGrabbed)(false);
     },
+    simultaneousWith: simultaneousHandlers,
   });
+  const dMatrix = useDerivedValue(() => {
+    const held =
+      vHeldChip.value[0] === chipID[0] && vHeldChip.value[1] === chipID[1];
+    if (held) {
+      return {
+        vT: {
+          x: vPanX.value - size[0] / 2,
+          y: vPanY.value - size[1] / 2,
+        },
+        vR: vVelocityX.value / 1000 + (startRotation > 0 ? 22 / 7 : 0),
+        vS: { x: 1.3, y: 1.3 },
+        vRadialOffset: 0,
+        duration: 1,
+      };
+    } else {
+      return {
+        vT: startPosition,
+        vR: startRotation,
+        vS: { x: 1, y: 1 },
+        vRadialOffset: radialOffset,
+        duration: 500,
+        mass: 0.1,
+      };
+    }
+  }, [vPanX, vPanY, vVelocityX, vHeldChip.value]);
+  /*
+   */
+  const animatedStyle = useAnimatedStyle(() => {
+    animatedMatrix.wMatrixSpring(dMatrix.value);
+    return { transform: [{ matrix: animatedMatrix.style.value }] };
+  }, [animatedMatrix]);
 
   return (
     <Animated.View
@@ -145,7 +152,7 @@ export const PaintChip = ({
               height: grabbed ? -10 : -1,
             },
             shadowOpacity: 0.5,
-            shadowRadius: 5,
+            shadowRadius: shadow ? 5 : 1,
           }}
         >
           <Defs>
@@ -175,20 +182,20 @@ export const PaintChip = ({
           <Text
             x="16"
             y="8"
-            fontSize="4"
+            fontSize={`${paint.name.length > 13 ? 55 / paint.name.length : 4}px`}
             fontFamily="Outfit"
-            fill={paint.clarColor.l > 0.5 ? "#000" : "#fff"}
+            fill={paint.clar.l > 0.5 ? "#000" : "#fff"}
             textAnchor="middle"
             alignmentBaseline="middle"
             transform={`rotate(${Math.abs(startRotation) > 11 / 7 ? 180 : 0}, 16, 10)`}
             fontWeight={500}
           >
-            {paint.label}
+            {paint.name}
             <TSpan
               x="16"
               dy="5"
               fontSize="3"
-              fill={paint.clarColor.l > 0.5 ? "#000" : "#fff"}
+              fill={paint.clar.l > 0.5 ? "#000" : "#fff"}
               fontWeight={100}
             >
               {paint.brand}

@@ -49,7 +49,7 @@ export const SectorGroup = ({
     vS: { x: 1, y: 1 },
   });
   const dMatrix = useDerivedValue(() => {
-    animatedMatrix.wMatrix(wTransformMatrix(rc, rotationR));
+    animatedMatrix.wMatrixSpring(wTransformMatrix(rc, rotationR));
     return animatedMatrix.style.value;
   }, [animatedMatrix]);
   const animatedProps = useAnimatedProps(() => {

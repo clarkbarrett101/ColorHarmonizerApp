@@ -3,13 +3,15 @@ import { fCLARColorToString, tCLARColor } from "./CLAcolor";
 import { ColorWheel } from "./ColorWheel";
 import { TintSelector } from "./TintSelector";
 import { Dimensions, View } from "react-native";
-import PanManager from "./PanManager";
+import PanManager, { usePanManager } from "./PanManager";
 import {
   RadialContext,
   wDefaultAngleToChord,
   wDefaultChordToAngle,
 } from "./RadialContext";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
+import { ColorChipFan } from "./ChipStack";
+import { runOnJS } from "react-native-worklets";
 
 type tColorMixer = {
   wheelCenter?: number;
@@ -22,19 +24,23 @@ type tColorMixer = {
   chromaDimensions?: [number, number];
   chromaArcRotation?: [number, number];
   lightnessArcRotation?: [number, number];
+  origin?: [number, number];
 };
 export default function ColorMixer({
   wheelCenter = 22 / 7,
   radii = [50, 250],
   direction = -1,
   litDimensions = [4, 5],
-  litRange = [0.1, 1],
+  litRange = [0.15, 1],
   chromaRange = [0.1, 0.8],
   chromaDimensions = [4, 4],
   chromaArcRotation = [4.4 / 7, 16 / 7],
   lightnessArcRotation = [5.5 / 7, 28 / 7],
+  origin = [
+    Dimensions.get("window").width + radii[1] * 0.3,
+    Dimensions.get("window").height / 2,
+  ],
 }: tColorMixer) {
-  const dimensions = Dimensions.get("window");
   const vWheelRotation = useSharedValue(wheelCenter);
   const vChromaPanPos = useSharedValue({
     angle: chromaArcRotation[1] + chromaArcRotation[0] / 3,
@@ -52,6 +58,7 @@ export default function ColorMixer({
       chromaArcRotation[0];
     c = (c - 0.5 / chromaDimensions[1]) / (1 - 1 / chromaDimensions[1]);
     c = chromaRange[0] + c * (chromaRange[1] - chromaRange[0]);
+    c = Math.round(c * 100) / 100;
     return c;
   });
   const dL = useDerivedValue(() => {
@@ -63,10 +70,12 @@ export default function ColorMixer({
         lightnessArcRotation[0];
     l = (l - 0.5 / litDimensions[1]) / (1 - 1 / litDimensions[1]);
     l = litRange[0] + l * (litRange[1] - litRange[0]);
+    l = Math.round(l * 100) / 100;
     return l;
   });
   const dAR = useDerivedValue(() => {
-    const ar = ((vWheelRotation.value % (44 / 7)) + 44 / 7) % (44 / 7);
+    let ar = ((vWheelRotation.value % (44 / 7)) + 44 / 7) % (44 / 7);
+    ar = Math.round(ar * 100) / 100;
     return ar;
   });
   const wGetChromaColor = useCallback(
@@ -106,19 +115,40 @@ export default function ColorMixer({
     },
     [dC, dAR],
   );
+  const [targetColor, setTargetColor] = useState<tCLARColor>({
+    c: 0.5,
+    l: 0.5,
+    ar: 0,
+  });
+  const [collapsed, setCollapsed] = useState(false);
+
+  const fUpdateState = () => {
+    "worklet";
+    const c = dC.value;
+    const l = dL.value;
+    const ar = dAR.value;
+    runOnJS(setTargetColor)({
+      c,
+      l,
+      ar,
+    });
+  };
   return (
     <>
       <RadialContext
         value={{
           radii,
-          origin: [dimensions.width + radii[1] * 0.3, dimensions.height / 2],
-          //  origin: [dimensions.width / 2, dimensions.height / 2],
+          //origin: [dimensions.width + radii[1] * 0.3, dimensions.height / 2],
+          origin,
           direction,
           wAngleToChord: wDefaultAngleToChord,
           wChordToAngle: wDefaultChordToAngle,
           dC,
           dL,
           dAR,
+          fUpdateState,
+          collapsed: collapsed,
+          setCollapsed,
         }}
       >
         <PanManager>
@@ -150,6 +180,17 @@ export default function ColorMixer({
           />
         </PanManager>
       </RadialContext>
+      <ColorChipFan
+        targetColor={targetColor}
+        targetNumber={9}
+        origin={origin}
+        size={[150, 90]}
+        rotationR={22 / 7}
+        arcLength={11 / 7}
+        radius={origin[0] * 0.8}
+        direction={direction}
+        collapsed={collapsed}
+      />
     </>
   );
 }

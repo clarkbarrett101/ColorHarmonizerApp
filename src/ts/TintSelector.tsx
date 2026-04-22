@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { tCLARColor } from "./CLAcolor";
 import { fGetColorsFromGrid, RadialGraphic } from "./RadialGraphic";
 import { fMakePetalPath } from "./Sector";
 import { usePanManager } from "./PanManager";
 import { tSector, tSectorGroup } from "./sectorTypes";
-import {
-  DerivedValue,
-  SharedValue,
-  useDerivedValue,
-  useSharedValue,
-} from "react-native-reanimated";
+import { SharedValue } from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "./RadialContext";
 
 export type tTintSelector = {
@@ -33,11 +27,20 @@ export function TintSelector({
   fSectorGroupModifier,
   wGetColor,
 }: tTintSelector) {
-  const { registerZone, unregisterZone, selectedZone } = usePanManager();
+  const { registerZone, unregisterZone } = usePanManager();
   const [isSelected, setIsSelected] = useState(false);
   const context = useRadialContext();
-  const { origin, wAngleToChord, wChordToAngle, direction, dAR, dL, dC } =
-    context;
+  const {
+    origin,
+    wAngleToChord,
+    wChordToAngle,
+    direction,
+    dAR,
+    dL,
+    dC,
+    fUpdateState,
+    setCollapsed,
+  } = context;
   const [zoneId, setZoneId] = useState<number>(-10);
   const fOnEnter = () => {
     let nearestSectorAngle = wChordToAngle(
@@ -47,6 +50,7 @@ export function TintSelector({
       rotationR,
     );
     vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
+    fUpdateState();
   };
   function fAssignZoneID(id: number) {
     setZoneId(id);
@@ -58,9 +62,10 @@ export function TintSelector({
       arcLength: (arcLength * (rc.chords - 1)) / rc.chords,
       rotationR,
       origin,
-      fOnEnter: () => (setIsSelected(true), fOnEnter()),
-      fOnLeave: () => (setIsSelected(false), fOnEnter()),
-      travelLimit: (arcLength / rc.chords) * 2,
+      fOnEnter: () => (setCollapsed(true), fOnEnter()),
+      fOnTick: fOnEnter,
+      fOnLeave: () => (setCollapsed(false), fOnEnter()),
+      tickRate: arcLength / rc.chords / 2,
     });
     return () => {
       if (zoneId !== -10) {

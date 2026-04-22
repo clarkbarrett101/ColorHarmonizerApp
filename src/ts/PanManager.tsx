@@ -1,19 +1,20 @@
 import React, { use, useCallback, useEffect, useRef, useState } from "react";
 import {
   GestureDetector,
-  InterceptingGestureDetector,
-  PanGesture,
+  GestureEvent,
+  GestureEventPayload,
+  GestureHandlerGestureEvent,
+  PanGestureHandlerEventPayload,
   usePanGesture,
-  VirtualGestureDetector,
   useTapGesture,
-  GestureStateManager,
 } from "react-native-gesture-handler";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
-import Svg, { G, Line, Path, Circle } from "react-native-svg";
+import Svg, { G, Path } from "react-native-svg";
 import { fMakeSectorPath } from "./Sector";
-import { Dimensions, View } from "react-native";
+import { View } from "react-native";
 import { runOnJS } from "react-native-worklets";
 import { useRadialContext } from "./RadialContext";
+import { GestureEventCallback } from "react-native-gesture-handler/lib/typescript/v3/types";
 
 type tRadialZone = {
   vPanPos: SharedValue<{ angle: number; radius: number }>;
@@ -24,8 +25,9 @@ type tRadialZone = {
   rotationR: number;
   fOnEnter?: (angle: number, radius: number) => void;
   fOnLeave?: () => void;
+  fOnTick?: (angle: number, radius: number) => void;
   highlight?: boolean;
-  travelLimit?: number;
+  tickRate?: number;
   priority?: number;
 };
 const RadialZone = ({
@@ -51,6 +53,7 @@ const RadialZone = ({
     </G>
   );
 };
+
 type tPanManager = {
   registerZone: (zone: tRadialZone) => void;
   unregisterZone: (i: number) => void;
@@ -87,7 +90,7 @@ export default function PanManager({
   }, [zoneRefs]);
   useEffect(() => {
     vCurrentZone.value = zoneState;
-    console.log("Current zone:", zoneState);
+    console.log("selected zone", zoneState);
   }, [zoneState]);
 
   const registerZone = useCallback((zone: tRadialZone) => {
@@ -107,7 +110,7 @@ export default function PanManager({
     setZoneRefs((refs) => refs.filter((_, index) => index !== i));
   }, []);
 
-  const panUpdate = (e) => {
+  const panUpdate = (e: PanGestureHandlerEventPayload) => {
     `worklet`;
     let foundZone = false;
     vPanPos.value = [e.absoluteX, e.absoluteY];
@@ -125,21 +128,18 @@ export default function PanManager({
       if (direction === -1) {
         angle = 44 / 7 - angle;
       }
-
       const inArc =
         angle > zone.rotationR - zone.arcLength / 2 &&
         angle < zone.rotationR + zone.arcLength / 2;
       const inRadius =
         distance >= (zone.radii?.[0] || 0) &&
         distance <= (zone.radii?.[1] || Infinity);
+
       if (inArc && inRadius) {
         zone.vPanPos.value = { angle: angle, radius: distance };
         foundZone = true;
-        if (
-          vCurrentZone.value !== i ||
-          (zone.travelLimit &&
-            Math.abs(vStartAngle.value - angle) > zone.travelLimit)
-        ) {
+
+        if (vCurrentZone.value !== i) {
           vStartAngle.value = angle;
           if (
             vCurrentZone.value !== -1 &&
@@ -154,7 +154,24 @@ export default function PanManager({
             runOnJS(zone.fOnEnter)(angle, distance);
           }
           runOnJS(setZoneState)(i);
+        } else if (
+          zone.tickRate &&
+          Math.abs(vStartAngle.value - angle) > zone.tickRate
+        ) {
+          console.log("tick", {
+            angle,
+            vStartAngle: vStartAngle.value,
+            tickRate: zone.tickRate,
+          });
+          vStartAngle.value = angle;
+          if (zone.fOnTick) {
+            runOnJS(zone.fOnTick)(angle, distance);
+          }
+          if (zone.vDrag) {
+            vDragStart.value = zone.vDrag.value;
+          }
         }
+
         if (zone.vDrag) {
           zone.vDrag.value = vStartAngle.value + vDragStart.value - angle;
         }
@@ -168,18 +185,16 @@ export default function PanManager({
       runOnJS(setZoneState)(-1);
     }
   };
+
   const pan = usePanGesture({
-    onBegin: panUpdate,
+    onActivate: panUpdate,
     onUpdate: panUpdate,
     onDeactivate() {
-      if (vCurrentZone.value !== -1) {
-        if (vZones.value[vCurrentZone.value].vDrag) {
-        }
-        if (vZones.value[vCurrentZone.value].fOnLeave) {
-          runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
-        }
-        runOnJS(setZoneState)(-1);
+      if (vZones.value[vCurrentZone.value]?.fOnLeave) {
+        runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
+        console.log("finalize leave", vCurrentZone.value);
       }
+      runOnJS(setZoneState)(-1);
     },
   });
 

@@ -79,15 +79,16 @@ export const ChipFan = ({
           y: origin[1] - size[1] / 2,
         },
         size,
-        startRotation:
-          -direction *
-          (rotationR + arcLength * ((z - 0.5) * (collapsed ? 0.1 : 1))),
+        startRotation: -direction * (rotationR + arcLength * (z - 0.5)),
         zIndex: (1 - Math.abs(z - firstIndex)) * paints.length,
         shadow: !collapsed || i === 0,
-        chipID: [groupID, i],
+        chipID: [groupID, z],
+        collapsed,
       };
       const modifiedChip = fGetChipModifier(chip);
-      newChipStack.push(<PaintChip key={i} {...modifiedChip} />);
+      newChipStack.push(
+        <PaintChip key={`${groupID}-${i}`} {...modifiedChip} />,
+      );
     }
     return newChipStack;
   }, [

@@ -82,7 +82,11 @@ export const ChipHand = ({
             zIndex:
               10 +
               userPallete.current.length -
-              Math.abs(selectVerse.asState() - chip.chipID[1]),
+              Math.abs(
+                selectVerse.asState() -
+                  chip.chipID[1] * userPallete.current.length,
+              ) *
+                10,
           };
         }}
       />

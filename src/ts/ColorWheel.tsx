@@ -112,7 +112,7 @@ function ColorWheel({
       fOnEnter: () => setCollapsed(true),
       fOnLeave: () => (setCollapsed(false), fOnLeave()),
       fOnTick(angle, radius) {
-        fOnLeave();
+        // fOnLeave();
       },
       radii,
       rotationR: wheelCenter,

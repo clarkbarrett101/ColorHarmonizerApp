@@ -11,13 +11,18 @@ import { tPaint } from "./CLAcolor";
 import Animated, {
   useAnimatedStyle,
   useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useAnimatedMatrix, tMatrix, AnimatedMatrix } from "./AnimatedMatrix";
 import { runOnJS } from "react-native-worklets";
 import { View } from "react-native";
 import { useUserContext } from "./UserContext";
+import { useVerseTransform } from "./Verse";
 
 export type tPaintChip = {
   paint: tPaint;
@@ -30,6 +35,7 @@ export type tPaintChip = {
   chipID?: [number, number];
   wMatrixModifier?: (matrix: Partial<tMatrix>) => Partial<tMatrix>;
   simultaneousHandlers?: any;
+  collapsed?: boolean;
 };
 
 export const PaintChip = ({
@@ -43,58 +49,49 @@ export const PaintChip = ({
   wMatrixModifier,
   simultaneousHandlers,
   chipID = [0, 0],
+  collapsed = false,
 }: tPaintChip) => {
   const { vPanX, vPanY, vVelocityX, vHeldChip, holdChip } = useUserContext();
-
+  const vTilt = useSharedValue(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [grabbed, setGrabbed] = useState(false);
-  const animatedMatrix = useAnimatedMatrix({
-    vT: startPosition,
-    vR: 22 / 7,
-    vS: { x: 1, y: 1 },
-    vRadialOffset: radialOffset,
-    mass: 0.1,
-    duration: 500,
+  const vTransform = useVerseTransform({
+    t: startPosition,
+    r: 22 / 7,
+    s: { x: 1, y: 1 },
+    offset: radialOffset,
+    tilt: 0,
   });
-
-  const [sRotation, setSRotation] = useState(() => startRotation);
-
+  useEffect(() => {
+    if (collapsed) {
+      vTilt.value = withDelay(
+        (1 - chipID[1]) * 100,
+        withTiming(11 / 7, { duration: 500 }),
+      );
+    } else {
+      vTilt.value = withDelay(
+        chipID[1] * 100,
+        withTiming(0, { duration: 500 }),
+      );
+    }
+  }, [collapsed, chipID]);
   const panGesture = usePanGesture({
     onActivate: (event) => {
-      const matrixPosition = animatedMatrix.wGetPosition();
+      const matrixPosition = vTransform.dPosition.value;
       runOnJS(setPosition)(matrixPosition);
       holdChip(chipID);
-      runOnJS(setSRotation)(0);
       runOnJS(setGrabbed)(true);
+      vTransform.fUpate({});
     },
     onUpdate: (event) => {
-      vPanX.value = event.absoluteX;
-      vPanY.value = event.absoluteY;
+      vPanX.value = (event.absoluteX + vPanX.value) / 2;
+      vPanY.value = (event.absoluteY + vPanY.value) / 2;
       vVelocityX.value = event.velocityX;
     },
     onDeactivate: (event) => {
       holdChip();
-      animatedMatrix.wMatrixSpring(
-        {
-          vT: position,
-          vR: startRotation,
-          vS: { x: 1, y: 1 },
-          vRadialOffset: 0,
-          duration: 500,
-          mass: 0.1,
-        },
-        () => {
-          "worklet";
-          animatedMatrix.wMatrixInstant({
-            vT: startPosition,
-            vR: startRotation,
-            vS: { x: 1, y: 1 },
-            vRadialOffset: radialOffset,
-          });
-        },
-      );
-      runOnJS(setSRotation)(startRotation);
       runOnJS(setGrabbed)(false);
+      vTransform.fUpate({});
     },
     simultaneousWith: simultaneousHandlers,
   });
@@ -103,44 +100,45 @@ export const PaintChip = ({
       vHeldChip.value[0] === chipID[0] && vHeldChip.value[1] === chipID[1];
     if (held) {
       return {
-        vT: {
+        t: {
           x: vPanX.value - size[0] / 2,
           y: vPanY.value - size[1] / 2,
         },
-        vR: vVelocityX.value / 1000 + (startRotation > 0 ? 22 / 7 : 0),
-        vS: { x: 1.3, y: 1.3 },
-        vRadialOffset: 0,
-        duration: 1,
+        r: vVelocityX.value / 1000 + (startRotation > 0 ? 22 / 7 : 0),
+        s: { x: 1.3, y: 1.3 },
+        tilt: 0,
+        offset: 0,
       };
     } else {
       return {
-        vT: startPosition,
-        vR: startRotation,
-        vS: { x: 1, y: 1 },
-        vRadialOffset: radialOffset,
-        duration: 500,
-        mass: 0.1,
+        t: startPosition,
+        r: startRotation,
+        s: { x: 1, y: 1 },
+        offset: radialOffset,
+        tilt: vTilt.value,
       };
     }
-  }, [vPanX, vPanY, vVelocityX, vHeldChip.value]);
-  /*
-   */
-  const animatedStyle = useAnimatedStyle(() => {
-    animatedMatrix.wMatrixSpring(dMatrix.value);
-    return { transform: [{ matrix: animatedMatrix.style.value }] };
-  }, [animatedMatrix]);
+  }, [vPanX, vPanY, vVelocityX, vHeldChip.value, collapsed]);
 
+  const animatedStyle = useAnimatedStyle(() => {
+    vTransform.wSetMatrix(dMatrix.value);
+    console.log(vTransform.vOffset.asShared.value);
+    return vTransform.dTransform.value;
+  }, [vTransform]);
+
+  const rID = useRef(Math.random()).current;
   return (
-    <Animated.View
-      style={[
-        {
-          position: "absolute",
-          zIndex: grabbed ? 1000 : zIndex,
-        },
-        animatedStyle,
-      ]}
-    >
-      <GestureDetector gesture={panGesture}>
+    <GestureDetector gesture={panGesture} key={rID}>
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            zIndex: grabbed ? 1000 : zIndex,
+            borderWidth: 1,
+          },
+          animatedStyle,
+        ]}
+      >
         <Svg
           viewBox={`0 0 32 20`}
           style={{
@@ -158,10 +156,10 @@ export const PaintChip = ({
           <Defs>
             <LinearGradient
               id="grad"
-              x1={`${Math.cos(sRotation + 11 / 7) * 50 + 50}%`}
-              y1={`${Math.sin(sRotation + 11 / 7) * 50 + 50}%`}
-              x2={`${Math.cos(sRotation - 11 / 7) * 50 + 50}%`}
-              y2={`${Math.sin(sRotation - 11 / 7) * 50 + 50}%`}
+              x1={`${Math.cos(vTransform.vR.asState() + 11 / 7) * 50 + 50}%`}
+              y1={`${Math.sin(vTransform.vR.asState() + 11 / 7) * 50 + 50}%`}
+              x2={`${Math.cos(vTransform.vR.asState() - 11 / 7) * 50 + 50}%`}
+              y2={`${Math.sin(vTransform.vR.asState() - 11 / 7) * 50 + 50}%`}
             >
               <Stop offset="0%" stopColor="#fff" stopOpacity=".2" />
               <Stop offset="50%" stopColor={paint.hex} stopOpacity="0" />
@@ -187,7 +185,7 @@ export const PaintChip = ({
             fill={paint.clar.l > 0.5 ? "#000" : "#fff"}
             textAnchor="middle"
             alignmentBaseline="middle"
-            transform={`rotate(${Math.abs(startRotation) > 11 / 7 ? 180 : 0}, 16, 10)`}
+            transform={`rotate(${Math.abs(vTransform.vR.asState()) > 11 / 7 ? 180 : 0}, 16, 10)`}
             fontWeight={500}
           >
             {paint.name}
@@ -202,7 +200,31 @@ export const PaintChip = ({
             </TSpan>
           </Text>
         </Svg>
-      </GestureDetector>
-    </Animated.View>
+      </Animated.View>
+    </GestureDetector>
   );
 };
+function mMatrix(xR, zR, tX, tY) {
+  const cosX = Math.cos(xR);
+  const sinX = Math.sin(xR);
+  const cosZ = Math.cos(zR);
+  const sinZ = Math.sin(zR);
+  return [
+    cosZ,
+    sinZ,
+    0,
+    0,
+    -sinZ * cosX,
+    cosZ * cosX,
+    sinX,
+    0,
+    sinZ * sinX,
+    -cosZ * sinX,
+    cosX,
+    -0.1,
+    tX,
+    tY,
+    0,
+    1,
+  ];
+}

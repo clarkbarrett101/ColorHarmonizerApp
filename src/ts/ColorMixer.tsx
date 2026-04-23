@@ -190,6 +190,7 @@ export default function ColorMixer({
         radius={origin[0] * 0.8}
         direction={direction}
         collapsed={collapsed}
+        firstIndex={1}
       />
     </>
   );

@@ -14,6 +14,7 @@ import { tSector, tSectorGroup } from "./sectorTypes";
 import { useRadialContext } from "./RadialContext";
 import { useAnimatedMatrix } from "./AnimatedMatrix";
 import { SectorShadow } from "./SectorShadow";
+import { transform } from "@babel/core";
 
 export const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 export const SectorGroup = ({
@@ -48,15 +49,13 @@ export const SectorGroup = ({
     vR: 0,
     vS: { x: 1, y: 1 },
   });
-  const dMatrix = useDerivedValue(() => {
-    animatedMatrix.wMatrixSpring(wTransformMatrix(rc, rotationR));
-    return animatedMatrix.style.value;
-  }, [animatedMatrix]);
+
   const animatedProps = useAnimatedProps(() => {
+    animatedMatrix.wMatrixSpring(wTransformMatrix(rc, rotationR));
     const z = wGetZIndex ? wGetZIndex(rc) : 0;
     return {
       zIndex: z,
-      transform: [{ matrix: dMatrix.value }],
+      ...animatedMatrix.dTransform.value,
     };
   });
   return (

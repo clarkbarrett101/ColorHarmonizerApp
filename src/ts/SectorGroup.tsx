@@ -45,9 +45,9 @@ export const SectorGroup = ({
     y: (Math.sin(rotationR) * (radii[0] + radii[1])) / 2,
   };
   const animatedMatrix = useAnimatedMatrix({
-    vT: { x: 0, y: 0 },
-    vR: 0,
-    vS: { x: 1, y: 1 },
+    t: { x: 0, y: 0 },
+    r: 0,
+    s: { x: 1, y: 1 },
   });
 
   const animatedProps = useAnimatedProps(() => {

@@ -30,6 +30,7 @@ export type tPaint = {
   hex: string;
   yuv: [number, number, number];
   label: string;
+  index?: number;
 };
 
 export const fRandomPaints = (count: number) => {
@@ -50,6 +51,7 @@ export const fRandomPaints = (count: number) => {
       hex: fCLARColorToString(color),
       yuv: [0, 0, 0],
       label: "Random Paint",
+      index: i,
     };
     paints.push(randomPaint);
   }

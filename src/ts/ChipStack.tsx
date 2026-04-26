@@ -1,50 +1,17 @@
 import { View } from "react-native";
 import { PaintChip, tPaintChip } from "./PaintChip";
 import { tCLARColor, tPaint } from "./CLAcolor";
-import { JSX, useCallback, useEffect, useState } from "react";
-import { tMatrix } from "./AnimatedMatrix";
+import { JSX, useCallback, useEffect, useRef, useState } from "react";
+import { tMatrix } from "./Verse";
 const clarColorsList: tPaint[] = require("./clarColors.json");
+const refList: {
+  c: number;
+  l: number;
+  ar: number;
+  paintIndexes: number[];
+}[] = require("./refList.json");
 
-export type tChipStack = {
-  paints: tPaint[];
-  origin: [number, number];
-  rotationR?: number;
-  size?: [number, number];
-  collapsed?: boolean;
-};
-export const ChipStack = ({
-  paints,
-  origin,
-  size = [120, 75],
-  rotationR = 0,
-  collapsed = false,
-}: tChipStack) => {
-  return (
-    <>
-      {paints.map((paint, index) => {
-        const chip: tPaintChip = {
-          paint,
-          startPosition: {
-            x:
-              origin[0] +
-              Math.cos(rotationR + 11 / 7) * index * size[1] * 0.55 -
-              size[0] / 2,
-            y:
-              origin[1] -
-              Math.sin(rotationR + 11 / 7) * index * size[1] * 0.55 -
-              size[1] / 2,
-          },
-          size,
-          startRotation: -rotationR,
-        };
-
-        return <PaintChip key={index} {...chip} />;
-      })}
-    </>
-  );
-};
-
-export type tChipFan = tChipStack & {
+export type tChipFan = {
   arcLength: number;
   radius: number;
   direction?: 1 | -1;
@@ -52,10 +19,18 @@ export type tChipFan = tChipStack & {
   fGetChipModifier?: (chip: tPaintChip) => tPaintChip;
   wTransformMatrix?: (matrix: Partial<tMatrix>) => tMatrix;
   groupID?: number;
+  paintsA: tPaint[];
+  paintsB?: tPaint[];
+  origin: [number, number];
+  rotationR?: number;
+  size?: [number, number];
+  collapsed?: boolean;
+  sideA?: boolean;
 };
 
 export const ChipFan = ({
-  paints,
+  paintsA,
+  paintsB,
   origin,
   size = [120, 75],
   rotationR = 0,
@@ -63,16 +38,19 @@ export const ChipFan = ({
   radius,
   direction = 1,
   collapsed = false,
+  sideA = true,
   firstIndex = 0.5,
   fGetChipModifier = (chip) => chip,
   groupID = 0,
 }: tChipFan) => {
-  const chipStack = useCallback(() => {
+  const chipStack = () => {
     const newChipStack = [];
-    for (let i = 0; i < paints.length; i++) {
-      const z = (i + 0.5) / paints.length;
+
+    for (let i = 0; i < paintsA.length; i++) {
+      const z = (i + 0.5) / paintsA.length;
       const chip: tPaintChip = {
-        paint: paints[i],
+        paintA: paintsA[i],
+        paintB: paintsB ? paintsB[i] : undefined,
         radialOffset: radius,
         startPosition: {
           x: origin[0] - size[0] / 2,
@@ -80,49 +58,78 @@ export const ChipFan = ({
         },
         size,
         startRotation: -direction * (rotationR + arcLength * (z - 0.5)),
-        zIndex: (1 - Math.abs(z - firstIndex)) * paints.length,
+        zIndex: Math.round((1 - Math.abs(z - firstIndex)) * paintsA.length),
         shadow: !collapsed || i === 0,
         chipID: [groupID, z],
         collapsed,
+        sideA,
       };
       const modifiedChip = fGetChipModifier(chip);
       newChipStack.push(
-        <PaintChip key={`${groupID}-${i}`} {...modifiedChip} />,
+        <PaintChip key={`${groupID}-${z}`} {...modifiedChip} />,
       );
     }
     return newChipStack;
-  }, [
-    paints,
-    origin,
-    size,
-    rotationR,
-    arcLength,
-    radius,
-    direction,
-    collapsed,
-  ]);
+  };
   return <>{chipStack()}</>;
 };
-type tChipWheel = Omit<tChipFan, "paints"> & {
+type tChipWheel = Omit<tChipFan, "paintsA"> & {
   targetColor: tCLARColor;
   targetNumber?: number;
+  cSteps?: number;
+  lSteps?: number;
+  arSteps?: number;
 };
 
 export const ColorChipFan = ({
   targetColor,
   targetNumber = 3,
   collapsed = false,
+  sideA = true,
+  cSteps = 4,
+  lSteps = 5,
+  arSteps = 18,
   ...rest
 }: tChipWheel) => {
-  const [paints, setPaints] = useState<tPaint[]>([]);
+  const [paintsA, setPaintsA] = useState<tPaint[]>(
+    refList
+      .find((entry) => {
+        return (
+          Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
+          Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
+          Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
+        );
+      })
+      ?.paintIndexes.map((index) => clarColorsList[index]) || [],
+  );
+  const [paintsB, setPaintsB] = useState<tPaint[]>([]);
+  const [sideABuffer, setSideABuffer] = useState(sideA);
   useEffect(() => {
-    const foundColors = findColors(targetColor, targetNumber);
-    setPaints(foundColors);
-  }, [targetColor, targetNumber]);
+    console.log("Update Target Color", targetColor);
+    const foundColors = refList
+      .find((entry) => {
+        return (
+          Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
+          Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
+          Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
+        );
+      })
+      ?.paintIndexes.map((index) => clarColorsList[index]);
+    if (sideA) {
+      setPaintsA(foundColors);
+    } else {
+      setPaintsB(foundColors);
+    }
+    setSideABuffer(sideA);
+  }, [sideA, targetColor, targetNumber, cSteps, lSteps, arSteps]);
   return (
-    <>
-      <ChipFan paints={paints} collapsed={collapsed} {...rest} />
-    </>
+    <ChipFan
+      paintsA={paintsA}
+      paintsB={paintsB}
+      collapsed={collapsed}
+      sideA={sideABuffer}
+      {...rest}
+    />
   );
 };
 type tPaintRank = {
@@ -141,6 +148,7 @@ function findColors(
 
   for (let i = 0; i < clarColorsList.length; i++) {
     const paintColor = clarColorsList[i];
+    if (paintColor.index === undefined) paintColor.index = i;
     const dy = paintColor.yuv[0] - y;
     const du = paintColor.yuv[1] - u;
     const dv = paintColor.yuv[2] - v;
@@ -148,7 +156,7 @@ function findColors(
       Math.sqrt(dy * dy + du * du + dv * dv) +
       (paintColor.brand === "Behr" ? 0.02 : 0);
     paintRanks.push({
-      index: i,
+      index: paintColor.index!,
       distance,
     });
   }
@@ -161,7 +169,5 @@ function findColors(
     return midDiffA - midDiffB;
   });
 
-  let paintList = paintRanks.map((rank) => clarColorsList[rank.index]);
-
-  return paintList;
+  return paintRanks;
 }

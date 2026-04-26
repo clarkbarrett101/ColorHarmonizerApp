@@ -5,6 +5,7 @@ import { usePanManager } from "./PanManager";
 import { tSector, tSectorGroup } from "./sectorTypes";
 import { SharedValue } from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "./RadialContext";
+import { tMatrix } from "./Verse";
 
 export type tTintSelector = {
   rc?: { rings: number; chords: number };
@@ -62,9 +63,8 @@ export function TintSelector({
       arcLength: (arcLength * (rc.chords - 1)) / rc.chords,
       rotationR,
       origin,
-      fOnEnter: () => (setCollapsed(true), fOnEnter()),
-      fOnTick: fOnEnter,
-      fOnLeave: () => (setCollapsed(false), fOnEnter()),
+      fOnEnter,
+      fOnLeave: fOnEnter,
       tickRate: arcLength / rc.chords / 2,
     });
     return () => {
@@ -73,22 +73,24 @@ export function TintSelector({
       }
     };
   }, []);
-  const wMatrix = useCallback((src: { rings: number; chords: number }) => {
-    "worklet";
-    let angle = wChordToAngle(src.chords, arcLength, rc.chords, rotationR);
-    let diff = Math.min(
-      Math.abs(angle - vPanPos.value.angle) / (arcLength / rc.chords),
-      1,
-    );
-    diff = 1 - diff;
-    angle = angle * direction;
-    const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
-    return {
-      vT: { x: 0, y: 0 },
-      vR: angle,
-      vS: { x: vs, y: vs },
-    };
-  }, []);
+  const wTransformMatrix = useCallback(
+    (src: { rings: number; chords: number }, r: number) => {
+      "worklet";
+      let angle = wChordToAngle(src.chords, arcLength, rc.chords, rotationR);
+      let diff = Math.min(
+        Math.abs(angle - vPanPos.value.angle) / (arcLength / rc.chords),
+        1,
+      );
+      diff = 1 - diff;
+      angle = angle * direction;
+      const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
+      return {
+        r: angle,
+        s: { x: vs, y: vs },
+      };
+    },
+    [vPanPos, rc.chords, arcLength, direction],
+  );
   const wGetZIndex = useCallback(
     (src: { rings: number; chords: number }) => {
       "worklet";
@@ -108,7 +110,7 @@ export function TintSelector({
         radii,
         fPathFunction: fMakePetalPath,
         wGetColor,
-        wTransformMatrix: wMatrix,
+        wTransformMatrix,
         vPanPos,
         wGetZIndex,
         deps: [dAR, dL, dC],

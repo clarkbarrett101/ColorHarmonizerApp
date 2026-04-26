@@ -6,6 +6,7 @@ import { tSectorGroup } from "./sectorTypes";
 import { useSharedValue, SharedValue } from "react-native-reanimated";
 import { usePanManager } from "./PanManager";
 import { RadialContext, useRadialContext } from "./RadialContext";
+import { tMatrix } from "./Verse";
 
 type tColorWheel = {
   radii?: [number, number];
@@ -30,7 +31,6 @@ function ColorWheel({
     dL,
     dAR,
     fUpdateState,
-    setCollapsed,
   } = useRadialContext();
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const { registerZone, unregisterZone, selectedZone } = usePanManager();
@@ -59,7 +59,7 @@ function ColorWheel({
     },
     [dAR, rc.chords, arcLength],
   );
-  const wMatrix = useCallback(
+  const wTransformMatrix = useCallback(
     (src: { rings: number; chords: number }, rotationR: number) => {
       "worklet";
       const adjustedRotationROffset = dAR.value;
@@ -75,10 +75,9 @@ function ColorWheel({
       const vR = (rotationR + -vRotationROffset.value) * direction;
       const vS = 1 + (diff > 0.8 ? 0.3 : 0);
       return {
-        vT: { x: 0, y: 0 },
-        vR,
-        vS: { x: vS, y: vS },
-        vRadialOffset: diff * 25,
+        r: vR,
+        s: { x: vS, y: vS },
+        offset: diff * 25,
       };
     },
     [],
@@ -109,11 +108,7 @@ function ColorWheel({
 
   useEffect(() => {
     registerZone({
-      fOnEnter: () => setCollapsed(true),
-      fOnLeave: () => (setCollapsed(false), fOnLeave()),
-      fOnTick(angle, radius) {
-        // fOnLeave();
-      },
+      fOnLeave,
       radii,
       rotationR: wheelCenter,
       arcLength,
@@ -137,7 +132,7 @@ function ColorWheel({
         radii,
         fPathFunction: fMakePetalPath,
         wGetColor,
-        wTransformMatrix: wMatrix,
+        wTransformMatrix,
         wGetZIndex,
         deps: [dC, dL],
         selectedRing,

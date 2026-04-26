@@ -100,7 +100,7 @@ export default function PanManager({
         priority: zone.priority || 0,
       };
       const updated = [...refs, newZone].sort(
-        (a, b) => b.priority - a.priority,
+        (a, b) => (b.priority || 0) - (a.priority || 0),
       );
       return updated;
     });
@@ -158,11 +158,6 @@ export default function PanManager({
           zone.tickRate &&
           Math.abs(vStartAngle.value - angle) > zone.tickRate
         ) {
-          console.log("tick", {
-            angle,
-            vStartAngle: vStartAngle.value,
-            tickRate: zone.tickRate,
-          });
           vStartAngle.value = angle;
           if (zone.fOnTick) {
             runOnJS(zone.fOnTick)(angle, distance);

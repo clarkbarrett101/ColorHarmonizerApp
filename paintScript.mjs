@@ -31,14 +31,48 @@ clarColors.sort(
     (a.clar.l - b.clar.l) * 10 +
     (a.clar.c - b.clar.c),
 );
-asCSV(clarColors);
-function asJson() {
-  const jsonString = JSON.stringify(clarColors, null, 2);
-  fs.writeFile(`./src/ts/clarColors.json`, jsonString, "utf8", (err) => {
+const refList = [];
+for (let ar = 0; ar < 44; ar++) {
+  for (let l = 1; l < 12; l++) {
+    for (let c = 1; c < 10; c++) {
+      const clarColor = { c: c / 10, l: l / 12, ar: ar / 7 };
+      let dist = [];
+      for (let i = 0; i < clarColors.length; i++) {
+        const item = clarColors[i];
+        const dc = item.clar.c - clarColor.c;
+        const dl = item.clar.l - clarColor.l;
+        const dar = Math.min(
+          Math.abs(item.clar.ar - clarColor.ar),
+          2 * Math.PI - Math.abs(item.clar.ar - clarColor.ar),
+        );
+        dist.push({
+          index: i,
+          distance: Math.sqrt(dc * dc + dl * dl + dar * dar),
+        });
+      }
+      dist.sort((a, b) => a.distance - b.distance);
+      const closestColors = dist.slice(0, 15).map((d) => d.index);
+      closestColors.sort((a, b) =>
+        clarColors[a].brand === "Behr"
+          ? 1
+          : clarColors[b].brand === "Behr"
+            ? -1
+            : 0,
+      );
+      const topColors = closestColors.slice(0, 10).sort((a, b) => a - b);
+      refList.push({ ...clarColor, paintIndexes: topColors });
+    }
+  }
+}
+asJson(refList);
+
+function asJson(colors) {
+  const jsonString = JSON.stringify(colors, null, 2);
+  fs.writeFile(`./src/ts/refList.json`, jsonString, "utf8", (err) => {
     if (err) {
       console.error("Error writing file:", err);
     } else {
-      console.log(`File clarColors.json has been written successfully.`);
+      console.log(`File refList.json has been written successfully.`);
     }
   });
 }

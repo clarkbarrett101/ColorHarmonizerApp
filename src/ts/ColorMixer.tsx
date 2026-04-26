@@ -41,6 +41,7 @@ export default function ColorMixer({
     Dimensions.get("window").height / 2,
   ],
 }: tColorMixer) {
+  const [sideA, setSideA] = useState(true);
   const vWheelRotation = useSharedValue(wheelCenter);
   const vChromaPanPos = useSharedValue({
     angle: chromaArcRotation[1] + chromaArcRotation[0] / 3,
@@ -121,8 +122,12 @@ export default function ColorMixer({
     ar: 0,
   });
   const [collapsed, setCollapsed] = useState(false);
+  const flipSide = useCallback(() => {
+    setSideA((prev) => !prev);
+    console.log("Flip Side " + (sideA ? "B" : "A"));
+  }, [sideA]);
 
-  const fUpdateState = () => {
+  const fUpdateState = useCallback(() => {
     "worklet";
     const c = dC.value;
     const l = dL.value;
@@ -132,7 +137,12 @@ export default function ColorMixer({
       l,
       ar,
     });
-  };
+    runOnJS(flipSide)();
+    console.log("Update State");
+  }, [dC, dL, dAR, flipSide]);
+  useEffect(() => {
+    console.log(sideA);
+  }, [sideA]);
   return (
     <>
       <RadialContext
@@ -147,8 +157,6 @@ export default function ColorMixer({
           dL,
           dAR,
           fUpdateState,
-          collapsed: collapsed,
-          setCollapsed,
         }}
       >
         <PanManager>
@@ -186,11 +194,14 @@ export default function ColorMixer({
         origin={origin}
         size={[150, 90]}
         rotationR={22 / 7}
-        arcLength={11 / 7}
+        arcLength={13 / 7}
         radius={origin[0] * 0.8}
         direction={direction}
-        collapsed={collapsed}
-        firstIndex={1}
+        firstIndex={0}
+        sideA={sideA}
+        cSteps={chromaDimensions[1]}
+        lSteps={litDimensions[1]}
+        arSteps={24}
       />
     </>
   );

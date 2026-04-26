@@ -4,33 +4,27 @@ import { runOnJS } from "react-native-worklets";
 
 export type tVerse<type> = {
     asState: () => type;
-    updateState: (value?: type) => void;
+    fUpdateState: (value?: type) => void;
     setValue: (value: type) => void;
     asShared: DerivedValue<type>;
-    assignPassThru: (newPassThru: (value: type) => type) => void;
 };
 
 export function useVerse<type>(init: type): tVerse<type> {
     const [_state, _setState] = React.useState(init);
     const _shared = useSharedValue(init);
-    let _wPassThru: ((value: type) => type) | undefined = undefined;
-    function assignPassThru(newPassThru: (value: type) => type) {
-        _wPassThru = newPassThru;
-    }
+
     function asState() {
         return _state;
     }
     const asShared = useDerivedValue(() => {
-                if (_wPassThru) {
-          return  _wPassThru(_shared.value);
-        }
+
         return _shared.value;
     });
     const setValue = (value: type) => {
         'worklet';
         _shared.value = value;
     }
-    function updateState(value?: type) {
+    function fUpdateState(value?: type) {
         'worklet';
         const newValue = value ?? asShared.value;
         _shared.value = newValue;
@@ -38,9 +32,8 @@ export function useVerse<type>(init: type): tVerse<type> {
     }
     return {
         asState,
-        updateState,
+        fUpdateState,
         asShared,
-        assignPassThru,
         setValue,
     };
 }
@@ -70,11 +63,11 @@ export function useVerseTransform(init?: Partial<tMatrix>): tVerseTransform {
     const vTilt = useVerse(init?.tilt ?? 0);
     function fUpate(matrix: Partial<tMatrix>) {
         'worklet';
-        if (matrix.t) {vT.updateState(matrix.t);}else {vT.updateState();}
-        if (matrix.r) {vR.updateState(matrix.r);}else {vR.updateState();}
-        if (matrix.s) {vS.updateState(matrix.s);}else {vS.updateState();}
-        if (matrix.offset) {vOffset.updateState(matrix.offset);}else {vOffset.updateState();}
-        if (matrix.tilt) {vTilt.updateState(matrix.tilt);}else {vTilt.updateState();}
+        if (matrix.t) {vT.fUpdateState(matrix.t);}else {vT.fUpdateState();}
+        if (matrix.r) {vR.fUpdateState(matrix.r);}else {vR.fUpdateState();}
+        if (matrix.s) {vS.fUpdateState(matrix.s);}else {vS.fUpdateState();}
+        if (matrix.offset) {vOffset.fUpdateState(matrix.offset);}else {vOffset.fUpdateState();}
+        if (matrix.tilt) {vTilt.fUpdateState(matrix.tilt);}else {vTilt.fUpdateState();}
     }
     function wSetMatrix(matrix: Partial<tMatrix>) {
         'worklet';
@@ -85,11 +78,11 @@ export function useVerseTransform(init?: Partial<tMatrix>): tVerseTransform {
         if (matrix.tilt) vTilt.setValue(matrix.tilt);
     }
     const dPosition = useDerivedValue(() => {
-        const vOffsetValue = vOffset._shared.value;
+
         const cosR = Math.cos(vR.asShared.value);
         const sinR = Math.sin(vR.asShared.value);
-        const tx = vT.asShared.value.x + vOffsetValue * cosR;
-        const ty = vT.asShared.value.y + vOffsetValue * sinR;
+        const tx = vT.asShared.value.x + vOffset.asShared.value * cosR;
+        const ty = vT.asShared.value.y + vOffset.asShared.value * sinR;
         return { x: tx, y: ty };
     });
     const dTransform = useDerivedValue(() => {

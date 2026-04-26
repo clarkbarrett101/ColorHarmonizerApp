@@ -12,16 +12,10 @@ import {
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
+import { tMatrix } from "./Verse";
 
-export type tMatrix = {
-  vT?: { x: number; y: number };
-  vR?: number;
-  vS?: { x: number; y: number };
-  vRadialOffset?: number;
-  vTilt?: number;
-  duration?: number;
-  mass?: number;
-};
+
+
 
 export type AnimatedMatrix = {
   vT: SharedValue<{ x: number; y: number }>;
@@ -36,21 +30,13 @@ export type AnimatedMatrix = {
 };
 
 export function useAnimatedMatrix(init?: tMatrix): AnimatedMatrix {
-  const vT = useSharedValue(init?.vT ?? { x: 0, y: 0 });
-  const vR = useSharedValue(init?.vR ?? 0);
-  const vS = useSharedValue(init?.vS ?? { x: 1, y: 1 });
-  const vRadialOffset = useSharedValue(init?.vRadialOffset ?? 0);
-  const vTilt = useSharedValue(0);
+  const vT = useSharedValue(init?.t ?? { x: 0, y: 0 });
+  const vR = useSharedValue(init?.r ?? 0);
+  const vS = useSharedValue(init?.s ?? { x: 1, y: 1 });
+  const vRadialOffset = useSharedValue(init?.offset ?? 0);
+  const vTilt = useSharedValue(init?.tilt ?? 0);
   function wMatrixSpring(
-    {
-      vT: t,
-      vR: r,
-      vS: s,
-      vRadialOffset: p,
-      vTilt: tilt,
-      duration: d,
-      mass: m,
-    }: Partial<tMatrix>,
+    matrix: Partial<tMatrix>,
     wCallback?: () => void,
   ) {
     "worklet";
@@ -60,28 +46,23 @@ export function useAnimatedMatrix(init?: tMatrix): AnimatedMatrix {
       called = true;
       if (wCallback) wCallback();
     };
-    if (t && (t.x !== vT.value.x || t.y !== vT.value.y))
-      vT.value = withSpring(t, { mass: m ?? 0.5, duration: d }, onComplete);
-    if (r && r !== vR.value)
-      vR.value = withSpring(r, { mass: m ?? 0.5, duration: d }, onComplete);
-    if (s && (s.x !== vS.value.x || s.y !== vS.value.y))
-      vS.value = withSpring(s, { mass: m ?? 0.5, duration: d }, onComplete);
-    if (p) vRadialOffset.value = p;
-    if (tilt) vTilt.value = tilt;
+    if (matrix.t && (matrix.t.x !== vT.value.x || matrix.t.y !== vT.value.y))
+      vT.value = withSpring(matrix.t, { mass: 0.5, duration: 300}, onComplete);
+    if (matrix.r && matrix.r !== vR.value)
+      vR.value = withSpring(matrix.r, { mass: 0.5, duration: 300}, onComplete);
+    if (matrix.s && (matrix.s.x !== vS.value.x || matrix.s.y !== vS.value.y))
+      vS.value = withSpring(matrix.s, { mass: 0.5, duration: 300}, onComplete);
+    if (matrix.offset) vRadialOffset.value = matrix.offset;
+    if (matrix.tilt) vTilt.value = matrix.tilt;
   }
-  function wMatrixInstant({
-    vT: t,
-    vR: r,
-    vS: s,
-    vRadialOffset: p,
-    vTilt: tilt,
-  }: Partial<tMatrix>) {
+  function wMatrixInstant(
+    matrix: Partial<tMatrix>) {
     "worklet";
-    if (t) vT.value = t;
-    if (r) vR.value = r;
-    if (s) vS.value = s;
-    if (p) vRadialOffset.value = p;
-    if (tilt) vTilt.value = tilt;
+    if (matrix.t) vT.value = matrix.t;
+    if (matrix.r) vR.value = matrix.r;
+    if (matrix.s) vS.value = matrix.s;
+    if (matrix.offset) vRadialOffset.value = matrix.offset;
+    if (matrix.tilt) vTilt.value = matrix.tilt;
   }
   const dPosition = useDerivedValue(() => {
     const cosR = Math.cos(vR.value);
@@ -94,10 +75,13 @@ export function useAnimatedMatrix(init?: tMatrix): AnimatedMatrix {
     return {
       transform: [
         { perspective: 2000 },
-        { translateX: vT.value.x + vRadialOffset.value * Math.cos(vR.value) },
-        { translateY: vT.value.y + vRadialOffset.value * Math.sin(vR.value) },
+        { translateX: vT.value.x },
+        { translateY: vT.value.y  },
         {
           rotateZ: `${vR.value}rad`,
+        },
+        {
+            translateX: vRadialOffset.value,
         },
         {
           scaleX: vS.value.x,

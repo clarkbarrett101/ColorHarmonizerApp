@@ -2,6 +2,7 @@ import React from "react";
 import { DerivedValue, SharedValue } from "react-native-reanimated";
 import { tCLARColor } from "./CLAcolor";
 import { tSector, tSectorGroup } from "./sectorTypes";
+import { tMatrix } from "./Verse";
 
 export const wDefaultAngleToChord = (
   angle: number,
@@ -53,11 +54,7 @@ type tRadialContext = {
   wTransformMatrix?: (
     src: { rings: number; chords: number },
     rotationR: number,
-  ) => {
-    vT: { x: number; y: number };
-    vR: number;
-    vS: { x: number; y: number };
-  };
+  ) => tMatrix;
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
   wGetColor?: (rc: { rings: number; chords: number }) => string;
   wGetZIndex?: (rc: { rings: number; chords: number }) => number;
@@ -77,7 +74,14 @@ const Ctx = React.createContext<tRadialContext>({
   wAngleToChord: wDefaultAngleToChord,
   wChordToAngle: wDefaultChordToAngle,
   vRotationROffset: { value: 0 },
-  wTransformMatrix: () => ({ vT: { x: 0, y: 0 }, vR: 0, vS: { x: 1, y: 1 } }),
+  wTransformMatrix: () =>
+    ({
+      t: { x: 0, y: 0 },
+      r: 0,
+      s: { x: 1, y: 1 },
+      offset: 0,
+      tilt: 0,
+    }) as tMatrix,
   vPanPos: undefined,
   wGetColor: () => "#000000",
   wGetZIndex: () => 0,
@@ -109,11 +113,14 @@ export const RadialContext = ({
         dC: undefined,
         dL: undefined,
         vRotationROffset: { value: 0 },
-        wTransformMatrix: () => ({
-          vT: { x: 0, y: 0 },
-          vR: 0,
-          vS: { x: 1, y: 1 },
-        }),
+        wTransformMatrix: () =>
+          ({
+            t: { x: 0, y: 0 },
+            r: 0,
+            s: { x: 1, y: 1 },
+            offset: 0,
+            tilt: 0,
+          }) as tMatrix,
         vPanPos: undefined,
         wGetColor: () => "#000000",
         wGetZIndex: () => 0,

@@ -1,20 +1,12 @@
 import Animated, {
-  SharedValue,
-  DerivedValue,
-  useDerivedValue,
   useAnimatedProps,
   useSharedValue,
-  withTiming,
-  useAnimatedStyle,
 } from "react-native-reanimated";
 import { Sector } from "./Sector";
-import Svg, { FeDropShadow, Filter, G } from "react-native-svg";
-import { use, useEffect, useState } from "react";
-import { tSector, tSectorGroup } from "./sectorTypes";
+import Svg from "react-native-svg";
+import { useEffect, useState } from "react";
+import { tSectorGroup } from "./sectorTypes";
 import { useRadialContext } from "./RadialContext";
-import { useAnimatedMatrix } from "./AnimatedMatrix";
-import { SectorShadow } from "./SectorShadow";
-import { transform } from "@babel/core";
 
 export const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 export const SectorGroup = ({
@@ -27,7 +19,11 @@ export const SectorGroup = ({
   rotationR = 0,
   sectorGroupID = 0,
 }: tSectorGroup) => {
-  const { wTransformMatrix, wGetZIndex, selectedRing } = useRadialContext();
+  const { wTransformMatrix, wGetZIndex, selectedRing, dAR, dL, dC } =
+    useRadialContext();
+  const vRotationR = useSharedValue(0);
+  const vOffset = useSharedValue(0);
+  const vScale = useSharedValue(1);
   const [isSelected, setIsSelected] = useState(selectedRing === sectorGroupID);
   useEffect(() => {
     setIsSelected(selectedRing === sectorGroupID);
@@ -40,22 +36,22 @@ export const SectorGroup = ({
     },
     [undefined, undefined] as [number | undefined, number | undefined],
   );
-  const centroid = {
-    x: (Math.cos(rotationR) * (radii[0] + radii[1])) / 2,
-    y: (Math.sin(rotationR) * (radii[0] + radii[1])) / 2,
-  };
-  const animatedMatrix = useAnimatedMatrix({
-    t: { x: 0, y: 0 },
-    r: 0,
-    s: { x: 1, y: 1 },
-  });
-
   const animatedProps = useAnimatedProps(() => {
-    animatedMatrix.wMatrixSpring(wTransformMatrix(rc, rotationR));
+    const deps = [dAR.value, dL.value, dC.value];
+    const matrix = wTransformMatrix ? wTransformMatrix(rc, rotationR) : {};
+    vRotationR.value = (matrix.r + vRotationR.value) / 2;
+    vOffset.value = matrix.offset
+      ? (matrix.offset + vOffset.value) / 2
+      : vOffset.value;
+    vScale.value = matrix.s ? (matrix.s.x + vScale.value) / 2 : vScale.value;
     const z = wGetZIndex ? wGetZIndex(rc) : 0;
     return {
       zIndex: z,
-      ...animatedMatrix.dTransform.value,
+      transform: [
+        { rotateZ: `${vRotationR.value}rad` },
+        { translateX: vOffset.value },
+        { scale: vScale.value },
+      ],
     };
   });
   return (

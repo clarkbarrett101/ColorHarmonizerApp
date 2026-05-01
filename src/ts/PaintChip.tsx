@@ -13,16 +13,15 @@ import Animated, {
   useDerivedValue,
   useSharedValue,
   withDelay,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import { use, useEffect, useRef, useState } from "react";
-import { useAnimatedMatrix, AnimatedMatrix } from "./AnimatedMatrix";
+import { useEffect, useState } from "react";
 import { runOnJS } from "react-native-worklets";
-import { View } from "react-native";
-import { useUserContext } from "./UserContext";
-import { useVerse, tMatrix, useVerseTransform } from "./Verse";
+import { DeviceEventEmitter, View } from "react-native";
+import { eLayers, useUserContext } from "./UserContext";
+
+export type tChipEvent = "idle" | "onPush" | "onPull" | "onDrop";
 
 export type tPaintChip = {
   paintA: tPaint;
@@ -32,12 +31,11 @@ export type tPaintChip = {
   startRotation?: number;
   zIndex?: number;
   radialOffset?: number;
-  shadow?: boolean;
   chipID: [number, number];
-  wMatrixModifier?: (matrix: Partial<tMatrix>) => Partial<tMatrix>;
   simultaneousHandlers?: any;
-  collapsed?: boolean;
   sideA?: boolean;
+  groupLayer?: number;
+  direction?: 1 | -1;
 };
 
 export const PaintChip = ({
@@ -53,14 +51,15 @@ export const PaintChip = ({
   startRotation = 0,
   zIndex = 0,
   radialOffset = 0,
-  shadow = true,
-  wMatrixModifier,
   simultaneousHandlers,
   chipID,
-  collapsed = false,
   sideA = true,
+  groupLayer = 0,
+  direction = 1,
 }: tPaintChip) => {
+  /// FLIP ///
   const [isPaintA, setIsPaintA] = useState(false);
+  const vTilt = useSharedValue(0);
   useEffect(() => {
     vTilt.value = withDelay(
       sideA ? 500 * chipID[1] : (1 - chipID[1]) * 500,
@@ -76,79 +75,125 @@ export const PaintChip = ({
       }),
     );
   }, [sideA]);
-  const { vPanX, vPanY, vVelocityX, vHeldChip, holdChip } = useUserContext();
-  const vR = useSharedValue(startRotation);
-  const vTilt = useSharedValue(0);
+
+  ///Enter Spin///
+  const vR = useSharedValue(0);
+  useEffect(() => {
+    vR.value = withTiming(-direction * startRotation, { duration: 1000 });
+  }, [chipID, direction, startRotation]);
+
+  const {
+    vPanX,
+    vPanY,
+    vVelocityX,
+    vHeldChip,
+    holdChip,
+    vHeldPaint,
+    eventDispatch,
+    vPanMix,
+    vPanOverride,
+  } = useUserContext();
+
+  ///Event Dispatch///
   const [grabbed, setGrabbed] = useState(false);
-  const [sRotation, setSRotation] = useState(startRotation);
+  const isHeld = useDerivedValue(() => {
+    return (
+      vHeldChip.asShared.value[0] === chipID[0] &&
+      vHeldChip.asShared.value[1] === chipID[1]
+    );
+  });
+  useEffect(() => {
+    const paint = isPaintA ? paintA : paintB;
+    if (
+      vHeldChip.asState()[0] === chipID[0] &&
+      vHeldChip.asState()[1] === chipID[1]
+    ) {
+      setGrabbed(true);
+      vHeldPaint.fUpdateState(paint);
+    } else if (
+      (vHeldChip.asState()[0] == -1 || vHeldChip.asState()[1] == -1) &&
+      grabbed
+    ) {
+      eventDispatch?.({ event: "onDrop", paint });
+      setGrabbed(false);
+    }
+  }, [vHeldChip.asState]);
+
+  ///PAN GESTURE///
   const panGesture = usePanGesture({
     simultaneousWith: simultaneousHandlers,
     onActivate: (event) => {
-      holdChip(chipID);
-      runOnJS(setGrabbed)(true);
-      runOnJS(setSRotation)(22 / 7);
+      holdChip(chipID, "onPull");
     },
     onUpdate: (event) => {
-      vPanX.value = event.absoluteX;
-      vPanY.value = event.absoluteY;
-      vVelocityX.value = event.velocityX;
+      vPanX.setValue(event.absoluteX);
+      vPanY.setValue(event.absoluteY);
+      vVelocityX.setValue(event.velocityX);
     },
     onDeactivate: (event) => {
-      console.log("deactivate");
       holdChip();
-      runOnJS(setGrabbed)(false);
-      runOnJS(setSRotation)(startRotation);
     },
   });
-  useEffect(() => {
-    if (collapsed) {
-    } else {
-      vTilt.value = withDelay(
-        500 * chipID[1],
-        withTiming(0, { duration: 500 }),
-      );
-    }
-  }, [collapsed]);
-
-  const isHeld = useDerivedValue(() => {
-    return vHeldChip.value[0] === chipID[0] && vHeldChip.value[1] === chipID[1];
-  });
-
+  const mix = (a, b, t) => {
+    "worklet";
+    return a * (1 - t) + b * t;
+  };
+  ///Transform Style///
   const dTransform = useDerivedValue<{ transform: any[] }>(() => {
+    let transform = { transform: [] } as any;
+    const zFlipped = startRotation > 11 / 7 ? -1 : 1;
+    const vFlipped = vTilt.value > 11 / 7 ? -1 : 1;
+
     if (isHeld.value) {
-      const transform = {
+      transform = {
         transform: [
-          { translateX: vPanX.value - size[0] / 2 - startPosition.x },
-          { translateY: vPanY.value - size[1] / 2 - startPosition.y },
-          { rotateZ: `${vVelocityX.value / 1000 + 22 / 7}rad` },
+          {
+            translateX:
+              mix(vPanX.asShared.value, vPanOverride.value[0], vPanMix.value) -
+              size[0] / 2 -
+              startPosition.x,
+          },
+          {
+            translateY:
+              mix(vPanY.asShared.value, vPanOverride.value[1], vPanMix.value) -
+              size[1] / 2 -
+              startPosition.y,
+          },
+          {
+            rotateZ: `${vVelocityX.asShared.value / 1000}rad`,
+          },
           { scaleX: 1.3 },
-          { scaleY: 1.3 },
+          { scaleY: vTilt.value > 11 / 7 ? -1.3 : 1.3 },
         ],
       };
-      return transform;
+    } else {
+      transform = {
+        transform: [
+          { perspective: 1000 },
+          { rotateZ: `${vR.value ?? 0}rad` },
+          { rotateX: `${vTilt.value}rad` },
+          { translateX: radialOffset },
+          { rotateZ: `${zFlipped > 0 ? 0 : 22 / 7}rad` },
+        ],
+      };
     }
-
-    return {
-      transform: [
-        { perspective: 1000 },
-        { rotateZ: `${vR.value ?? 0}rad` },
-        { rotateX: `${vTilt.value}rad` },
-        { translateX: radialOffset },
-      ],
-    };
+    return transform;
   });
-
   const animatedStyle = useAnimatedStyle(() => {
     return dTransform.value;
   });
-  const rID = useRef(Math.random()).current;
+
   return (
     <View
       style={{
         position: "absolute",
         left: 0,
         top: 0,
-        zIndex: grabbed ? 1000 : isPaintA ? zIndex : 100 - zIndex,
+        zIndex: grabbed
+          ? eLayers.dropScreen + 10
+          : isPaintA
+            ? zIndex + groupLayer
+            : groupLayer - zIndex,
       }}
     >
       <Animated.View
@@ -161,7 +206,7 @@ export const PaintChip = ({
           animatedStyle,
         ]}
       >
-        <GestureDetector gesture={panGesture} key={rID}>
+        <GestureDetector gesture={panGesture}>
           <Svg
             viewBox={`0 0 32 20`}
             style={{
@@ -173,32 +218,33 @@ export const PaintChip = ({
                 height: grabbed ? -10 : -1,
               },
               shadowOpacity: 0.5,
-              shadowRadius: shadow ? 5 : 1,
+              shadowRadius: 5,
               transform: [{ scaleY: isPaintA ? 1 : -1 }],
             }}
           >
             <Defs>
               <LinearGradient
                 id="grad"
-                x1={`${Math.cos(sRotation + 11 / 7) * 50 + 50}%`}
-                y1={`${Math.sin(sRotation + 11 / 7) * 50 + 50}%`}
-                x2={`${Math.cos(sRotation - 11 / 7) * 50 + 50}%`}
-                y2={`${Math.sin(sRotation - 11 / 7) * 50 + 50}%`}
+                x1={`${Math.cos(-(grabbed ? 0 : startRotation) + 22 / 7) * 50 + 50}%`}
+                y1={`${Math.sin(-(grabbed ? 0 : startRotation) + 22 / 7) * 50 + 50}%`}
+                x2={`${Math.cos(-(grabbed ? 0 : startRotation)) * 50 + 50}%`}
+                y2={`${Math.sin(-(grabbed ? 0 : startRotation)) * 50 + 50}%`}
               >
                 <Stop offset="0%" stopColor="#fff" stopOpacity=".2" />
                 <Stop
                   offset="50%"
-                  stopColor={isPaintA ? paintA.hex : paintB.hex}
+                  stopColor={
+                    (isPaintA ? paintA.hex : paintB.hex) || "transparent"
+                  }
                   stopOpacity="0"
                 />
                 <Stop offset="100%" stopColor="#000" stopOpacity=".1" />
               </LinearGradient>
             </Defs>
-
             <G>
               <Path
                 d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
-                fill={isPaintA ? paintA.hex : paintB.hex}
+                fill={(isPaintA ? paintA.hex : paintB.hex) || "transparent"}
               />
               <Path
                 d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
@@ -206,7 +252,7 @@ export const PaintChip = ({
               />
               <Path
                 d="M1 5C12 1 20 1 31 5V15C20 19 12 19 1 15Z"
-                fill={isPaintA ? paintA.hex : paintB.hex}
+                fill={(isPaintA ? paintA.hex : paintB.hex) || "transparent"}
               />
             </G>
             <Text
@@ -221,7 +267,6 @@ export const PaintChip = ({
               }
               textAnchor="middle"
               alignmentBaseline="middle"
-              transform={`rotate(${Math.abs(sRotation) > 11 / 7 ? 180 : 0}, 16, 10)`}
               fontWeight={500}
             >
               {isPaintA ? paintA.name : paintB.name}

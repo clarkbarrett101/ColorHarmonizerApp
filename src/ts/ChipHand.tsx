@@ -1,8 +1,8 @@
-import { View, Text, Dimensions } from "react-native";
-import React, { use } from "react";
+import { View, Dimensions } from "react-native";
+import React, { use, useEffect, useState } from "react";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
-import { useUserContext } from "./UserContext";
+import { eLayers, useUserContext } from "./UserContext";
 import { runOnJS } from "react-native-worklets";
 import { useVerse } from "./Verse";
 
@@ -14,20 +14,30 @@ export type tChipHand = {
 };
 
 export const ChipHand = ({
-  radius = 100,
+  radius = 80,
   rotationR = 6 / 7,
   arcLength = 10 / 7,
   holdRadius = 150,
 }: tChipHand) => {
-  const groupID = 10;
   const startAngle = rotationR - arcLength / 2;
   const selectVerse = useVerse(-1);
-  const { userPallete, vPanX, vPanY, vVelocityX, holdChip } = useUserContext();
+  const {
+    userPallete,
+    addPaint,
+    vPanX,
+    vPanY,
+    vVelocityX,
+    holdChip,
+    registerBucket,
+    unregisterBucket,
+  } = useUserContext();
   const origin: [number, number] = [30, Dimensions.get("window").height];
   const [touching, setTouching] = React.useState(false);
   const pan = usePanGesture({
-    onActivate: (event) => {
+    minDistance: 0,
+    onBegin: (event) => {
       "worklet";
+      console.log("Hand Activate");
       const angle = Math.atan2(
         event.absoluteY - origin[1],
         event.absoluteX - origin[0],
@@ -50,13 +60,11 @@ export const ChipHand = ({
       const distance = Math.sqrt(
         (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
       );
-
       if (distance > holdRadius) {
-        holdChip([groupID, selectVerse.asShared.value]);
-        vPanX.value = event.absoluteX;
-        vPanY.value = event.absoluteY;
-        vVelocityX.value = event.velocityX;
-        console.log(vPanX.value, vPanY.value);
+        holdChip([eLayers.chipHand, selectVerse.asShared.value], "onPush");
+        vPanX.setValue(event.absoluteX);
+        vPanY.setValue(event.absoluteY);
+        vVelocityX.setValue(event.velocityX);
       } else {
         holdChip();
         const index =
@@ -68,18 +76,43 @@ export const ChipHand = ({
         selectVerse.fUpdateState(index);
       }
     },
-    onDeactivate: (event) => {
+    onFinalize: (event) => {
       "worklet";
       console.log("Hand Deactivate");
       holdChip();
       runOnJS(setTouching)(false);
     },
   });
-
+  useEffect(() => {
+    registerBucket({
+      origin,
+      radius: [holdRadius, holdRadius + 50],
+      callback: (paint) => {
+        addPaint(paint);
+      },
+      eventTrigger: "onPull",
+    });
+    return () =>
+      unregisterBucket({
+        origin,
+        radius: [holdRadius, holdRadius + 50],
+        callback: (paint) => {
+          addPaint(paint);
+        },
+        eventTrigger: "onPull",
+      });
+  }, []);
   return (
-    <View style={{ position: "absolute", left: 0, top: 0, zIndex: 100 }}>
+    <View
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        zIndex: touching ? eLayers.dropScreen + 10 : eLayers.chipHand + 10,
+      }}
+    >
       <ChipFan
-        groupID={groupID}
+        groupLayer={eLayers.chipHand}
         paintsA={userPallete.current}
         size={[180, 100]}
         radius={touching ? holdRadius : radius}
@@ -92,14 +125,21 @@ export const ChipHand = ({
           return {
             ...chip,
             zIndex:
-              10 +
+              eLayers.chipHand +
               (1 - Math.abs(selectVerse.asState() - chip.chipID[1])) *
                 userPallete.current.length,
             simultaneousHandlers: pan,
+            radialOffset:
+              chip.radialOffset +
+              (Math.abs(selectVerse.asState() - chip.chipID[1]) < 0.1 ? 20 : 0),
           };
         }}
       />
-      <View style={{ zIndex: 200 }}>
+      <View
+        style={{
+          zIndex: touching ? eLayers.dropScreen + 10 : eLayers.chipHand + 10,
+        }}
+      >
         <GestureDetector gesture={pan}>
           <View
             style={{
@@ -108,11 +148,7 @@ export const ChipHand = ({
               top: origin[1] - holdRadius,
               width: holdRadius * 2,
               height: holdRadius * 2,
-              borderWidth: 1,
-              borderColor: "black",
-              borderRadius: holdRadius,
-              zIndex: 1000,
-              backgroundColor: "rgba(255,255,255,0.5)",
+              zIndex: touching ? eLayers.dropScreen + 10 : eLayers.chipHand,
             }}
           />
         </GestureDetector>

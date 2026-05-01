@@ -6,6 +6,7 @@ import {
   GestureHandlerGestureEvent,
   PanGestureHandlerEventPayload,
   usePanGesture,
+  useSimultaneousGestures,
   useTapGesture,
 } from "react-native-gesture-handler";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
@@ -25,7 +26,7 @@ type tRadialZone = {
   rotationR: number;
   fOnEnter?: (angle: number, radius: number) => void;
   fOnLeave?: () => void;
-  fOnTick?: (angle: number, radius: number) => void;
+  fOnTap?: () => void;
   highlight?: boolean;
   tickRate?: number;
   priority?: number;
@@ -109,8 +110,17 @@ export default function PanManager({
   const unregisterZone = useCallback((i: number) => {
     setZoneRefs((refs) => refs.filter((_, index) => index !== i));
   }, []);
-
-  const panUpdate = (e: PanGestureHandlerEventPayload) => {
+  const releaseZone = () => {
+    "worklet";
+    if (vCurrentZone.value !== -1) {
+      if (vZones.value[vCurrentZone.value].fOnLeave) {
+        runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
+      }
+      runOnJS(setZoneState)(-1);
+      vCurrentZone.value = -1;
+    }
+  };
+  const panUpdate = (e: { absoluteX: number; absoluteY: number }) => {
     `worklet`;
     let foundZone = false;
     vPanPos.value = [e.absoluteX, e.absoluteY];
@@ -154,45 +164,42 @@ export default function PanManager({
             runOnJS(zone.fOnEnter)(angle, distance);
           }
           runOnJS(setZoneState)(i);
-        } else if (
-          zone.tickRate &&
-          Math.abs(vStartAngle.value - angle) > zone.tickRate
-        ) {
-          vStartAngle.value = angle;
-          if (zone.fOnTick) {
-            runOnJS(zone.fOnTick)(angle, distance);
-          }
-          if (zone.vDrag) {
-            vDragStart.value = zone.vDrag.value;
-          }
         }
-
+        vCurrentZone.value = i;
         if (zone.vDrag) {
           zone.vDrag.value = vStartAngle.value + vDragStart.value - angle;
         }
         break;
       }
     }
-    if (!foundZone && vCurrentZone.value !== -1) {
-      if (vZones.value[vCurrentZone.value].fOnLeave) {
-        runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
-      }
-      runOnJS(setZoneState)(-1);
+    if (!foundZone) {
+      releaseZone();
     }
   };
 
+  const tapUpdate = (e: { absoluteX: number; absoluteY: number }) => {
+    "worklet";
+    panUpdate(e);
+    if (vCurrentZone.value !== -1) {
+      const zone = vZones.value[vCurrentZone.value];
+      if (zone.fOnTap) {
+        runOnJS(zone.fOnTap)();
+      }
+      releaseZone();
+    }
+  };
+  const tap = useTapGesture({
+    onActivate: tapUpdate,
+  });
   const pan = usePanGesture({
+    minDistance: 5,
     onActivate: panUpdate,
     onUpdate: panUpdate,
     onDeactivate() {
-      if (vZones.value[vCurrentZone.value]?.fOnLeave) {
-        runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
-        console.log("finalize leave", vCurrentZone.value);
-      }
-      runOnJS(setZoneState)(-1);
+      releaseZone();
     },
   });
-
+  const compGesture = useSimultaneousGestures(tap, pan);
   return (
     <Ctx.Provider
       value={{
@@ -212,7 +219,7 @@ export default function PanManager({
         {children}
       </View>
 
-      <GestureDetector gesture={pan}>
+      <GestureDetector gesture={compGesture}>
         <Svg
           style={{
             position: "absolute",

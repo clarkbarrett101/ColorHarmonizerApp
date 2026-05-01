@@ -17,7 +17,6 @@ export function useVerse<type>(init: type): tVerse<type> {
         return _state;
     }
     const asShared = useDerivedValue(() => {
-
         return _shared.value;
     });
     const setValue = (value: type) => {

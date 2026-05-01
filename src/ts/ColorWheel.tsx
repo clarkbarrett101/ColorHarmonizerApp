@@ -1,12 +1,15 @@
-import { fCLARColorToString } from "./CLAcolor";
+import { fCLARColorToString, tPaint } from "./CLAcolor";
 import { RadialGraphic } from "./RadialGraphic";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { fMakePetalPath } from "./Sector";
 import { tSectorGroup } from "./sectorTypes";
-import { useSharedValue, SharedValue } from "react-native-reanimated";
+import {
+  useSharedValue,
+  SharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { usePanManager } from "./PanManager";
 import { RadialContext, useRadialContext } from "./RadialContext";
-import { tMatrix } from "./Verse";
 
 type tColorWheel = {
   radii?: [number, number];
@@ -30,10 +33,10 @@ function ColorWheel({
     dC,
     dL,
     dAR,
-    fUpdateState,
+    wUpdateState: fUpdateState,
   } = useRadialContext();
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
-  const { registerZone, unregisterZone, selectedZone } = usePanManager();
+  const { registerZone, unregisterZone } = usePanManager();
 
   const wGetColor = useCallback(
     (src: { rings: number; chords: number }) => {
@@ -96,14 +99,23 @@ function ColorWheel({
       rc.chords,
       0,
     );
-    vRotationROffset.value = nearestSectorAngle;
+    vRotationROffset.value = withTiming(nearestSectorAngle);
     setSelectedRing(nearestSector);
     fUpdateState();
   };
   const fSectorGroupModifier = (sectorGroup: tSectorGroup) => {
     return sectorGroup;
   };
+  const fOnTap = useCallback(() => {
+    const offsetAngle = vPanPos.value.angle - 22 / 7;
 
+    if (Math.abs(offsetAngle) > 0.4) {
+      vRotationROffset.value = offsetAngle + vRotationROffset.value;
+    }
+    console.log(
+      "Tapped wheel," + offsetAngle + " rotating to " + vRotationROffset.value,
+    );
+  }, []);
   const [zoneID, setZoneID] = useState(-10);
 
   useEffect(() => {
@@ -115,8 +127,8 @@ function ColorWheel({
       vPanPos,
       vDrag: vRotationROffset,
       origin: origin,
-      tickRate: arcLength / rc.chords,
       priority: 10,
+      fOnTap,
     });
     fOnLeave();
     return () => {

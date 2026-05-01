@@ -1,8 +1,8 @@
-import { use, useCallback, useEffect, useMemo, useState } from "react";
-import { fCLARColorToString, tCLARColor } from "./CLAcolor";
+import { useCallback, useEffect, useState } from "react";
+import { fCLARColorToString, tCLARColor, tPaint } from "./CLAcolor";
 import { ColorWheel } from "./ColorWheel";
 import { TintSelector } from "./TintSelector";
-import { Dimensions, View } from "react-native";
+import { DeviceEventEmitter, Dimensions, View } from "react-native";
 import PanManager, { usePanManager } from "./PanManager";
 import {
   RadialContext,
@@ -11,7 +11,8 @@ import {
 } from "./RadialContext";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { ColorChipFan } from "./ChipStack";
-import { runOnJS } from "react-native-worklets";
+import { runOnJS, runOnUI } from "react-native-worklets";
+import { eLayers, useUserContext } from "./UserContext";
 
 type tColorMixer = {
   wheelCenter?: number;
@@ -121,46 +122,114 @@ export default function ColorMixer({
     l: 0.5,
     ar: 0,
   });
-  const [collapsed, setCollapsed] = useState(false);
   const flipSide = useCallback(() => {
     setSideA((prev) => !prev);
-    console.log("Flip Side " + (sideA ? "B" : "A"));
   }, [sideA]);
 
-  const fUpdateState = useCallback(() => {
-    "worklet";
-    const c = dC.value;
-    const l = dL.value;
-    const ar = dAR.value;
-    runOnJS(setTargetColor)({
-      c,
-      l,
-      ar,
-    });
-    runOnJS(flipSide)();
-    console.log("Update State");
-  }, [dC, dL, dAR, flipSide]);
+  const wUpdateState = useCallback(
+    (pc?, pl?, par?) => {
+      "worklet";
+      const c = pc !== undefined ? pc : dC.value;
+      const l = pl !== undefined ? pl : dL.value;
+      const ar = par !== undefined ? par : dAR.value;
+      runOnJS(setTargetColor)({
+        c,
+        l,
+        ar,
+      });
+      runOnJS(flipSide)();
+    },
+    [dC, dL, dAR, flipSide],
+  );
+
+  const fOnDrop = useCallback((paint: tPaint) => {
+    const c = paint.clar.c;
+    const l = paint.clar.l;
+    let pAR = wDefaultAngleToChord(paint.clar.ar, 44 / 7, 24, 0);
+    pAR = wDefaultChordToAngle(pAR, 44 / 7, 24, 0);
+    vWheelRotation.value = pAR;
+    let pL =
+      lightnessArcRotation[1] -
+      lightnessArcRotation[0] / 2 +
+      lightnessArcRotation[0] * (1 - l);
+    pL = wDefaultAngleToChord(
+      pL,
+      lightnessArcRotation[0],
+      litDimensions[1],
+      lightnessArcRotation[1],
+    );
+    pL = wDefaultChordToAngle(
+      pL,
+      lightnessArcRotation[0],
+      litDimensions[1],
+      lightnessArcRotation[1],
+    );
+    vLightnessPanPos.value = { angle: pL, radius: radii[1] };
+    let pC =
+      chromaArcRotation[1] -
+      chromaArcRotation[0] / 2 +
+      chromaArcRotation[0] * c;
+    pC = wDefaultAngleToChord(
+      pC,
+      chromaArcRotation[0],
+      chromaDimensions[1],
+      chromaArcRotation[1],
+    );
+    pC = wDefaultChordToAngle(
+      pC,
+      chromaArcRotation[0],
+      chromaDimensions[1],
+      chromaArcRotation[1],
+    );
+    vChromaPanPos.value = { angle: pC, radius: radii[1] };
+    wUpdateState(paint.clar.c, paint.clar.l, paint.clar.ar);
+  }, []);
+  const { registerBucket, unregisterBucket } = useUserContext();
   useEffect(() => {
-    console.log(sideA);
-  }, [sideA]);
+    registerBucket({
+      origin: [
+        Dimensions.get("window").width,
+        Dimensions.get("window").height / 2,
+      ],
+      radius: [radii[1], radii[1] + 75],
+      callback: fOnDrop,
+      eventTrigger: "onPush",
+    });
+    return () => {
+      unregisterBucket({
+        origin: [
+          Dimensions.get("window").width,
+          Dimensions.get("window").height / 2,
+        ],
+        radius: [radii[1], radii[1] + 75],
+        callback: fOnDrop,
+        eventTrigger: "onPush",
+      });
+    };
+  }, []);
   return (
     <>
-      <RadialContext
-        value={{
-          radii,
-          //origin: [dimensions.width + radii[1] * 0.3, dimensions.height / 2],
-          origin,
-          direction,
-          wAngleToChord: wDefaultAngleToChord,
-          wChordToAngle: wDefaultChordToAngle,
-          dC,
-          dL,
-          dAR,
-          fUpdateState,
+      <View
+        style={{
+          flex: 1,
+          zIndex: 0,
         }}
       >
-        <PanManager>
-          <View style={{ flex: 1, zIndex: 1 }}>
+        <RadialContext
+          value={{
+            radii,
+            //origin: [dimensions.width + radii[1] * 0.3, dimensions.height / 2],
+            origin,
+            direction,
+            wAngleToChord: wDefaultAngleToChord,
+            wChordToAngle: wDefaultChordToAngle,
+            dC,
+            dL,
+            dAR,
+            wUpdateState,
+          }}
+        >
+          <PanManager>
             <TintSelector
               key={`Lightness Selector`}
               arcLength={lightnessArcRotation[0]}
@@ -179,15 +248,15 @@ export default function ColorMixer({
               vPanPos={vChromaPanPos}
               wGetColor={wGetChromaColor}
             />
-          </View>
-          <ColorWheel
-            radii={radii}
-            rc={{ rings: 5, chords: 24 }}
-            vRotationROffset={vWheelRotation}
-            wheelCenter={wheelCenter}
-          />
-        </PanManager>
-      </RadialContext>
+            <ColorWheel
+              radii={radii}
+              rc={{ rings: 5, chords: 24 }}
+              vRotationROffset={vWheelRotation}
+              wheelCenter={wheelCenter}
+            />
+          </PanManager>
+        </RadialContext>
+      </View>
       <ColorChipFan
         targetColor={targetColor}
         targetNumber={9}
@@ -202,6 +271,7 @@ export default function ColorMixer({
         cSteps={chromaDimensions[1]}
         lSteps={litDimensions[1]}
         arSteps={24}
+        groupLayer={eLayers.colorMixer}
       />
     </>
   );

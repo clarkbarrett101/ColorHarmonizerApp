@@ -1,7 +1,6 @@
-import { View } from "react-native";
 import { PaintChip, tPaintChip } from "./PaintChip";
 import { tCLARColor, tPaint } from "./CLAcolor";
-import { JSX, useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { tMatrix } from "./Verse";
 const clarColorsList: tPaint[] = require("./clarColors.json");
 const refList: {
@@ -18,14 +17,13 @@ export type tChipFan = {
   firstIndex?: number;
   fGetChipModifier?: (chip: tPaintChip) => tPaintChip;
   wTransformMatrix?: (matrix: Partial<tMatrix>) => tMatrix;
-  groupID?: number;
   paintsA: tPaint[];
   paintsB?: tPaint[];
   origin: [number, number];
   rotationR?: number;
   size?: [number, number];
-  collapsed?: boolean;
   sideA?: boolean;
+  groupLayer?: number;
 };
 
 export const ChipFan = ({
@@ -37,12 +35,12 @@ export const ChipFan = ({
   arcLength,
   radius,
   direction = 1,
-  collapsed = false,
   sideA = true,
   firstIndex = 0.5,
   fGetChipModifier = (chip) => chip,
-  groupID = 0,
+  groupLayer = 0,
 }: tChipFan) => {
+  const groupID = useState(groupLayer)[0];
   const chipStack = () => {
     const newChipStack = [];
 
@@ -57,12 +55,12 @@ export const ChipFan = ({
           y: origin[1] - size[1] / 2,
         },
         size,
-        startRotation: -direction * (rotationR + arcLength * (z - 0.5)),
+        startRotation: rotationR + arcLength * (z - 0.5),
         zIndex: Math.round((1 - Math.abs(z - firstIndex)) * paintsA.length),
-        shadow: !collapsed || i === 0,
-        chipID: [groupID, z],
-        collapsed,
+        chipID: [groupLayer, z],
         sideA,
+        groupLayer,
+        direction,
       };
       const modifiedChip = fGetChipModifier(chip);
       newChipStack.push(
@@ -84,7 +82,6 @@ type tChipWheel = Omit<tChipFan, "paintsA"> & {
 export const ColorChipFan = ({
   targetColor,
   targetNumber = 3,
-  collapsed = false,
   sideA = true,
   cSteps = 4,
   lSteps = 5,
@@ -105,7 +102,7 @@ export const ColorChipFan = ({
   const [paintsB, setPaintsB] = useState<tPaint[]>([]);
   const [sideABuffer, setSideABuffer] = useState(sideA);
   useEffect(() => {
-    console.log("Update Target Color", targetColor);
+    console.log("Finding colors for target", targetColor);
     const foundColors = refList
       .find((entry) => {
         return (
@@ -126,7 +123,6 @@ export const ColorChipFan = ({
     <ChipFan
       paintsA={paintsA}
       paintsB={paintsB}
-      collapsed={collapsed}
       sideA={sideABuffer}
       {...rest}
     />

@@ -61,7 +61,7 @@ type tRadialContext = {
   deps?: SharedValue<any>[];
   isSelected?: boolean;
   selectedRing?: number;
-  fUpdateState?: () => void;
+  wUpdateState?: () => void;
   collapsed?: boolean;
   setCollapsed?: (collapsed: boolean) => void;
 };
@@ -87,7 +87,7 @@ const Ctx = React.createContext<tRadialContext>({
   wGetZIndex: () => 0,
   isSelected: false,
   selectedRing: 0,
-  fUpdateState: () => {},
+  wUpdateState: () => {},
   collapsed: false,
   setCollapsed: () => {},
 });
@@ -126,7 +126,7 @@ export const RadialContext = ({
         wGetZIndex: () => 0,
         isSelected: false,
         selectedRing: 0,
-        fUpdateState: () => {},
+        wUpdateState: () => {},
         collapsed: false,
         setCollapsed: () => {},
 

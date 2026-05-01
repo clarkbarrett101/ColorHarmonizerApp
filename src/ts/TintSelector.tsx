@@ -6,6 +6,7 @@ import { tSector, tSectorGroup } from "./sectorTypes";
 import { SharedValue } from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "./RadialContext";
 import { tMatrix } from "./Verse";
+import { DeviceEventEmitter } from "react-native";
 
 export type tTintSelector = {
   rc?: { rings: number; chords: number };
@@ -39,7 +40,7 @@ export function TintSelector({
     dAR,
     dL,
     dC,
-    fUpdateState,
+    wUpdateState: fUpdateState,
     setCollapsed,
   } = context;
   const [zoneId, setZoneId] = useState<number>(-10);
@@ -65,7 +66,6 @@ export function TintSelector({
       origin,
       fOnEnter,
       fOnLeave: fOnEnter,
-      tickRate: arcLength / rc.chords / 2,
     });
     return () => {
       if (zoneId !== -10) {

@@ -1,6 +1,7 @@
 import Animated, {
   useAnimatedProps,
   useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { Sector } from "./Sector";
 import Svg from "react-native-svg";
@@ -39,18 +40,14 @@ export const SectorGroup = ({
   const animatedProps = useAnimatedProps(() => {
     const deps = [dAR.value, dL.value, dC.value];
     const matrix = wTransformMatrix ? wTransformMatrix(rc, rotationR) : {};
-    vRotationR.value = (matrix.r + vRotationR.value) / 2;
-    vOffset.value = matrix.offset
-      ? (matrix.offset + vOffset.value) / 2
-      : vOffset.value;
-    vScale.value = matrix.s ? (matrix.s.x + vScale.value) / 2 : vScale.value;
+
     const z = wGetZIndex ? wGetZIndex(rc) : 0;
     return {
       zIndex: z,
       transform: [
-        { rotateZ: `${vRotationR.value}rad` },
-        { translateX: vOffset.value },
-        { scale: vScale.value },
+        { rotateZ: `${matrix.r || 0}rad` },
+        { translateX: matrix.offset || 0 },
+        { scale: matrix.s ? matrix.s.x : 1 },
       ],
     };
   });

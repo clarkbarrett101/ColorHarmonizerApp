@@ -71,10 +71,18 @@ function ColorWheel({
       if (diff > 22 / 7) {
         diff = 44 / 7 - diff;
       }
+
       diff =
         Math.max(0, (2 * arcLength) / rc.chords - diff) /
         ((2 * arcLength) / rc.chords);
-      diff = Math.pow(diff, 0.5);
+      console.log(
+        "Transforming sector",
+        src,
+        "with rotation",
+        rotation,
+        "and diff",
+        diff,
+      );
       const vR = (rotationR + -vRotationROffset.value) * direction;
       const vS = 1 + (diff > 0.8 ? 0.3 : 0);
       return {
@@ -128,7 +136,7 @@ function ColorWheel({
       vDrag: vRotationROffset,
       origin: origin,
       priority: 10,
-      fOnTap,
+      // fOnTap,
     });
     fOnLeave();
     return () => {

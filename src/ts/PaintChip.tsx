@@ -16,23 +16,29 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import { useEffect, useState } from "react";
+import { use, useEffect, useReducer, useState } from "react";
 import { runOnJS } from "react-native-worklets";
 import { DeviceEventEmitter, View } from "react-native";
 import { eLayers, useUserContext } from "./UserContext";
+import { useVerse } from "./Verse";
 
-export type tChipEvent = "idle" | "onPush" | "onPull" | "onDrop";
-
+export type tChipStatus = {
+  [key: string]: {} | tChipStatus;
+};
+export const eChipSizes = {
+  default: [150, 90],
+  grabbed: [180, 108],
+  outline: [210, 126],
+};
 export type tPaintChip = {
   paintA: tPaint;
   paintB?: tPaint;
-  startPosition: { x: number; y: number };
-  size?: [number, number];
+  origin: { x: number; y: number };
+  size?: keyof typeof eChipSizes;
   startRotation?: number;
   zIndex?: number;
   radialOffset?: number;
   chipID: [number, number];
-  simultaneousHandlers?: any;
   sideA?: boolean;
   groupLayer?: number;
   direction?: 1 | -1;
@@ -46,141 +52,162 @@ export const PaintChip = ({
     name: "",
     brand: "",
   } as tPaint,
-  startPosition,
-  size = [120, 75],
+  origin = { x: 0, y: 0 },
+  size = "default",
   startRotation = 0,
   zIndex = 0,
   radialOffset = 0,
-  simultaneousHandlers,
   chipID,
   sideA = true,
   groupLayer = 0,
   direction = 1,
 }: tPaintChip) => {
   /// FLIP ///
+  const {
+    vPanX,
+    vPanY,
+    vVelocityX,
+    holdChip,
+    vPanMix,
+    vPanOverride,
+    registerChip,
+    unregisterChip,
+  } = useUserContext();
+  const vChipStatus = useVerse<tChipStatus>({ idle: {} });
+  const anim = useSharedValue(0);
   const [isPaintA, setIsPaintA] = useState(false);
+  function fGetPaint() {
+    if (isPaintA) {
+      return paintA;
+    } else {
+      return paintB;
+    }
+  }
+  useEffect(() => {
+    registerChip(
+      chipID,
+      vChipStatus.asState,
+      vChipStatus.fUpdateState,
+      fGetPaint,
+    );
+    return () => unregisterChip(chipID);
+  }, []);
+
   const vTilt = useSharedValue(0);
   useEffect(() => {
+    if (vChipStatus.asState["flipping"]) {
+      vTilt.value = sideA ? 21 / 7 : 1 / 7;
+    }
+    vChipStatus.fUpdateState({ flipping: {} });
     vTilt.value = withDelay(
       sideA ? 500 * chipID[1] : (1 - chipID[1]) * 500,
       withTiming(11 / 7, { duration: 200 }, () => {
         runOnJS(setIsPaintA)(sideA);
         vTilt.value = sideA ? 9 / 7 : 13 / 7;
         vTilt.value = withTiming(
-          sideA ? chipID[1] / 10 : 22 / 7 - chipID[1] / 10,
+          sideA ? 1 / 7 : 21 / 7,
           {
             duration: 200,
+          },
+          () => {
+            vChipStatus.fUpdateState({ idle: {} });
           },
         );
       }),
     );
   }, [sideA]);
-
-  ///Enter Spin///
-  const vR = useSharedValue(0);
-  useEffect(() => {
-    vR.value = withTiming(-direction * startRotation, { duration: 1000 });
-  }, [chipID, direction, startRotation]);
-
-  const {
-    vPanX,
-    vPanY,
-    vVelocityX,
-    vHeldChip,
-    holdChip,
-    vHeldPaint,
-    eventDispatch,
-    vPanMix,
-    vPanOverride,
-  } = useUserContext();
+  const vR = useSharedValue(startRotation);
+  const fLerp = (a: number, b: number, t: number): number => {
+    "worklet";
+    return a * (1 - t) + b * t;
+  };
 
   ///Event Dispatch///
-  const [grabbed, setGrabbed] = useState(false);
-  const isHeld = useDerivedValue(() => {
-    return (
-      vHeldChip.asShared.value[0] === chipID[0] &&
-      vHeldChip.asShared.value[1] === chipID[1]
-    );
-  });
-  useEffect(() => {
-    const paint = isPaintA ? paintA : paintB;
-    if (
-      vHeldChip.asState()[0] === chipID[0] &&
-      vHeldChip.asState()[1] === chipID[1]
-    ) {
-      setGrabbed(true);
-      vHeldPaint.fUpdateState(paint);
-    } else if (
-      (vHeldChip.asState()[0] == -1 || vHeldChip.asState()[1] == -1) &&
-      grabbed
-    ) {
-      eventDispatch?.({ event: "onDrop", paint });
-      setGrabbed(false);
-    }
-  }, [vHeldChip.asState]);
 
   ///PAN GESTURE///
   const panGesture = usePanGesture({
-    simultaneousWith: simultaneousHandlers,
     onActivate: (event) => {
-      holdChip(chipID, "onPull");
+      holdChip(chipID, "pulled");
     },
     onUpdate: (event) => {
-      vPanX.setValue(event.absoluteX);
-      vPanY.setValue(event.absoluteY);
-      vVelocityX.setValue(event.velocityX);
+      vPanX.asShared.value = event.absoluteX;
+      vPanY.asShared.value = event.absoluteY;
+      vVelocityX.asShared.value = event.velocityX;
     },
     onDeactivate: (event) => {
       holdChip();
     },
   });
-  const mix = (a, b, t) => {
-    "worklet";
-    return a * (1 - t) + b * t;
-  };
-  ///Transform Style///
-  const dTransform = useDerivedValue<{ transform: any[] }>(() => {
-    let transform = { transform: [] } as any;
-    const zFlipped = startRotation > 11 / 7 ? -1 : 1;
-    const vFlipped = vTilt.value > 11 / 7 ? -1 : 1;
 
-    if (isHeld.value) {
-      transform = {
-        transform: [
-          {
-            translateX:
-              mix(vPanX.asShared.value, vPanOverride.value[0], vPanMix.value) -
-              size[0] / 2 -
-              startPosition.x,
-          },
-          {
-            translateY:
-              mix(vPanY.asShared.value, vPanOverride.value[1], vPanMix.value) -
-              size[1] / 2 -
-              startPosition.y,
-          },
-          {
-            rotateZ: `${vVelocityX.asShared.value / 1000}rad`,
-          },
-          { scaleX: 1.3 },
-          { scaleY: vTilt.value > 11 / 7 ? -1.3 : 1.3 },
-        ],
+  ///Transform Style///
+
+  useEffect(() => {
+    console.log("Chip Status:", vChipStatus.asState);
+    if (vChipStatus.asState["grabbed"]) {
+      vR.value = 0;
+      if (vChipStatus.asState.grabbed["inBucket"]) {
+        anim.value = withTiming(1, { duration: 300 });
+      } else {
+        anim.value = withTiming(0, { duration: 300 });
+      }
+    } else if (vChipStatus.asState["returning"]) {
+      anim.value = 1;
+      anim.value = withTiming(0, { duration: 300 }, () => {
+        vChipStatus.fUpdateState({ idle: {} });
+      });
+    } else {
+      vR.value = startRotation;
+      anim.value = withTiming(0, { duration: 300 });
+    }
+  }, [vChipStatus.asState]);
+
+  const startPosition = {
+    x: origin.x + Math.cos(-direction * startRotation) * radialOffset,
+    y: origin.y + Math.sin(-direction * startRotation) * radialOffset,
+  };
+
+  const dPosition = useDerivedValue(() => {
+    if (vChipStatus.asState["grabbed"]) {
+      return {
+        x:
+          fLerp(vPanX.asShared.value, vPanOverride.value.x, anim.value) -
+          eChipSizes[size][0] / 2,
+        y:
+          fLerp(vPanY.asShared.value, vPanOverride.value.y, anim.value) -
+          eChipSizes[size][1] / 2,
       };
     } else {
-      transform = {
-        transform: [
-          { perspective: 1000 },
-          { rotateZ: `${vR.value ?? 0}rad` },
-          { rotateX: `${vTilt.value}rad` },
-          { translateX: radialOffset },
-          { rotateZ: `${zFlipped > 0 ? 0 : 22 / 7}rad` },
-        ],
+      return {
+        x: fLerp(startPosition.x, vPanX.asShared.value, anim.value),
+        y: fLerp(startPosition.y, vPanY.asShared.value, anim.value),
       };
     }
-    return transform;
+  });
+  const dTransform = useDerivedValue(() => {
+    let rotation = vR.value * -direction - (vR.value > 11 / 7 ? 22 / 7 : 0);
+    if (vChipStatus.asState["grabbed"]) {
+      rotation += vVelocityX.asShared.value / 1000;
+    }
+    return {
+      transform: [
+        { perspective: 1000 },
+        {
+          translateX: dPosition.value.x,
+        },
+        {
+          translateY: dPosition.value.y,
+        },
+        {
+          rotateZ: `${rotation}rad`,
+        },
+        { rotateX: `${vTilt.value}rad` },
+      ],
+    };
   });
   const animatedStyle = useAnimatedStyle(() => {
-    return dTransform.value;
+    return {
+      ...dTransform.value,
+    } as any;
   });
 
   return (
@@ -189,8 +216,11 @@ export const PaintChip = ({
         position: "absolute",
         left: 0,
         top: 0,
-        zIndex: grabbed
-          ? eLayers.dropScreen + 10
+        borderWidth: 1,
+        width: eChipSizes.grabbed[0],
+        height: eChipSizes.grabbed[1],
+        zIndex: vChipStatus.asState["grabbed"]
+          ? eLayers.grabbedChip
           : isPaintA
             ? zIndex + groupLayer
             : groupLayer - zIndex,
@@ -200,8 +230,6 @@ export const PaintChip = ({
         style={[
           {
             position: "absolute",
-            top: startPosition.y,
-            left: startPosition.x,
           },
           animatedStyle,
         ]}
@@ -210,12 +238,16 @@ export const PaintChip = ({
           <Svg
             viewBox={`0 0 32 20`}
             style={{
-              width: size[0],
-              height: size[1],
+              width: vChipStatus.asState["grabbed"]
+                ? eChipSizes.grabbed[0]
+                : eChipSizes[size][0],
+              height: vChipStatus.asState["grabbed"]
+                ? eChipSizes.grabbed[1]
+                : eChipSizes[size][1],
               shadowColor: "#000",
               shadowOffset: {
-                width: grabbed ? -10 : -1,
-                height: grabbed ? -10 : -1,
+                width: vChipStatus.asState["grabbed"] ? -10 : -1,
+                height: vChipStatus.asState["grabbed"] ? -10 : -1,
               },
               shadowOpacity: 0.5,
               shadowRadius: 5,
@@ -225,10 +257,10 @@ export const PaintChip = ({
             <Defs>
               <LinearGradient
                 id="grad"
-                x1={`${Math.cos(-(grabbed ? 0 : startRotation) + 22 / 7) * 50 + 50}%`}
-                y1={`${Math.sin(-(grabbed ? 0 : startRotation) + 22 / 7) * 50 + 50}%`}
-                x2={`${Math.cos(-(grabbed ? 0 : startRotation)) * 50 + 50}%`}
-                y2={`${Math.sin(-(grabbed ? 0 : startRotation)) * 50 + 50}%`}
+                x1={`${Math.cos(-(vChipStatus.asState["grabbed"] ? 0 : startRotation) + 22 / 7) * 50 + 50}%`}
+                y1={`${Math.sin(-(vChipStatus.asState["grabbed"] ? 0 : startRotation) + 22 / 7) * 50 + 50}%`}
+                x2={`${Math.cos(-(vChipStatus.asState["grabbed"] ? 0 : startRotation)) * 50 + 50}%`}
+                y2={`${Math.sin(-(vChipStatus.asState["grabbed"] ? 0 : startRotation)) * 50 + 50}%`}
               >
                 <Stop offset="0%" stopColor="#fff" stopOpacity=".2" />
                 <Stop
@@ -244,7 +276,7 @@ export const PaintChip = ({
             <G>
               <Path
                 d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
-                fill={(isPaintA ? paintA.hex : paintB.hex) || "transparent"}
+                fill={fGetPaint().hex || "transparent"}
               />
               <Path
                 d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
@@ -252,36 +284,28 @@ export const PaintChip = ({
               />
               <Path
                 d="M1 5C12 1 20 1 31 5V15C20 19 12 19 1 15Z"
-                fill={(isPaintA ? paintA.hex : paintB.hex) || "transparent"}
+                fill={fGetPaint().hex || "transparent"}
               />
             </G>
             <Text
               x="16"
               y="8"
-              fontSize={`${(isPaintA ? paintA.name : paintB.name).length > 13 ? 55 / (isPaintA ? paintA.name : paintB.name).length : 4}px`}
+              fontSize={`${fGetPaint().name.length > 13 ? 55 / fGetPaint().name.length : 4}px`}
               fontFamily="Outfit"
-              fill={
-                (isPaintA ? paintA.clar.l : paintB.clar.l) > 0.5
-                  ? "#000"
-                  : "#fff"
-              }
+              fill={fGetPaint().clar.l > 0.5 ? "#000" : "#fff"}
               textAnchor="middle"
               alignmentBaseline="middle"
               fontWeight={500}
             >
-              {isPaintA ? paintA.name : paintB.name}
+              {fGetPaint().name}
               <TSpan
                 x="16"
                 dy="5"
                 fontSize="3"
-                fill={
-                  (isPaintA ? paintA.clar.l : paintB.clar.l) > 0.5
-                    ? "#000"
-                    : "#fff"
-                }
+                fill={fGetPaint().clar.l > 0.5 ? "#000" : "#fff"}
                 fontWeight={100}
               >
-                {isPaintA ? paintA.brand : paintB.brand}
+                {fGetPaint().brand}
               </TSpan>
             </Text>
           </Svg>

@@ -3,37 +3,25 @@ import { DerivedValue, SharedValue, useDerivedValue, useSharedValue } from "reac
 import { runOnJS } from "react-native-worklets";
 
 export type tVerse<type> = {
-    asState: () => type;
+    asState: type;
     fUpdateState: (value?: type) => void;
-    setValue: (value: type) => void;
-    asShared: DerivedValue<type>;
+    asShared: SharedValue<type>;
 };
 
 export function useVerse<type>(init: type): tVerse<type> {
-    const [_state, _setState] = React.useState(init);
-    const _shared = useSharedValue(init);
+    const [asState, _setState] = React.useState(init);
+    const asShared = useSharedValue(init);
 
-    function asState() {
-        return _state;
-    }
-    const asShared = useDerivedValue(() => {
-        return _shared.value;
-    });
-    const setValue = (value: type) => {
-        'worklet';
-        _shared.value = value;
-    }
     function fUpdateState(value?: type) {
         'worklet';
         const newValue = value ?? asShared.value;
-        _shared.value = newValue;
+        asShared.value = newValue;
         runOnJS(_setState)(newValue);
     }
     return {
         asState,
         fUpdateState,
         asShared,
-        setValue,
     };
 }
 export type tMatrix = {
@@ -70,11 +58,11 @@ export function useVerseTransform(init?: Partial<tMatrix>): tVerseTransform {
     }
     function wSetMatrix(matrix: Partial<tMatrix>) {
         'worklet';
-        if (matrix.t) vT.setValue(matrix.t);
-        if (matrix.r) vR.setValue(matrix.r);
-        if (matrix.s) vS.setValue(matrix.s);
-        if (matrix.offset) vOffset.setValue(matrix.offset);
-        if (matrix.tilt) vTilt.setValue(matrix.tilt);
+        if (matrix.t) vT.fUpdateState(matrix.t);
+        if (matrix.r) vR.fUpdateState(matrix.r);
+        if (matrix.s) vS.fUpdateState(matrix.s);
+        if (matrix.offset) vOffset.fUpdateState(matrix.offset);
+        if (matrix.tilt) vTilt.fUpdateState(matrix.tilt);
     }
     const dPosition = useDerivedValue(() => {
 
@@ -109,3 +97,4 @@ export function useVerseTransform(init?: Partial<tMatrix>): tVerseTransform {
         wSetMatrix,
     };
 }
+

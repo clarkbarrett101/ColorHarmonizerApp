@@ -13,23 +13,22 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { tChipEvent } from "./PaintChip";
 import { ChipBucket } from "./ChipBucket";
 
 export type tDropScreen = {};
 
 export default function DropScreen({}: tDropScreen) {
-  const { buckets, eventState, vHeldChip } = useUserContext();
+  const { buckets, heldChipID } = useUserContext();
   const dimensions = Dimensions.get("window");
   const aspectRatio = dimensions.height / dimensions.width;
   const [active, setActive] = useState(false);
   useEffect(() => {
-    if (vHeldChip.asState()[0] === -1 && vHeldChip.asState()[1] === -1) {
+    if (heldChipID === null) {
       setActive(false);
     } else {
       setActive(true);
     }
-  }, [vHeldChip.asState()]);
+  }, [heldChipID]);
   const animatedStyle = useAnimatedStyle(() => {
     return {
       opacity: withTiming(active ? 1 : 0, { duration: 200 }),
@@ -38,55 +37,54 @@ export default function DropScreen({}: tDropScreen) {
       zIndex: active ? eLayers.dropScreen : -1,
     };
   });
-  const bucketComps = useCallback(() => {
-    return buckets?.current.map((bucket) => {
-      return (
-        <ChipBucket
-          key={`${bucket.origin[0]}-${bucket.origin[1]}`}
-          {...bucket}
-        />
-      );
-    });
-  }, [buckets]);
+  const bucketComps = () => {
+    let comps = [];
+    for (let bucket of buckets) {
+      comps.push(<ChipBucket key={bucket.id} {...bucket} />);
+    }
+    return comps;
+  };
 
   return (
-    <Animated.View
-      style={[
-        animatedStyle,
-        {
-          position: "absolute",
-          left: 0,
-          top: 0,
-        },
-      ]}
-    >
-      <Svg
-        width={dimensions.width}
-        height={dimensions.height}
-        viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+    <>
+      <Animated.View
+        style={[
+          animatedStyle,
+          {
+            position: "absolute",
+            left: 0,
+            top: 0,
+          },
+        ]}
       >
-        <Defs>
-          <RadialGradient
-            id="grad"
-            cx={dimensions.width / 2}
-            cy={dimensions.height / 2 / aspectRatio}
-            r={dimensions.width * 0.75}
-            gradientUnits="userSpaceOnUse"
-            gradientTransform={`scale(1, ${aspectRatio})`}
-          >
-            <Stop offset="0%" stopColor="#000000" stopOpacity={0} />
-            <Stop offset="100%" stopColor="#000000" stopOpacity={0.5} />
-          </RadialGradient>
-        </Defs>
-        <Rect
-          x={0}
-          y={0}
+        <Svg
           width={dimensions.width}
           height={dimensions.height}
-          fill="url(#grad)"
-        />
-      </Svg>
+          viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+        >
+          <Defs>
+            <RadialGradient
+              id="grad"
+              cx={dimensions.width / 2}
+              cy={dimensions.height / 2 / aspectRatio}
+              r={dimensions.width * 0.75}
+              gradientUnits="userSpaceOnUse"
+              gradientTransform={`scale(1, ${aspectRatio})`}
+            >
+              <Stop offset="0%" stopColor="#000000" stopOpacity={0} />
+              <Stop offset="100%" stopColor="#000000" stopOpacity={0.5} />
+            </RadialGradient>
+          </Defs>
+          <Rect
+            x={0}
+            y={0}
+            width={dimensions.width}
+            height={dimensions.height}
+            fill="url(#grad)"
+          />
+        </Svg>
+      </Animated.View>
       {bucketComps()}
-    </Animated.View>
+    </>
   );
 }

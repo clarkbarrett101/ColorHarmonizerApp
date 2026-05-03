@@ -1,4 +1,4 @@
-import { PaintChip, tPaintChip } from "./PaintChip";
+import { eChipSizes, PaintChip, tPaintChip } from "./PaintChip";
 import { tCLARColor, tPaint } from "./CLAcolor";
 import { useEffect, useState } from "react";
 import { tMatrix } from "./Verse";
@@ -21,7 +21,7 @@ export type tChipFan = {
   paintsB?: tPaint[];
   origin: [number, number];
   rotationR?: number;
-  size?: [number, number];
+  size?: keyof typeof eChipSizes;
   sideA?: boolean;
   groupLayer?: number;
 };
@@ -30,7 +30,7 @@ export const ChipFan = ({
   paintsA,
   paintsB,
   origin,
-  size = [120, 75],
+  size = "default",
   rotationR = 0,
   arcLength,
   radius,
@@ -50,9 +50,9 @@ export const ChipFan = ({
         paintA: paintsA[i],
         paintB: paintsB ? paintsB[i] : undefined,
         radialOffset: radius,
-        startPosition: {
-          x: origin[0] - size[0] / 2,
-          y: origin[1] - size[1] / 2,
+        origin: {
+          x: origin[0] - eChipSizes[size][0] / 2,
+          y: origin[1] - eChipSizes[size][1] / 2,
         },
         size,
         startRotation: rotationR + arcLength * (z - 0.5),

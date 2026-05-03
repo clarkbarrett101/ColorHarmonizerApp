@@ -1,10 +1,12 @@
 import { View, Dimensions } from "react-native";
-import React, { use, useEffect, useState } from "react";
+import React, { use, useEffect, useRef, useState } from "react";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
 import { eLayers, useUserContext } from "./UserContext";
-import { runOnJS } from "react-native-worklets";
+import { runOnJS, scheduleOnRN } from "react-native-worklets";
 import { useVerse } from "./Verse";
+import { translate } from "@shopify/react-native-skia";
+import { eChipSizes } from "./PaintChip";
 
 export type tChipHand = {
   radius?: number;
@@ -27,9 +29,10 @@ export const ChipHand = ({
     vPanX,
     vPanY,
     vVelocityX,
-    holdChip,
     registerBucket,
     unregisterBucket,
+    holdChip,
+    heldChipDispatch,
   } = useUserContext();
   const origin: [number, number] = [30, Dimensions.get("window").height];
   const [touching, setTouching] = React.useState(false);
@@ -43,11 +46,9 @@ export const ChipHand = ({
         event.absoluteX - origin[0],
       );
       const index =
-        (Math.round(
-          ((startAngle - angle) / arcLength) * userPallete.current.length,
-        ) -
+        (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
           0.5) /
-        userPallete.current.length;
+        userPallete.length;
       selectVerse.fUpdateState(index);
       runOnJS(setTouching)(true);
     },
@@ -61,18 +62,17 @@ export const ChipHand = ({
         (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
       );
       if (distance > holdRadius) {
-        holdChip([eLayers.chipHand, selectVerse.asShared.value], "onPush");
-        vPanX.setValue(event.absoluteX);
-        vPanY.setValue(event.absoluteY);
-        vVelocityX.setValue(event.velocityX);
+        holdChip([eLayers.chipHand, selectVerse.asShared.value], "pushed");
+
+        vPanX.asShared.value = event.absoluteX;
+        vPanY.asShared.value = event.absoluteY;
+        vVelocityX.asShared.value = event.velocityX;
       } else {
         holdChip();
         const index =
-          (Math.round(
-            ((startAngle - angle) / arcLength) * userPallete.current.length,
-          ) -
+          (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
             0.5) /
-          userPallete.current.length;
+          userPallete.length;
         selectVerse.fUpdateState(index);
       }
     },
@@ -83,38 +83,25 @@ export const ChipHand = ({
       runOnJS(setTouching)(false);
     },
   });
+
   useEffect(() => {
     registerBucket({
-      origin,
-      radius: [holdRadius, holdRadius + 50],
+      origin: [origin[0] + radius, origin[1] - radius],
+      radius: [holdRadius, holdRadius + 100],
       callback: (paint) => {
         addPaint(paint);
       },
-      eventTrigger: "onPull",
+      statusTrigger: "pulled",
+      id: `hand-bucket`,
     });
-    return () =>
-      unregisterBucket({
-        origin,
-        radius: [holdRadius, holdRadius + 50],
-        callback: (paint) => {
-          addPaint(paint);
-        },
-        eventTrigger: "onPull",
-      });
+    return () => unregisterBucket(`hand-bucket`);
   }, []);
   return (
-    <View
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        zIndex: touching ? eLayers.dropScreen + 10 : eLayers.chipHand + 10,
-      }}
-    >
+    <>
       <ChipFan
         groupLayer={eLayers.chipHand}
-        paintsA={userPallete.current}
-        size={[180, 100]}
+        paintsA={userPallete}
+        size={"default"}
         radius={touching ? holdRadius : radius}
         direction={1}
         origin={origin}
@@ -126,33 +113,37 @@ export const ChipHand = ({
             ...chip,
             zIndex:
               eLayers.chipHand +
-              (1 - Math.abs(selectVerse.asState() - chip.chipID[1])) *
-                userPallete.current.length,
-            simultaneousHandlers: pan,
+              (1 - Math.abs(selectVerse.asState - chip.chipID[1])) *
+                userPallete.length,
             radialOffset:
               chip.radialOffset +
-              (Math.abs(selectVerse.asState() - chip.chipID[1]) < 0.1 ? 20 : 0),
+              (Math.abs(selectVerse.asState - chip.chipID[1]) < 0.1 ? 20 : 0),
           };
         }}
       />
       <View
         style={{
-          zIndex: touching ? eLayers.dropScreen + 10 : eLayers.chipHand + 10,
+          zIndex: eLayers.superMax,
+          position: "absolute",
+          left: origin[0] - holdRadius,
+          top: origin[1] - holdRadius,
         }}
       >
         <GestureDetector gesture={pan}>
           <View
             style={{
               position: "absolute",
-              left: origin[0] - holdRadius,
-              top: origin[1] - holdRadius,
+              left: 0,
+              top: 0,
               width: holdRadius * 2,
               height: holdRadius * 2,
-              zIndex: touching ? eLayers.dropScreen + 10 : eLayers.chipHand,
+              borderWidth: 10,
+              borderColor: "rgba(255,255,255,1)",
+              borderRadius: holdRadius,
             }}
           />
         </GestureDetector>
       </View>
-    </View>
+    </>
   );
 };

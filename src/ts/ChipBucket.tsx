@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Dimensions } from "react-native";
+import { Dimensions, View } from "react-native";
 import Animated, {
   useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -16,135 +17,159 @@ import Svg, {
   Path,
 } from "react-native-svg";
 import { useUserContext, eLayers } from "./UserContext";
-import { tChipEvent } from "./PaintChip";
-import { transform } from "@babel/core";
+import { eChipSizes, tChipStatus } from "./PaintChip";
+import { useVerse } from "./Verse";
 
-const AnimatedStop = Animated.createAnimatedComponent(Stop);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
+const fLerp = (a, b, t) => {
+  "worklet";
+  return a * (1 - t) + b * t;
+};
 export type tChipBucket = {
+  id?: string;
   origin: [number, number];
   radius: [number, number];
   callback?: (paint: any) => void;
-  eventTrigger?: tChipEvent;
+  statusTrigger?: string;
+  outlineOffset?: [number, number];
 };
 
 export const ChipBucket = ({
   origin = [0, 0],
   radius = [100, 200],
   callback,
-  eventTrigger = "onPush",
+  statusTrigger = "pulled",
+  outlineOffset = [0, 0],
 }: tChipBucket) => {
-  const { vPanX, vPanY, eventState, vHeldPaint, vPanMix, vPanOverride } =
-    useUserContext();
-  const vScale = useSharedValue(1);
-  const fOnPreDrop = useCallback(
-    (paint: any) => {
-      const distance = Math.sqrt(
-        (vPanX.asState() - origin[0]) ** 2 + (vPanY.asState() - origin[1]) ** 2,
-      );
-      if (distance < radius[1]) {
-        if (callback) {
-          callback(paint);
-        }
-      }
-    },
-    [vPanX.asState, vPanY.asState, origin, radius],
-  );
-
+  const {
+    vPanX,
+    vPanY,
+    vPanOverride,
+    heldChipDispatch,
+    heldChipStatus,
+    heldChipPaint,
+    heldChipID,
+  } = useUserContext();
   const [active, setActive] = useState(false);
-  const inRadius = useSharedValue(false);
-  const paintColor = useSharedValue("rgba(255,255,255,0)");
+  const inRadius = useVerse(false);
+  const paintColor = heldChipStatus?.["grabbed"]?.["inBucket"]
+    ? heldChipPaint?.hex || "rgba(255,255,255,1)"
+    : "rgba(255,255,255,1)";
 
   useEffect(() => {
-    if (eventState?.eChipEvent === eventTrigger) {
+    console.log("Bucket Status:", heldChipStatus);
+    if (heldChipStatus?.grabbed?.[statusTrigger]) {
       setActive(true);
-      vPanOverride.value = origin;
-      vScale.value = withTiming(1, { duration: 200 });
-    } else if (eventState?.eChipEvent === "onDrop" && active) {
-      fOnPreDrop(eventState.paint);
+    } else if (heldChipStatus?.["returning"] && active) {
+      if (dDistance.value <= 1) {
+        callback?.(heldChipPaint);
+      }
       setActive(false);
-      vScale.value = withTiming(0, { duration: 200 });
-    } else {
-      setActive(false);
-      vScale.value = withTiming(0, { duration: 200 });
     }
-  }, [eventState?.eChipEvent, eventState?.paint, fOnPreDrop]);
+  }, [heldChipStatus, heldChipID]);
 
   const dDistance = useDerivedValue(() => {
     const distance = Math.sqrt(
       (vPanX.asShared.value - origin[0]) ** 2 +
         (vPanY.asShared.value - origin[1]) ** 2,
     );
-    return distance / radius[1];
+    return Math.max(distance / radius[0], 0.5);
   });
 
-  const animatedStyle = useAnimatedStyle(() => {
-    if (inRadius.value && dDistance.value > 1) {
-      inRadius.value = false;
-      vPanMix.value = withTiming(0, { duration: 200 });
-    } else if (!inRadius.value && dDistance.value <= 1) {
-      inRadius.value = true;
-      vPanMix.value = withTiming(1, { duration: 200 });
-    }
-    const angle = Math.atan2(
-      vPanY.asShared.value - origin[1],
-      vPanX.asShared.value - origin[0],
-    );
-    return {
-      transform: [{ scale: vScale.value / dDistance.value }],
-    };
-  });
-  const pathProps = useAnimatedProps(() => {
-    const color = vHeldPaint.asShared.value?.hex || "rgba(255,255,255,1)";
-    return {
-      stroke: inRadius.value ? color : "rgba(255,255,255,1)",
-    };
-  });
+  useAnimatedReaction(
+    () => dDistance.value,
+    (distance) => {
+      if (!active) return;
+
+      if (inRadius.asShared && distance > 1) {
+        heldChipDispatch?.({ grabbed: { [statusTrigger]: {} } });
+      } else if (!inRadius.asShared.value && distance <= 1) {
+        heldChipDispatch?.({ grabbed: { inBucket: {} } });
+        vPanOverride.value = {
+          x: origin[0] + outlineOffset[0],
+          y: origin[1] + outlineOffset[1],
+        };
+      }
+    },
+  );
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: active ? 1 / dDistance.value : 0 }],
+  }));
 
   return (
-    <Animated.View
-      style={[
-        animatedStyle,
-        {
-          position: "absolute",
-          left: origin[0] - radius[0],
-          top: origin[1] - radius[0],
-          width: radius[0] * 2,
-          height: radius[0] * 2,
-          borderRadius: radius[0],
-        },
-      ]}
+    <View
+      style={{
+        position: "absolute",
+        left: origin[0] - radius[0],
+        top: origin[1] - radius[0],
+        zIndex: eLayers.buckets,
+      }}
     >
-      <Svg
-        width={radius[0] * 2}
-        height={radius[0] * 2}
-        viewBox={`0 0 ${radius[0] * 2} ${radius[0] * 2}`}
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            mixBlendMode: "overlay",
+            zIndex: eLayers.buckets,
+          },
+          animatedStyle,
+        ]}
       >
-        <Defs>
-          <RadialGradient
-            id="grad"
+        <Svg
+          width={radius[0] * 2}
+          height={radius[0] * 2}
+          viewBox={`0 0 ${radius[0] * 2} ${radius[0] * 2}`}
+        >
+          <Defs>
+            <RadialGradient
+              id="grad"
+              cx={radius[0]}
+              cy={radius[0]}
+              r={radius[0]}
+              gradientUnits="userSpaceOnUse"
+            >
+              <Stop offset="0%" stopColor={paintColor} />
+              <Stop offset="100%" stopColor={paintColor} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+
+          <Circle
             cx={radius[0]}
             cy={radius[0]}
             r={radius[0]}
-            gradientUnits="userSpaceOnUse"
-          >
-            <Stop offset="0%" stopColor="#ffffff" />
-            <Stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Circle cx={radius[0]} cy={radius[0]} r={radius[0]} fill="url(#grad)" />
-        <AnimatedPath
-          x={radius[0] / 2}
-          y={radius[0] / 2}
-          animatedProps={pathProps}
-          d="M0 40C80 0 240 0 320 40V160C240 200 80 200 0 160Z"
-          strokeWidth={10}
-          stroke={"white"}
-          strokeDasharray={[20, 10]}
+            fill="url(#grad)"
+          />
+        </Svg>
+      </Animated.View>
+
+      <Svg
+        width={eChipSizes.outline[0]}
+        height={eChipSizes.outline[1]}
+        viewBox={`0 0 32 20`}
+        style={{
+          position: "absolute",
+          top: radius[0] - eChipSizes.outline[1] / 2,
+          left: radius[0] - eChipSizes.outline[0] / 2,
+          shadowOpacity: 0.5,
+          shadowRadius: 5,
+          transform: [
+            { translateX: outlineOffset[0] },
+            { translateY: outlineOffset[1] },
+          ],
+          opacity: active ? 1 : 0,
+          zIndex: eLayers.buckets,
+        }}
+      >
+        <Path
+          d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
+          strokeWidth={1}
+          stroke={paintColor}
+          strokeDasharray={[2, 1]}
           fill={"transparent"}
         />
       </Svg>
-    </Animated.View>
+    </View>
   );
 };

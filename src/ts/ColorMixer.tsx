@@ -13,6 +13,7 @@ import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { ColorChipFan } from "./ChipStack";
 import { runOnJS, runOnUI } from "react-native-worklets";
 import { eLayers, useUserContext } from "./UserContext";
+import { eChipSizes } from "./PaintChip";
 
 type tColorMixer = {
   wheelCenter?: number;
@@ -188,23 +189,16 @@ export default function ColorMixer({
   useEffect(() => {
     registerBucket({
       origin: [
-        Dimensions.get("window").width,
+        Dimensions.get("window").width - eChipSizes.default[0] / 3,
         Dimensions.get("window").height / 2,
       ],
       radius: [radii[1], radii[1] + 75],
       callback: fOnDrop,
-      eventTrigger: "onPush",
+      statusTrigger: "pushed",
+      id: "colorMixerBucket",
     });
     return () => {
-      unregisterBucket({
-        origin: [
-          Dimensions.get("window").width,
-          Dimensions.get("window").height / 2,
-        ],
-        radius: [radii[1], radii[1] + 75],
-        callback: fOnDrop,
-        eventTrigger: "onPush",
-      });
+      unregisterBucket("colorMixerBucket");
     };
   }, []);
   return (
@@ -218,7 +212,7 @@ export default function ColorMixer({
         <RadialContext
           value={{
             radii,
-            //origin: [dimensions.width + radii[1] * 0.3, dimensions.height / 2],
+
             origin,
             direction,
             wAngleToChord: wDefaultAngleToChord,
@@ -261,7 +255,7 @@ export default function ColorMixer({
         targetColor={targetColor}
         targetNumber={9}
         origin={origin}
-        size={[150, 90]}
+        size={"default"}
         rotationR={22 / 7}
         arcLength={13 / 7}
         radius={origin[0] * 0.8}
@@ -271,7 +265,7 @@ export default function ColorMixer({
         cSteps={chromaDimensions[1]}
         lSteps={litDimensions[1]}
         arSteps={24}
-        groupLayer={eLayers.colorMixer}
+        groupLayer={eLayers.chipFan}
       />
     </>
   );

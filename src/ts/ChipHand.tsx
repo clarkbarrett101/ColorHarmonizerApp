@@ -3,10 +3,9 @@ import React, { use, useEffect, useRef, useState } from "react";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
 import { eLayers, useUserContext } from "./UserContext";
-import { runOnJS, scheduleOnRN } from "react-native-worklets";
+import { scheduleOnRN } from "react-native-worklets";
 import { useVerse } from "./Verse";
-import { translate } from "@shopify/react-native-skia";
-import { eChipSizes } from "./PaintChip";
+import { eChipMap } from "./PaintChip";
 
 export type tChipHand = {
   radius?: number;
@@ -32,7 +31,6 @@ export const ChipHand = ({
     registerBucket,
     unregisterBucket,
     holdChip,
-    heldChipDispatch,
   } = useUserContext();
   const origin: [number, number] = [30, Dimensions.get("window").height];
   const [touching, setTouching] = React.useState(false);
@@ -49,8 +47,8 @@ export const ChipHand = ({
         (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
           0.5) /
         userPallete.length;
-      selectVerse.fUpdateState(index);
-      runOnJS(setTouching)(true);
+      selectVerse.wUpdateState(index);
+      scheduleOnRN(setTouching, true);
     },
     onUpdate: (event) => {
       "worklet";
@@ -62,25 +60,28 @@ export const ChipHand = ({
         (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
       );
       if (distance > holdRadius) {
-        holdChip([eLayers.chipHand, selectVerse.asShared.value], "pushed");
-
+        holdChip(
+          [eLayers.chipHand, selectVerse.asShared.value],
+          eChipMap.grabbed.pushed,
+        );
+        console.log("Hand Grabbed");
         vPanX.asShared.value = event.absoluteX;
         vPanY.asShared.value = event.absoluteY;
         vVelocityX.asShared.value = event.velocityX;
       } else {
-        holdChip();
         const index =
           (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
             0.5) /
           userPallete.length;
-        selectVerse.fUpdateState(index);
+        holdChip([eLayers.chipHand, index], eChipMap.idle.choosing);
+        selectVerse.wUpdateState(index);
       }
     },
     onFinalize: (event) => {
       "worklet";
       console.log("Hand Deactivate");
       holdChip();
-      runOnJS(setTouching)(false);
+      scheduleOnRN(setTouching, false);
     },
   });
 
@@ -91,7 +92,7 @@ export const ChipHand = ({
       callback: (paint) => {
         addPaint(paint);
       },
-      statusTrigger: "pulled",
+      statusTrigger: eChipMap.grabbed.pushed,
       id: `hand-bucket`,
     });
     return () => unregisterBucket(`hand-bucket`);
@@ -137,7 +138,7 @@ export const ChipHand = ({
               top: 0,
               width: holdRadius * 2,
               height: holdRadius * 2,
-              borderWidth: 10,
+              borderWidth: 0,
               borderColor: "rgba(255,255,255,1)",
               borderRadius: holdRadius,
             }}

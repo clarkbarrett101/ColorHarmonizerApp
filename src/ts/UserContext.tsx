@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  Dispatch,
   ReactNode,
   RefObject,
   use,
@@ -10,15 +11,16 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { tPaint, fRandomPaints } from "./CLAcolor";
+import { fRandomPaints } from "./CLAcolor";
 import {
   DerivedValue,
   runOnJS,
   SharedValue,
+  useAnimatedReaction,
   useSharedValue,
 } from "react-native-reanimated";
 import { tVerse, useVerse } from "./Verse";
-import { tChipStatus } from "./PaintChip";
+import { eChipMap, fStatusMatch, tChipStatus } from "./PaintChip";
 import { tChipBucket } from "./ChipBucket";
 import { runOnRuntime, scheduleOnRN } from "react-native-worklets";
 
@@ -33,18 +35,15 @@ export const eLayers = {
 };
 
 type tChipEntry = {
-  status: tChipStatus;
-  dispatch: React.Dispatch<any>;
-  fGetPaint: () => tPaint;
+  fGetPaint: () => number;
 };
 
 export type tUserContext = {
-  userPallete: tPaint[];
-  addPaint: (paint: tPaint) => void;
-  holdChip: (chipID?: [number, number], status?: string) => void;
+  userPallete: number[];
+  addPaint: (paint: number) => void;
+  holdChip: (chipID?: [number, number], status?: tChipStatus) => void;
   vPanX: tVerse<number>;
   vPanY: tVerse<number>;
-  vPanMix: SharedValue<number>;
   vPanOverride: SharedValue<{ x: number; y: number }>;
   vVelocityX: tVerse<number>;
   eLayers?: typeof eLayers;
@@ -53,52 +52,30 @@ export type tUserContext = {
   buckets?: tChipBucket[];
   registerBucket?: (bucket: tChipBucket) => void;
   unregisterBucket?: (id: string) => void;
-  // vHeldPaint?: tVerse<tPaint>;
-  registerChip: (
-    id: [number, number],
-    status: tChipStatus,
-    dispatch: React.Dispatch<any>,
-    fGetPaint: () => tPaint,
-  ) => void;
+  vHeldChipStatus?: tVerse<tChipStatus>;
+  registerChip: (id: [number, number], fGetPaint: () => number) => void;
   unregisterChip: (id: [number, number]) => void;
-  heldChipID: string | null;
-  heldChipStatus: tChipStatus | null;
-  heldChipDispatch: React.Dispatch<any> | null;
-  heldChipPaint: tPaint | null;
+  vHeldChipID: tVerse<string | null>;
+  heldChipPaint: number | null;
 };
 const phVerse = {
   asState: -1,
-  fUpdateState: (value?: any) => {},
+  wUpdateState: (value?: any) => {},
   asShared: { value: -1 } as DerivedValue<any>,
 };
 export const Context = createContext<tUserContext>({
-  userPallete: [] as tPaint[],
-  addPaint: (paint: tPaint) => {},
-  //vHeldChip: {} as tVerse<[number, number] | null>,
-  holdChip: (chipID?: [number, number]) => {},
-  vPanX: phVerse as tVerse<number>,
-  vPanY: phVerse as tVerse<number>,
-  vVelocityX: phVerse as tVerse<number>,
-  vPanMix: { value: 0 } as SharedValue<number>,
-  vPanOverride: { value: { x: 0, y: 0 } } as SharedValue<{
-    x: number;
-    y: number;
-  }>,
+  userPallete: [],
+  addPaint: (paint: number) => {},
+  holdChip: (chipID?: [number, number], status?: tChipStatus) => {},
+  vPanX: phVerse,
+  vPanY: phVerse,
+  vPanOverride: null as any,
+  vVelocityX: phVerse,
   eLayers: eLayers,
-  buckets: [] as tChipBucket[],
-  registerBucket: (bucket: tChipBucket) => {},
-  unregisterBucket: (id: string) => {},
-  // vHeldPaint: {} as tVerse<tPaint>,
-  registerChip: (
-    id: [number, number],
-    status: tChipStatus,
-    dispatch: React.Dispatch<any>,
-    fGetPaint: () => tPaint,
-  ) => {},
+  registerChip: (id: [number, number], fGetPaint: () => number) => {},
   unregisterChip: (id: [number, number]) => {},
-  heldChipID: null,
-  heldChipStatus: null,
-  heldChipDispatch: null,
+  vHeldChipID: null,
+  vHeldChipStatus: null,
   heldChipPaint: null,
 });
 export const useUserContext = () => useContext(Context);
@@ -113,14 +90,22 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const unregisterBucket = (id: string) => {
     setBuckets((prev) => prev.filter((b) => b.id !== id));
   };
-  const [userPallete, setUserPallete] = useState(fRandomPaints(5));
-  const addPaint = (paint: tPaint) => {
+  function randomIndexes(count: number, max: number) {
+    const indexes = new Set<number>();
+    while (indexes.size < count) {
+      indexes.add(Math.floor(Math.random() * max));
+    }
+    return Array.from(indexes);
+  }
+  const [userPallete, setUserPallete] = useState<number[]>(
+    randomIndexes(5, 13000),
+  );
+  const addPaint = (paint: number) => {
     setUserPallete((prev) => [...prev, paint]);
   };
   const vPanX = useVerse(0);
   const vPanY = useVerse(0);
   const vVelocityX = useVerse(0);
-  const vPanMix = useSharedValue(0);
   const vPanOverride = useSharedValue({ x: 0, y: 0 } as {
     x: number;
     y: number;
@@ -128,16 +113,11 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const [chipRegistry, setChipRegistry] = useState<Record<string, tChipEntry>>(
     {},
   );
-  function registerChip(
-    id: [number, number],
-    status: tChipStatus,
-    dispatch: React.Dispatch<any>,
-    fGetPaint: () => tPaint,
-  ) {
+  function registerChip(id: [number, number], fGetPaint: () => number) {
     console.log("Registering chip", id);
     setChipRegistry((prev) => ({
       ...prev,
-      [`${id[0]}-${id[1]}`]: { status, dispatch, fGetPaint },
+      [`${id[0]}-${id[1]}`]: { fGetPaint },
     }));
   }
   function unregisterChip(id: [number, number]) {
@@ -147,24 +127,21 @@ export default function UserContext({ children }: { children: ReactNode }) {
       return newRegistry;
     });
   }
-  const [heldChipID, setHeldChipID] = useState<string | null>(null);
-  const heldChipStatus = heldChipID
-    ? chipRegistry[heldChipID]?.status || null
+  const vHeldChipID = useVerse<string | null>(null);
+  const vHeldChipStatus = useVerse<tChipStatus>(eChipMap.idle.ready);
+  const heldChipPaint = vHeldChipID.asState
+    ? chipRegistry[vHeldChipID.asState]?.fGetPaint() || null
     : null;
-  const heldChipDispatch = heldChipID
-    ? chipRegistry[heldChipID]?.dispatch || null
-    : null;
-  const heldChipPaint = heldChipID
-    ? chipRegistry[heldChipID]?.fGetPaint() || null
-    : null;
-  const holdChip = (chipID?: [number, number], status?: string) => {
+  const holdChip = (chipID?: [number, number], status?: tChipStatus) => {
     "worklet";
     if (!chipID) {
-      vPanX.fUpdateState();
-      vPanY.fUpdateState();
-      vVelocityX.fUpdateState();
-      heldChipDispatch?.({ returning: {} });
-      scheduleOnRN(setHeldChipID, null);
+      if (vHeldChipStatus.asState.idle) {
+        return;
+      }
+      vPanX.wUpdateState();
+      vPanY.wUpdateState();
+      vVelocityX.wUpdateState();
+      vHeldChipStatus.wUpdateState(eChipMap.idle.returning);
       return;
     }
     const newID = `${chipID[0]}-${chipID[1]}`;
@@ -172,15 +149,13 @@ export default function UserContext({ children }: { children: ReactNode }) {
       console.warn("Attempting to hold unregistered chip", newID);
       return;
     }
-    if (heldChipID === newID) {
-      return;
+    if (vHeldChipID.asState != newID) {
+      vHeldChipID.wUpdateState(newID);
     }
-    console.log("Holding chip", newID);
-    if (heldChipID !== null) {
-      console.warn("Dropping chip", heldChipID, "to hold chip", newID);
+    if (!fStatusMatch(vHeldChipStatus.asState, status)) {
+      vHeldChipStatus.wUpdateState(status);
+      console.log("Chip status set to", status, "for chip", newID);
     }
-    scheduleOnRN(setHeldChipID, newID);
-    chipRegistry[newID]?.dispatch?.({ grabbed: { [status || "pushed"]: {} } });
   };
 
   return (
@@ -191,7 +166,6 @@ export default function UserContext({ children }: { children: ReactNode }) {
         vPanX,
         vPanY,
         vVelocityX,
-        vPanMix,
         vPanOverride,
         eLayers: eLayers,
         buckets,
@@ -199,10 +173,9 @@ export default function UserContext({ children }: { children: ReactNode }) {
         unregisterBucket,
         registerChip,
         unregisterChip,
-        heldChipID,
+        vHeldChipID,
         holdChip,
-        heldChipStatus,
-        heldChipDispatch,
+        vHeldChipStatus,
         heldChipPaint,
       }}
     >

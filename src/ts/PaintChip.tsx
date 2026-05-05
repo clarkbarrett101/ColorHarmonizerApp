@@ -9,6 +9,7 @@ import Svg, {
 } from "react-native-svg";
 import { tPaint } from "./CLAcolor";
 import Animated, {
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -16,23 +17,67 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import { use, useEffect, useReducer, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { runOnJS } from "react-native-worklets";
-import { DeviceEventEmitter, View } from "react-native";
+import { View } from "react-native";
 import { eLayers, useUserContext } from "./UserContext";
 import { useVerse } from "./Verse";
+const clarColorsList: tPaint[] = require("./clarColors.json");
+export const eChipMap = {
+  idle: {
+    ready: { idle: { ready: {} } },
+    choosing: { idle: { choosing: {} } },
+    returning: { idle: { returning: {} } },
+    flippingUp: { idle: { flippingUp: {} } },
+    flippingDown: { idle: { flippingDown: {} } },
+  },
+  grabbed: {
+    pulled: { grabbed: { pulled: {} } },
+    pushed: { grabbed: { pushed: {} } },
+    inBucket: { grabbed: { inBucket: {} } },
+  },
+} as const;
 
 export type tChipStatus = {
   [key: string]: {} | tChipStatus;
 };
+function fDismanntleStatus(status: tChipStatus, path: string[] = []): string[] {
+  "worklet";
+  let paths: string[] = path;
+  for (let key in status) {
+    if (Object.keys(status[key]).length == 0) {
+      paths.push(key);
+    } else {
+      paths.push(
+        ...fDismanntleStatus(status[key] as tChipStatus, [...path, key]),
+      );
+    }
+  }
+  return paths;
+}
+export function fStatusMatch(
+  status: tChipStatus,
+  trigger: tChipStatus,
+): boolean {
+  "worklet";
+  const statusPaths = fDismanntleStatus(status);
+  const triggerPaths = fDismanntleStatus(trigger);
+  console.log("Matching status:", statusPaths, "to trigger:", triggerPaths);
+  for (let tPath of triggerPaths) {
+    if (!statusPaths.includes(tPath)) {
+      return false;
+    }
+  }
+  return true;
+}
 export const eChipSizes = {
   default: [150, 90],
   grabbed: [180, 108],
   outline: [210, 126],
 };
 export type tPaintChip = {
-  paintA: tPaint;
-  paintB?: tPaint;
+  paintA: number;
+  paintB?: number;
   origin: { x: number; y: number };
   size?: keyof typeof eChipSizes;
   startRotation?: number;
@@ -46,12 +91,7 @@ export type tPaintChip = {
 
 export const PaintChip = ({
   paintA,
-  paintB = {
-    hex: "#ffffff",
-    clar: { c: 0, l: 0, ar: 0 },
-    name: "",
-    brand: "",
-  } as tPaint,
+  paintB = 0,
   origin = { x: 0, y: 0 },
   size = "default",
   startRotation = 0,
@@ -62,20 +102,24 @@ export const PaintChip = ({
   groupLayer = 0,
   direction = 1,
 }: tPaintChip) => {
-  /// FLIP ///
+  /// O N  M O U N T ///
+
   const {
     vPanX,
     vPanY,
     vVelocityX,
     holdChip,
-    vPanMix,
     vPanOverride,
+    vHeldChipID,
+    vHeldChipStatus,
     registerChip,
     unregisterChip,
   } = useUserContext();
-  const vChipStatus = useVerse<tChipStatus>({ idle: {} });
-  const anim = useSharedValue(0);
   const [isPaintA, setIsPaintA] = useState(false);
+  const vChipStatus = useVerse<tChipStatus>(eChipMap.idle.ready);
+  const anim = useSharedValue(0);
+  const vTilt = useSharedValue(0);
+  const vR = useSharedValue(startRotation);
   function fGetPaint() {
     if (isPaintA) {
       return paintA;
@@ -84,50 +128,30 @@ export const PaintChip = ({
     }
   }
   useEffect(() => {
-    registerChip(
-      chipID,
-      vChipStatus.asState,
-      vChipStatus.fUpdateState,
-      fGetPaint,
-    );
-    return () => unregisterChip(chipID);
+    registerChip(chipID, fGetPaint);
+    return () => {
+      unregisterChip(chipID);
+    };
   }, []);
-
-  const vTilt = useSharedValue(0);
   useEffect(() => {
-    if (vChipStatus.asState["flipping"]) {
-      vTilt.value = sideA ? 21 / 7 : 1 / 7;
+    if (vChipStatus.asState.idle?.["flippingUp"]) {
+      vChipStatus.wUpdateState(eChipMap.idle.flippingDown);
+    } else {
+      vChipStatus.wUpdateState(eChipMap.idle.flippingUp);
     }
-    vChipStatus.fUpdateState({ flipping: {} });
-    vTilt.value = withDelay(
-      sideA ? 500 * chipID[1] : (1 - chipID[1]) * 500,
-      withTiming(11 / 7, { duration: 200 }, () => {
-        runOnJS(setIsPaintA)(sideA);
-        vTilt.value = sideA ? 9 / 7 : 13 / 7;
-        vTilt.value = withTiming(
-          sideA ? 1 / 7 : 21 / 7,
-          {
-            duration: 200,
-          },
-          () => {
-            vChipStatus.fUpdateState({ idle: {} });
-          },
-        );
-      }),
-    );
   }, [sideA]);
-  const vR = useSharedValue(startRotation);
-  const fLerp = (a: number, b: number, t: number): number => {
-    "worklet";
-    return a * (1 - t) + b * t;
-  };
 
-  ///Event Dispatch///
+  useEffect(() => {
+    if (vHeldChipID.asState === `${chipID[0]}-${chipID[1]}`) {
+      vChipStatus.wUpdateState(vHeldChipStatus.asState);
+    }
+  }, [vHeldChipID.asState, vHeldChipStatus.asState]);
 
-  ///PAN GESTURE///
+  /// P A N  G E S T U R E ///
+
   const panGesture = usePanGesture({
     onActivate: (event) => {
-      holdChip(chipID, "pulled");
+      holdChip(chipID, eChipMap.grabbed.pulled);
     },
     onUpdate: (event) => {
       vPanX.asShared.value = event.absoluteX;
@@ -139,11 +163,10 @@ export const PaintChip = ({
     },
   });
 
-  ///Transform Style///
+  /// S T A T E  M A C H I N E ///
 
   useEffect(() => {
-    console.log("Chip Status:", vChipStatus.asState);
-    if (vChipStatus.asState["grabbed"]) {
+    if (vChipStatus.asState.grabbed) {
       vR.value = 0;
       if (vChipStatus.asState.grabbed["inBucket"]) {
         anim.value = withTiming(1, { duration: 300 });
@@ -153,13 +176,42 @@ export const PaintChip = ({
     } else if (vChipStatus.asState["returning"]) {
       anim.value = 1;
       anim.value = withTiming(0, { duration: 300 }, () => {
-        vChipStatus.fUpdateState({ idle: {} });
+        vChipStatus.wUpdateState(eChipMap.idle.ready);
       });
     } else {
       vR.value = startRotation;
       anim.value = withTiming(0, { duration: 300 });
     }
+    if (vChipStatus.asState.idle?.["flippingUp"]) {
+      vTilt.value = withDelay(
+        sideA ? 500 * chipID[1] : (1 - chipID[1]) * 500,
+        withTiming(11 / 7, { duration: 200 }, (finished) => {
+          if (finished) {
+            vChipStatus.wUpdateState(eChipMap.idle.flippingDown);
+          }
+        }),
+      );
+    } else if (vChipStatus.asState.idle?.["flippingDown"]) {
+      runOnJS(setIsPaintA)(sideA);
+      vTilt.value = sideA ? 9 / 7 : 13 / 7;
+      vTilt.value = withTiming(
+        sideA ? 1 / 7 : 21 / 7,
+        {
+          duration: 200,
+        },
+        (finished) => {
+          finished && vChipStatus.wUpdateState(eChipMap.idle.ready);
+        },
+      );
+    }
   }, [vChipStatus.asState]);
+
+  /// T R A N S F O R M ///
+
+  const fLerp = (a: number, b: number, t: number): number => {
+    "worklet";
+    return a * (1 - t) + b * t;
+  };
 
   const startPosition = {
     x: origin.x + Math.cos(-direction * startRotation) * radialOffset,
@@ -167,7 +219,7 @@ export const PaintChip = ({
   };
 
   const dPosition = useDerivedValue(() => {
-    if (vChipStatus.asState["grabbed"]) {
+    if (vChipStatus.asShared.value["grabbed"]) {
       return {
         x:
           fLerp(vPanX.asShared.value, vPanOverride.value.x, anim.value) -
@@ -183,9 +235,10 @@ export const PaintChip = ({
       };
     }
   });
+
   const dTransform = useDerivedValue(() => {
     let rotation = vR.value * -direction - (vR.value > 11 / 7 ? 22 / 7 : 0);
-    if (vChipStatus.asState["grabbed"]) {
+    if (vChipStatus.asShared.value["grabbed"]) {
       rotation += vVelocityX.asShared.value / 1000;
     }
     return {
@@ -204,11 +257,14 @@ export const PaintChip = ({
       ],
     };
   });
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       ...dTransform.value,
     } as any;
   });
+
+  /// R E N D E R ///
 
   return (
     <View
@@ -265,9 +321,7 @@ export const PaintChip = ({
                 <Stop offset="0%" stopColor="#fff" stopOpacity=".2" />
                 <Stop
                   offset="50%"
-                  stopColor={
-                    (isPaintA ? paintA.hex : paintB.hex) || "transparent"
-                  }
+                  stopColor={clarColorsList[fGetPaint()]?.hex || "transparent"}
                   stopOpacity="0"
                 />
                 <Stop offset="100%" stopColor="#000" stopOpacity=".1" />
@@ -276,7 +330,7 @@ export const PaintChip = ({
             <G>
               <Path
                 d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
-                fill={fGetPaint().hex || "transparent"}
+                fill={clarColorsList[fGetPaint()]?.hex || "transparent"}
               />
               <Path
                 d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
@@ -284,28 +338,30 @@ export const PaintChip = ({
               />
               <Path
                 d="M1 5C12 1 20 1 31 5V15C20 19 12 19 1 15Z"
-                fill={fGetPaint().hex || "transparent"}
+                fill={clarColorsList[fGetPaint()]?.hex || "transparent"}
               />
             </G>
             <Text
               x="16"
               y="8"
-              fontSize={`${fGetPaint().name.length > 13 ? 55 / fGetPaint().name.length : 4}px`}
+              fontSize={`${clarColorsList[fGetPaint()]?.name.length > 13 ? 55 / clarColorsList[fGetPaint()]?.name.length : 4}px`}
               fontFamily="Outfit"
-              fill={fGetPaint().clar.l > 0.5 ? "#000" : "#fff"}
+              fill={clarColorsList[fGetPaint()]?.clar.l > 0.5 ? "#000" : "#fff"}
               textAnchor="middle"
               alignmentBaseline="middle"
               fontWeight={500}
             >
-              {fGetPaint().name}
+              {clarColorsList[fGetPaint()]?.name}
               <TSpan
                 x="16"
                 dy="5"
                 fontSize="3"
-                fill={fGetPaint().clar.l > 0.5 ? "#000" : "#fff"}
+                fill={
+                  clarColorsList[fGetPaint()]?.clar.l > 0.5 ? "#000" : "#fff"
+                }
                 fontWeight={100}
               >
-                {fGetPaint().brand}
+                {clarColorsList[fGetPaint()]?.brand}
               </TSpan>
             </Text>
           </Svg>

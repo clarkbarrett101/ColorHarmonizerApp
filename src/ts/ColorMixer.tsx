@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { fCLARColorToString, tCLARColor, tPaint } from "./CLAcolor";
 import { ColorWheel } from "./ColorWheel";
 import { TintSelector } from "./TintSelector";
-import { DeviceEventEmitter, Dimensions, View } from "react-native";
-import PanManager, { usePanManager } from "./PanManager";
+import { Dimensions, View } from "react-native";
+import PanManager from "./PanManager";
 import {
   RadialContext,
   wDefaultAngleToChord,
@@ -11,9 +11,11 @@ import {
 } from "./RadialContext";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { ColorChipFan } from "./ChipStack";
-import { runOnJS, runOnUI } from "react-native-worklets";
+import { scheduleOnRN } from "react-native-worklets";
 import { eLayers, useUserContext } from "./UserContext";
-import { eChipSizes } from "./PaintChip";
+import { eChipMap, eChipSizes } from "./PaintChip";
+import { useVerse } from "./Verse";
+const clarColorsList: tPaint[] = require("./clarColors.json");
 
 type tColorMixer = {
   wheelCenter?: number;
@@ -43,7 +45,14 @@ export default function ColorMixer({
     Dimensions.get("window").height / 2,
   ],
 }: tColorMixer) {
-  const [sideA, setSideA] = useState(true);
+  /// O N  M O U N T ///
+
+  const vSideA = useVerse(true);
+  const vTargetColor = useVerse<tCLARColor>({
+    c: 0.5,
+    l: 0.5,
+    ar: 0,
+  });
   const vWheelRotation = useSharedValue(wheelCenter);
   const vChromaPanPos = useSharedValue({
     angle: chromaArcRotation[1] + chromaArcRotation[0] / 3,
@@ -53,6 +62,26 @@ export default function ColorMixer({
     angle: lightnessArcRotation[1],
     radius: radii[1],
   });
+  const { registerBucket, unregisterBucket, heldChipPaint } = useUserContext();
+
+  useEffect(() => {
+    registerBucket({
+      origin: [
+        Dimensions.get("window").width - eChipSizes.default[0] / 3,
+        Dimensions.get("window").height / 2,
+      ],
+      radius: [radii[1], radii[1] + 75],
+      callback: fOnDrop,
+      statusTrigger: eChipMap.grabbed.pushed,
+      id: "colorMixerBucket",
+    });
+    return () => {
+      unregisterBucket("colorMixerBucket");
+    };
+  }, []);
+
+  /// C L AR  C O L O R ///
+
   const dC = useDerivedValue(() => {
     let c =
       (vChromaPanPos.value.angle -
@@ -81,6 +110,9 @@ export default function ColorMixer({
     ar = Math.round(ar * 100) / 100;
     return ar;
   });
+
+  /// C A L L B A C K S ///
+
   const wGetChromaColor = useCallback(
     (src: { rings: number; chords: number }) => {
       "worklet";
@@ -101,6 +133,7 @@ export default function ColorMixer({
     },
     [chromaDimensions, chromaRange],
   );
+
   const wGetLightnessColor = useCallback(
     (src: { rings: number; chords: number }) => {
       "worklet";
@@ -118,14 +151,6 @@ export default function ColorMixer({
     },
     [dC, dAR],
   );
-  const [targetColor, setTargetColor] = useState<tCLARColor>({
-    c: 0.5,
-    l: 0.5,
-    ar: 0,
-  });
-  const flipSide = useCallback(() => {
-    setSideA((prev) => !prev);
-  }, [sideA]);
 
   const wUpdateState = useCallback(
     (pc?, pl?, par?) => {
@@ -133,17 +158,19 @@ export default function ColorMixer({
       const c = pc !== undefined ? pc : dC.value;
       const l = pl !== undefined ? pl : dL.value;
       const ar = par !== undefined ? par : dAR.value;
-      runOnJS(setTargetColor)({
+      scheduleOnRN(vTargetColor.wUpdateState, {
         c,
         l,
         ar,
       });
-      runOnJS(flipSide)();
+      scheduleOnRN(vSideA.wUpdateState, !vSideA.asShared.value);
     },
-    [dC, dL, dAR, flipSide],
+    [dC, dL, dAR, vTargetColor, vSideA],
   );
 
-  const fOnDrop = useCallback((paint: tPaint) => {
+  const fOnDrop = useCallback((paintID: number) => {
+    const paint = clarColorsList[heldChipPaint];
+    console.log("Dropped paint", paint, paintID);
     const c = paint.clar.c;
     const l = paint.clar.l;
     let pAR = wDefaultAngleToChord(paint.clar.ar, 44 / 7, 24, 0);
@@ -185,22 +212,9 @@ export default function ColorMixer({
     vChromaPanPos.value = { angle: pC, radius: radii[1] };
     wUpdateState(paint.clar.c, paint.clar.l, paint.clar.ar);
   }, []);
-  const { registerBucket, unregisterBucket } = useUserContext();
-  useEffect(() => {
-    registerBucket({
-      origin: [
-        Dimensions.get("window").width - eChipSizes.default[0] / 3,
-        Dimensions.get("window").height / 2,
-      ],
-      radius: [radii[1], radii[1] + 75],
-      callback: fOnDrop,
-      statusTrigger: "pushed",
-      id: "colorMixerBucket",
-    });
-    return () => {
-      unregisterBucket("colorMixerBucket");
-    };
-  }, []);
+
+  /// R E N D E R ///
+
   return (
     <>
       <View
@@ -252,7 +266,7 @@ export default function ColorMixer({
         </RadialContext>
       </View>
       <ColorChipFan
-        targetColor={targetColor}
+        targetColor={vTargetColor.asState}
         targetNumber={9}
         origin={origin}
         size={"default"}
@@ -261,7 +275,7 @@ export default function ColorMixer({
         radius={origin[0] * 0.8}
         direction={direction}
         firstIndex={0}
-        sideA={sideA}
+        sideA={vSideA.asState}
         cSteps={chromaDimensions[1]}
         lSteps={litDimensions[1]}
         arSteps={24}

@@ -1,26 +1,26 @@
-import React from "react";
+import React, { RefObject, useRef, useState } from "react";
 import { DerivedValue, SharedValue, useDerivedValue, useSharedValue } from "react-native-reanimated";
-import { runOnJS } from "react-native-worklets";
+import { runOnJS, scheduleOnRN } from "react-native-worklets";
 
 export type tVerse<type> = {
     asState: type;
-    fUpdateState: (value?: type) => void;
+    wUpdateState: (value?: type) => void;
     asShared: SharedValue<type>;
 };
 
 export function useVerse<type>(init: type): tVerse<type> {
-    const [asState, _setState] = React.useState(init);
+    const [asState, _setState] = useState(init);
     const asShared = useSharedValue(init);
 
-    function fUpdateState(value?: type) {
+    function wUpdateState(value?: type) {
         'worklet';
         const newValue = value ?? asShared.value;
         asShared.value = newValue;
-        runOnJS(_setState)(newValue);
+        scheduleOnRN(_setState, newValue);
     }
     return {
         asState,
-        fUpdateState,
+        wUpdateState,
         asShared,
     };
 }
@@ -50,19 +50,19 @@ export function useVerseTransform(init?: Partial<tMatrix>): tVerseTransform {
     const vTilt = useVerse(init?.tilt ?? 0);
     function fUpate(matrix: Partial<tMatrix>) {
         'worklet';
-        if (matrix.t) {vT.fUpdateState(matrix.t);}else {vT.fUpdateState();}
-        if (matrix.r) {vR.fUpdateState(matrix.r);}else {vR.fUpdateState();}
-        if (matrix.s) {vS.fUpdateState(matrix.s);}else {vS.fUpdateState();}
-        if (matrix.offset) {vOffset.fUpdateState(matrix.offset);}else {vOffset.fUpdateState();}
-        if (matrix.tilt) {vTilt.fUpdateState(matrix.tilt);}else {vTilt.fUpdateState();}
+        if (matrix.t) {vT.wUpdateState(matrix.t);}else {vT.wUpdateState();}
+        if (matrix.r) {vR.wUpdateState(matrix.r);}else {vR.wUpdateState();}
+        if (matrix.s) {vS.wUpdateState(matrix.s);}else {vS.wUpdateState();}
+        if (matrix.offset) {vOffset.wUpdateState(matrix.offset);}else {vOffset.wUpdateState();}
+        if (matrix.tilt) {vTilt.wUpdateState(matrix.tilt);}else {vTilt.wUpdateState();}
     }
     function wSetMatrix(matrix: Partial<tMatrix>) {
         'worklet';
-        if (matrix.t) vT.fUpdateState(matrix.t);
-        if (matrix.r) vR.fUpdateState(matrix.r);
-        if (matrix.s) vS.fUpdateState(matrix.s);
-        if (matrix.offset) vOffset.fUpdateState(matrix.offset);
-        if (matrix.tilt) vTilt.fUpdateState(matrix.tilt);
+        if (matrix.t) vT.wUpdateState(matrix.t);
+        if (matrix.r) vR.wUpdateState(matrix.r);
+        if (matrix.s) vS.wUpdateState(matrix.s);
+        if (matrix.offset) vOffset.wUpdateState(matrix.offset);
+        if (matrix.tilt) vTilt.wUpdateState(matrix.tilt);
     }
     const dPosition = useDerivedValue(() => {
 

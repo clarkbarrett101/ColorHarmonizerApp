@@ -17,8 +17,11 @@ import Svg, {
   Path,
 } from "react-native-svg";
 import { useUserContext, eLayers } from "./UserContext";
-import { eChipSizes, tChipStatus } from "./PaintChip";
+import { eChipMap, eChipSizes, fStatusMatch, tChipStatus } from "./PaintChip";
 import { useVerse } from "./Verse";
+import { tPaint } from "./CLAcolor";
+
+const clarColorsList: tPaint[] = require("./clarColors.json");
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -31,7 +34,7 @@ export type tChipBucket = {
   origin: [number, number];
   radius: [number, number];
   callback?: (paint: any) => void;
-  statusTrigger?: string;
+  statusTrigger?: tChipStatus;
   outlineOffset?: [number, number];
 };
 
@@ -39,35 +42,37 @@ export const ChipBucket = ({
   origin = [0, 0],
   radius = [100, 200],
   callback,
-  statusTrigger = "pulled",
+  statusTrigger = eChipMap.grabbed.pulled,
   outlineOffset = [0, 0],
 }: tChipBucket) => {
   const {
     vPanX,
     vPanY,
     vPanOverride,
-    heldChipDispatch,
-    heldChipStatus,
+    vHeldChipStatus,
+    vHeldChipID,
     heldChipPaint,
-    heldChipID,
   } = useUserContext();
   const [active, setActive] = useState(false);
-  const inRadius = useVerse(false);
-  const paintColor = heldChipStatus?.["grabbed"]?.["inBucket"]
-    ? heldChipPaint?.hex || "rgba(255,255,255,1)"
-    : "rgba(255,255,255,1)";
+  const paintColor =
+    clarColorsList[heldChipPaint]?.hex || "rgba(255,255,255,1)";
 
   useEffect(() => {
-    console.log("Bucket Status:", heldChipStatus);
-    if (heldChipStatus?.grabbed?.[statusTrigger]) {
+    if (fStatusMatch(vHeldChipStatus.asState, statusTrigger) && !active) {
       setActive(true);
-    } else if (heldChipStatus?.["returning"] && active) {
+      console.log(
+        "Chip bucket",
+        statusTrigger,
+        "status changed:",
+        vHeldChipStatus.asState,
+      );
+    } else if (vHeldChipStatus.asState?.idle?.["returning"] && active) {
       if (dDistance.value <= 1) {
         callback?.(heldChipPaint);
       }
       setActive(false);
     }
-  }, [heldChipStatus, heldChipID]);
+  }, [vHeldChipStatus.asState]);
 
   const dDistance = useDerivedValue(() => {
     const distance = Math.sqrt(
@@ -80,12 +85,25 @@ export const ChipBucket = ({
   useAnimatedReaction(
     () => dDistance.value,
     (distance) => {
-      if (!active) return;
-
-      if (inRadius.asShared && distance > 1) {
-        heldChipDispatch?.({ grabbed: { [statusTrigger]: {} } });
-      } else if (!inRadius.asShared.value && distance <= 1) {
-        heldChipDispatch?.({ grabbed: { inBucket: {} } });
+      if (!active || vHeldChipStatus.asShared.value?.idle?.["returning"])
+        return;
+      if (
+        vHeldChipStatus.asShared.value?.grabbed?.["inBucket"] &&
+        distance > 1
+      ) {
+        console.log(
+          "Setting chip status to",
+          statusTrigger,
+          "with distance",
+          distance,
+        );
+        vHeldChipStatus.wUpdateState(statusTrigger);
+      } else if (
+        vHeldChipStatus.asShared.value == statusTrigger &&
+        distance <= 1
+      ) {
+        console.log("Setting chip status to inBucket with distance", distance);
+        vHeldChipStatus.wUpdateState(eChipMap.grabbed.inBucket);
         vPanOverride.value = {
           x: origin[0] + outlineOffset[0],
           y: origin[1] + outlineOffset[1],
@@ -104,7 +122,7 @@ export const ChipBucket = ({
         position: "absolute",
         left: origin[0] - radius[0],
         top: origin[1] - radius[0],
-        zIndex: eLayers.buckets,
+        zIndex: active ? eLayers.buckets : -1,
       }}
     >
       <Animated.View

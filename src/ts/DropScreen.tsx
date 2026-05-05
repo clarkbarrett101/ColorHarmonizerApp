@@ -18,17 +18,17 @@ import { ChipBucket } from "./ChipBucket";
 export type tDropScreen = {};
 
 export default function DropScreen({}: tDropScreen) {
-  const { buckets, heldChipID } = useUserContext();
+  const { buckets, vHeldChipStatus } = useUserContext();
   const dimensions = Dimensions.get("window");
   const aspectRatio = dimensions.height / dimensions.width;
   const [active, setActive] = useState(false);
   useEffect(() => {
-    if (heldChipID === null) {
+    if (vHeldChipStatus.asState["idle"]) {
       setActive(false);
     } else {
       setActive(true);
     }
-  }, [heldChipID]);
+  }, [vHeldChipStatus.asState]);
   const animatedStyle = useAnimatedStyle(() => {
     return {
       opacity: withTiming(active ? 1 : 0, { duration: 200 }),

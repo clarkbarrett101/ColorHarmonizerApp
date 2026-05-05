@@ -17,8 +17,8 @@ export type tChipFan = {
   firstIndex?: number;
   fGetChipModifier?: (chip: tPaintChip) => tPaintChip;
   wTransformMatrix?: (matrix: Partial<tMatrix>) => tMatrix;
-  paintsA: tPaint[];
-  paintsB?: tPaint[];
+  paintsA: number[];
+  paintsB?: number[];
   origin: [number, number];
   rotationR?: number;
   size?: keyof typeof eChipSizes;
@@ -88,37 +88,33 @@ export const ColorChipFan = ({
   arSteps = 18,
   ...rest
 }: tChipWheel) => {
-  const [paintsA, setPaintsA] = useState<tPaint[]>(
-    refList
-      .find((entry) => {
-        return (
-          Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
-          Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
-          Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
-        );
-      })
-      ?.paintIndexes.map((index) => clarColorsList[index]) || [],
+  const [paintsA, setPaintsA] = useState<number[]>(
+    refList.find((entry) => {
+      return (
+        Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
+        Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
+        Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
+      );
+    })?.paintIndexes,
   );
-  const [paintsB, setPaintsB] = useState<tPaint[]>([]);
+  const [paintsB, setPaintsB] = useState<number[]>([]);
   const [sideABuffer, setSideABuffer] = useState(sideA);
   useEffect(() => {
-    console.log("Finding colors for target", targetColor);
-    const foundColors = refList
-      .find((entry) => {
-        return (
-          Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
-          Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
-          Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
-        );
-      })
-      ?.paintIndexes.map((index) => clarColorsList[index]);
+    console.log("Finding colors for target", targetColor, sideA ? "A" : "B");
+    const foundColors = refList.find((entry) => {
+      return (
+        Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
+        Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
+        Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
+      );
+    })?.paintIndexes;
     if (sideA) {
       setPaintsA(foundColors);
     } else {
       setPaintsB(foundColors);
     }
     setSideABuffer(sideA);
-  }, [sideA, targetColor, targetNumber, cSteps, lSteps, arSteps]);
+  }, [sideA]);
   return (
     <ChipFan
       paintsA={paintsA}

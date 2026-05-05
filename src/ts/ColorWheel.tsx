@@ -75,14 +75,6 @@ function ColorWheel({
       diff =
         Math.max(0, (2 * arcLength) / rc.chords - diff) /
         ((2 * arcLength) / rc.chords);
-      console.log(
-        "Transforming sector",
-        src,
-        "with rotation",
-        rotation,
-        "and diff",
-        diff,
-      );
       const vR = (rotationR + -vRotationROffset.value) * direction;
       const vS = 1 + (diff > 0.8 ? 0.3 : 0);
       return {
@@ -94,9 +86,9 @@ function ColorWheel({
     [],
   );
   const [selectedRing, setSelectedRing] = useState(-1);
-  const fOnLeave = () => {
+  const fOnLeave = (angleOffset = 0) => {
     let nearestSector = wAngleToChord(
-      vRotationROffset.value,
+      vRotationROffset.value + angleOffset,
       arcLength,
       rc.chords,
       0,
@@ -118,7 +110,7 @@ function ColorWheel({
     const offsetAngle = vPanPos.value.angle - 22 / 7;
 
     if (Math.abs(offsetAngle) > 0.4) {
-      vRotationROffset.value = offsetAngle + vRotationROffset.value;
+      fOnLeave(offsetAngle);
     }
     console.log(
       "Tapped wheel," + offsetAngle + " rotating to " + vRotationROffset.value,
@@ -136,7 +128,7 @@ function ColorWheel({
       vDrag: vRotationROffset,
       origin: origin,
       priority: 10,
-      // fOnTap,
+      fOnTap,
     });
     fOnLeave();
     return () => {

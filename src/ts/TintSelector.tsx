@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { fGetColorsFromGrid, RadialGraphic } from "./RadialGraphic";
+import { RadialGraphic } from "./RadialGraphic";
 import { fMakePetalPath } from "./Sector";
 import { usePanManager } from "./PanManager";
 import { tSector, tSectorGroup } from "./sectorTypes";
 import { SharedValue } from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "./RadialContext";
-import { tMatrix } from "./Verse";
-import { DeviceEventEmitter } from "react-native";
 
 export type tTintSelector = {
   rc?: { rings: number; chords: number };
@@ -40,10 +38,10 @@ export function TintSelector({
     dAR,
     dL,
     dC,
-    wUpdateState: fUpdateState,
-    setCollapsed,
+    wUpdateState,
   } = context;
   const [zoneId, setZoneId] = useState<number>(-10);
+  const [lastAngle, setAngle] = useState<number>(0);
   const fOnEnter = () => {
     let nearestSectorAngle = wChordToAngle(
       wAngleToChord(vPanPos.value.angle, arcLength, rc.chords, rotationR),
@@ -51,12 +49,13 @@ export function TintSelector({
       rc.chords,
       rotationR,
     );
-    vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
-    fUpdateState();
+    if (nearestSectorAngle !== lastAngle) {
+      vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
+      setAngle(nearestSectorAngle);
+      wUpdateState();
+    }
   };
-  function fAssignZoneID(id: number) {
-    setZoneId(id);
-  }
+
   useEffect(() => {
     registerZone({
       vPanPos,
@@ -73,6 +72,7 @@ export function TintSelector({
       }
     };
   }, []);
+
   const wTransformMatrix = useCallback(
     (src: { rings: number; chords: number }, r: number) => {
       "worklet";

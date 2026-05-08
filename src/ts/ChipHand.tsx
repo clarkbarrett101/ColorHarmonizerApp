@@ -4,8 +4,9 @@ import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
 import { eLayers, useUserContext } from "./UserContext";
 import { scheduleOnRN } from "react-native-worklets";
-import { useVerse } from "./Verse";
+import { useVerse, useVerseRelay } from "./Verse";
 import { eChipMap } from "./PaintChip";
+import { useBucketContext } from "./BucketContext";
 
 export type tChipHand = {
   radius?: number;
@@ -18,7 +19,7 @@ export const ChipHand = ({
   radius = 80,
   rotationR = 6 / 7,
   arcLength = 10 / 7,
-  holdRadius = 150,
+  holdRadius = 200,
 }: tChipHand) => {
   const startAngle = rotationR - arcLength / 2;
   const selectVerse = useVerse(-1);
@@ -28,12 +29,13 @@ export const ChipHand = ({
     vPanX,
     vPanY,
     vVelocityX,
-    registerBucket,
-    unregisterBucket,
     holdChip,
+    vHeldChipRoot,
   } = useUserContext();
+  const { registerBucket, unregisterBucket } = useBucketContext();
   const origin: [number, number] = [30, Dimensions.get("window").height];
   const [touching, setTouching] = React.useState(false);
+  const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
   const pan = usePanGesture({
     minDistance: 0,
     onBegin: (event) => {
@@ -47,7 +49,7 @@ export const ChipHand = ({
         (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
           0.5) /
         userPallete.length;
-      selectVerse.wUpdateState(index);
+      selectVerse.dispatch(index);
       scheduleOnRN(setTouching, true);
     },
     onUpdate: (event) => {
@@ -60,21 +62,22 @@ export const ChipHand = ({
         (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
       );
       if (distance > holdRadius) {
-        holdChip(
-          [eLayers.chipHand, selectVerse.asShared.value],
-          eChipMap.grabbed.pushed,
-        );
-        console.log("Hand Grabbed");
-        vPanX.asShared.value = event.absoluteX;
-        vPanY.asShared.value = event.absoluteY;
-        vVelocityX.asShared.value = event.velocityX;
+        if (vHeldChipStatus?.shared.value[0] !== "grabbed") {
+          holdChip(
+            [eLayers.chipHand, selectVerse.shared.value],
+            ["grabbed", "pushed"],
+          );
+        }
+        vPanX.shared.value = event.absoluteX;
+        vPanY.shared.value = event.absoluteY;
+        vVelocityX.shared.value = event.velocityX;
       } else {
         const index =
           (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
             0.5) /
           userPallete.length;
-        holdChip([eLayers.chipHand, index], eChipMap.idle.choosing);
-        selectVerse.wUpdateState(index);
+        holdChip([eLayers.chipHand, index], ["idle", "choosing"]);
+        selectVerse.dispatch(index);
       }
     },
     onFinalize: (event) => {
@@ -84,16 +87,20 @@ export const ChipHand = ({
       scheduleOnRN(setTouching, false);
     },
   });
+  const isPulling =
+    vHeldChipStatus?.state[0] === "grabbed" &&
+    vHeldChipStatus?.state[1] === "pulled";
 
   useEffect(() => {
     registerBucket({
       origin: [origin[0] + radius, origin[1] - radius],
-      radius: [holdRadius, holdRadius + 100],
+      radius: [holdRadius, holdRadius * 2],
       callback: (paint) => {
         addPaint(paint);
       },
-      statusTrigger: eChipMap.grabbed.pushed,
+      statusTrigger: ["grabbed", "pulled"],
       id: `hand-bucket`,
+      zIndex: eLayers.buckets + 100,
     });
     return () => unregisterBucket(`hand-bucket`);
   }, []);
@@ -103,7 +110,7 @@ export const ChipHand = ({
         groupLayer={eLayers.chipHand}
         paintsA={userPallete}
         size={"default"}
-        radius={touching ? holdRadius : radius}
+        radius={touching || isPulling ? holdRadius - 50 : radius}
         direction={1}
         origin={origin}
         rotationR={rotationR}
@@ -113,12 +120,11 @@ export const ChipHand = ({
           return {
             ...chip,
             zIndex:
-              eLayers.chipHand +
-              (1 - Math.abs(selectVerse.asState - chip.chipID[1])) *
-                userPallete.length,
+              (1 - Math.abs(selectVerse.state - chip.chipID[1])) *
+              userPallete.length,
             radialOffset:
               chip.radialOffset +
-              (Math.abs(selectVerse.asState - chip.chipID[1]) < 0.1 ? 20 : 0),
+              (Math.abs(selectVerse.state - chip.chipID[1]) < 0.1 ? 20 : 0),
           };
         }}
       />
@@ -138,7 +144,6 @@ export const ChipHand = ({
               top: 0,
               width: holdRadius * 2,
               height: holdRadius * 2,
-              borderWidth: 0,
               borderColor: "rgba(255,255,255,1)",
               borderRadius: holdRadius,
             }}

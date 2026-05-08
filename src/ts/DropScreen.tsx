@@ -14,21 +14,28 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { ChipBucket } from "./ChipBucket";
+import { useBucketContext } from "./BucketContext";
+import { useVerseRelay } from "./Verse";
 
 export type tDropScreen = {};
 
 export default function DropScreen({}: tDropScreen) {
-  const { buckets, vHeldChipStatus } = useUserContext();
+  const { buckets } = useBucketContext();
+  const { vHeldChipRoot, eLayers } = useUserContext();
+  const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
   const dimensions = Dimensions.get("window");
   const aspectRatio = dimensions.height / dimensions.width;
   const [active, setActive] = useState(false);
   useEffect(() => {
-    if (vHeldChipStatus.asState["idle"]) {
-      setActive(false);
-    } else {
+    if (
+      vHeldChipStatus.state[0] === "grabbed" ||
+      vHeldChipStatus.state[1] === "choosing"
+    ) {
       setActive(true);
+    } else {
+      setActive(false);
     }
-  }, [vHeldChipStatus.asState]);
+  }, [vHeldChipStatus.state]);
   const animatedStyle = useAnimatedStyle(() => {
     return {
       opacity: withTiming(active ? 1 : 0, { duration: 200 }),

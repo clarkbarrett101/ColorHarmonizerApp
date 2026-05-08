@@ -12,9 +12,11 @@ import {
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { ColorChipFan } from "./ChipStack";
 import { scheduleOnRN } from "react-native-worklets";
-import { eLayers, useUserContext } from "./UserContext";
+import UserContext, { eLayers, useUserContext } from "./UserContext";
 import { eChipMap, eChipSizes } from "./PaintChip";
 import { useVerse } from "./Verse";
+import { useBucketContext } from "./BucketContext";
+import { BGGradient } from "./BGGradient";
 const clarColorsList: tPaint[] = require("./clarColors.json");
 
 type tColorMixer = {
@@ -62,7 +64,7 @@ export default function ColorMixer({
     angle: lightnessArcRotation[1],
     radius: radii[1],
   });
-  const { registerBucket, unregisterBucket, heldChipPaint } = useUserContext();
+  const { registerBucket, unregisterBucket } = useBucketContext();
 
   useEffect(() => {
     registerBucket({
@@ -72,7 +74,7 @@ export default function ColorMixer({
       ],
       radius: [radii[1], radii[1] + 75],
       callback: fOnDrop,
-      statusTrigger: eChipMap.grabbed.pushed,
+      statusTrigger: ["grabbed", "pushed"],
       id: "colorMixerBucket",
     });
     return () => {
@@ -158,19 +160,18 @@ export default function ColorMixer({
       const c = pc !== undefined ? pc : dC.value;
       const l = pl !== undefined ? pl : dL.value;
       const ar = par !== undefined ? par : dAR.value;
-      scheduleOnRN(vTargetColor.wUpdateState, {
+      scheduleOnRN(vTargetColor.dispatch, {
         c,
         l,
         ar,
       });
-      scheduleOnRN(vSideA.wUpdateState, !vSideA.asShared.value);
+      scheduleOnRN(vSideA.dispatch, !vSideA.shared.value);
     },
     [dC, dL, dAR, vTargetColor, vSideA],
   );
 
-  const fOnDrop = useCallback((paintID: number) => {
-    const paint = clarColorsList[heldChipPaint];
-    console.log("Dropped paint", paint, paintID);
+  const fOnDrop = useCallback((paint: tPaint) => {
+    console.log("Dropped paint", paint);
     const c = paint.clar.c;
     const l = paint.clar.l;
     let pAR = wDefaultAngleToChord(paint.clar.ar, 44 / 7, 24, 0);
@@ -237,6 +238,7 @@ export default function ColorMixer({
             wUpdateState,
           }}
         >
+          <BGGradient />
           <PanManager>
             <TintSelector
               key={`Lightness Selector`}
@@ -266,7 +268,7 @@ export default function ColorMixer({
         </RadialContext>
       </View>
       <ColorChipFan
-        targetColor={vTargetColor.asState}
+        targetColor={vTargetColor.state}
         targetNumber={9}
         origin={origin}
         size={"default"}
@@ -275,7 +277,7 @@ export default function ColorMixer({
         radius={origin[0] * 0.8}
         direction={direction}
         firstIndex={0}
-        sideA={vSideA.asState}
+        sideA={vSideA.state}
         cSteps={chromaDimensions[1]}
         lSteps={litDimensions[1]}
         arSteps={24}

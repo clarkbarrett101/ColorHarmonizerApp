@@ -1,7 +1,6 @@
 import { eChipSizes, PaintChip, tPaintChip } from "./PaintChip";
 import { tCLARColor, tPaint } from "./CLAcolor";
 import { useEffect, useState } from "react";
-import { tMatrix } from "./Verse";
 const clarColorsList: tPaint[] = require("./clarColors.json");
 const refList: {
   c: number;
@@ -16,9 +15,8 @@ export type tChipFan = {
   direction?: 1 | -1;
   firstIndex?: number;
   fGetChipModifier?: (chip: tPaintChip) => tPaintChip;
-  wTransformMatrix?: (matrix: Partial<tMatrix>) => tMatrix;
-  paintsA: number[];
-  paintsB?: number[];
+  paintsA: tPaint[];
+  paintsB?: tPaint[];
   origin: [number, number];
   rotationR?: number;
   size?: keyof typeof eChipSizes;
@@ -88,26 +86,31 @@ export const ColorChipFan = ({
   arSteps = 18,
   ...rest
 }: tChipWheel) => {
-  const [paintsA, setPaintsA] = useState<number[]>(
-    refList.find((entry) => {
-      return (
-        Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
-        Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
-        Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
-      );
-    })?.paintIndexes,
+  const [paintsA, setPaintsA] = useState<tPaint[]>(
+    refList
+      .find((entry) => {
+        return (
+          Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
+          Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
+          Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
+        );
+      })
+      ?.paintIndexes.map((index) => clarColorsList[index]) ?? [],
   );
-  const [paintsB, setPaintsB] = useState<number[]>([]);
+  const [paintsB, setPaintsB] = useState<tPaint[]>([]);
   const [sideABuffer, setSideABuffer] = useState(sideA);
   useEffect(() => {
     console.log("Finding colors for target", targetColor, sideA ? "A" : "B");
-    const foundColors = refList.find((entry) => {
-      return (
-        Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
-        Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
-        Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
-      );
-    })?.paintIndexes;
+    const foundColors =
+      refList
+        .find((entry) => {
+          return (
+            Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
+            Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
+            Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
+          );
+        })
+        ?.paintIndexes.map((index) => clarColorsList[index]) ?? [];
     if (sideA) {
       setPaintsA(foundColors);
     } else {

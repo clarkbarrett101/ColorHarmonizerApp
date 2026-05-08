@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, use } from "react";
 import { Dimensions, View } from "react-native";
 import Animated, {
   useAnimatedProps,
@@ -15,15 +15,18 @@ import Svg, {
   Rect,
   Circle,
   Path,
+  Line,
 } from "react-native-svg";
 import { useUserContext, eLayers } from "./UserContext";
-import { eChipMap, eChipSizes, fStatusMatch, tChipStatus } from "./PaintChip";
-import { useVerse } from "./Verse";
+import { eChipMap, eChipSizes, tChipStatus } from "./PaintChip";
+import { useVerse, useVerseRelay } from "./Verse";
 import { tPaint } from "./CLAcolor";
+import { scheduleOnRN } from "react-native-worklets";
+import { transform } from "@babel/core";
 
 const clarColorsList: tPaint[] = require("./clarColors.json");
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 const fLerp = (a, b, t) => {
   "worklet";
@@ -36,48 +39,46 @@ export type tChipBucket = {
   callback?: (paint: any) => void;
   statusTrigger?: tChipStatus;
   outlineOffset?: [number, number];
+  zIndex?: number;
 };
 
 export const ChipBucket = ({
   origin = [0, 0],
   radius = [100, 200],
   callback,
-  statusTrigger = eChipMap.grabbed.pulled,
+  statusTrigger = ["grabbed", "pulled"],
   outlineOffset = [0, 0],
+  zIndex = eLayers.buckets,
 }: tChipBucket) => {
-  const {
-    vPanX,
-    vPanY,
-    vPanOverride,
-    vHeldChipStatus,
-    vHeldChipID,
-    heldChipPaint,
-  } = useUserContext();
-  const [active, setActive] = useState(false);
-  const paintColor =
-    clarColorsList[heldChipPaint]?.hex || "rgba(255,255,255,1)";
-
+  const { vPanX, vPanY, vPanOverride, vHeldChipRoot, heldChipPaint } =
+    useUserContext();
+  const circleRadius = 150;
+  const vActive = useVerse(false);
+  const inRadius = useVerse(false);
+  const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
+  const paintColor = inRadius.state ? heldChipPaint.hex : "white";
   useEffect(() => {
-    if (fStatusMatch(vHeldChipStatus.asState, statusTrigger) && !active) {
-      setActive(true);
-      console.log(
-        "Chip bucket",
-        statusTrigger,
-        "status changed:",
-        vHeldChipStatus.asState,
-      );
-    } else if (vHeldChipStatus.asState?.idle?.["returning"] && active) {
-      if (dDistance.value <= 1) {
-        callback?.(heldChipPaint);
+    if (
+      vHeldChipStatus.state[0] === statusTrigger[0] &&
+      vHeldChipStatus.state[1] === statusTrigger[1] &&
+      !vActive.state
+    ) {
+      vActive.dispatch(true);
+    } else {
+      if (vHeldChipStatus?.state[1] === "returning" && vActive.state) {
+        if (inRadius.state) {
+          callback?.(heldChipPaint);
+        }
+        vActive.dispatch(false);
+        inRadius.dispatch(false);
       }
-      setActive(false);
     }
-  }, [vHeldChipStatus.asState]);
+  }, [vHeldChipStatus.state]);
 
   const dDistance = useDerivedValue(() => {
     const distance = Math.sqrt(
-      (vPanX.asShared.value - origin[0]) ** 2 +
-        (vPanY.asShared.value - origin[1]) ** 2,
+      (vPanX.shared.value - origin[0]) ** 2 +
+        (vPanY.shared.value - origin[1]) ** 2,
     );
     return Math.max(distance / radius[0], 0.5);
   });
@@ -85,25 +86,17 @@ export const ChipBucket = ({
   useAnimatedReaction(
     () => dDistance.value,
     (distance) => {
-      if (!active || vHeldChipStatus.asShared.value?.idle?.["returning"])
-        return;
       if (
-        vHeldChipStatus.asShared.value?.grabbed?.["inBucket"] &&
-        distance > 1
-      ) {
-        console.log(
-          "Setting chip status to",
-          statusTrigger,
-          "with distance",
-          distance,
-        );
-        vHeldChipStatus.wUpdateState(statusTrigger);
-      } else if (
-        vHeldChipStatus.asShared.value == statusTrigger &&
-        distance <= 1
-      ) {
-        console.log("Setting chip status to inBucket with distance", distance);
-        vHeldChipStatus.wUpdateState(eChipMap.grabbed.inBucket);
+        !vActive.shared.value ||
+        vHeldChipStatus?.shared.value[1] === "returning"
+      )
+        return;
+      if (inRadius.shared.value && distance > 1.1) {
+        vHeldChipStatus.dispatch(statusTrigger);
+        inRadius.dispatch(false);
+      } else if (!inRadius.shared.value && distance < 0.9) {
+        inRadius.dispatch(true);
+        vHeldChipStatus.dispatch(["grabbed", "inBucket"]);
         vPanOverride.value = {
           x: origin[0] + outlineOffset[0],
           y: origin[1] + outlineOffset[1],
@@ -111,10 +104,34 @@ export const ChipBucket = ({
       }
     },
   );
-
+  const angle = useDerivedValue(() => {
+    if (!vActive.state) return 0;
+    return Math.atan2(
+      vPanY.shared.value - origin[1],
+      vPanX.shared.value - origin[0],
+    );
+  });
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: active ? 1 / dDistance.value : 0 }],
+    transform: [{ scale: vActive.state ? 1 / dDistance.value : 0 }],
   }));
+  const circleAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: vActive.state ? 1 : 0,
+    transform: [{ scale: 1 }],
+    left: vPanX.shared.value - radius[0],
+    top: vPanY.shared.value - radius[0] - circleRadius / 2,
+  }));
+  const rectProps = useAnimatedProps(() => {
+    const length = radius[0] * 2 * dDistance.value;
+    const height = (radius[0] * 2) / dDistance.value;
+    return {
+      width: length,
+      height: height,
+      transform: [
+        { translateY: -height / 2 + radius[0] },
+        { rotate: `${angle.value}rad` },
+      ],
+    };
+  });
 
   return (
     <View
@@ -122,7 +139,7 @@ export const ChipBucket = ({
         position: "absolute",
         left: origin[0] - radius[0],
         top: origin[1] - radius[0],
-        zIndex: active ? eLayers.buckets : -1,
+        zIndex: vActive.state ? zIndex : -1,
       }}
     >
       <Animated.View
@@ -130,7 +147,7 @@ export const ChipBucket = ({
           {
             position: "absolute",
             mixBlendMode: "overlay",
-            zIndex: eLayers.buckets,
+            zIndex: zIndex + 10,
           },
           animatedStyle,
         ]}
@@ -176,8 +193,8 @@ export const ChipBucket = ({
             { translateX: outlineOffset[0] },
             { translateY: outlineOffset[1] },
           ],
-          opacity: active ? 1 : 0,
-          zIndex: eLayers.buckets,
+          opacity: vActive.state ? 1 : 0,
+          zIndex: zIndex + 20,
         }}
       >
         <Path

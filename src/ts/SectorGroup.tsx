@@ -22,9 +22,6 @@ export const SectorGroup = ({
 }: tSectorGroup) => {
   const { wTransformMatrix, wGetZIndex, selectedRing, dAR, dL, dC } =
     useRadialContext();
-  const vRotationR = useSharedValue(0);
-  const vOffset = useSharedValue(0);
-  const vScale = useSharedValue(1);
   const [isSelected, setIsSelected] = useState(selectedRing === sectorGroupID);
   useEffect(() => {
     setIsSelected(selectedRing === sectorGroupID);
@@ -62,7 +59,7 @@ export const SectorGroup = ({
         margin: -radii?.[1],
         shadowColor: "black",
         shadowOffset: { width: -1, height: -1 },
-        shadowOpacity: 0.5,
+        shadowOpacity: 0.8,
         shadowRadius: 5,
         ...style,
         ...(isSelected ? selectedStyle : {}),

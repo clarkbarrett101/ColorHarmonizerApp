@@ -5,6 +5,7 @@ import { usePanManager } from "./PanManager";
 import { tSector, tSectorGroup } from "./sectorTypes";
 import { SharedValue } from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "./RadialContext";
+import { tAttributeMap } from "./Actor";
 
 export type tTintSelector = {
   rc?: { rings: number; chords: number };
@@ -73,46 +74,36 @@ export function TintSelector({
     };
   }, []);
 
-  const wTransformMatrix = useCallback(
-    (src: { rings: number; chords: number }, r: number) => {
-      "worklet";
-      let angle = wChordToAngle(src.chords, arcLength, rc.chords, rotationR);
-      let diff = Math.min(
-        Math.abs(angle - vPanPos.value.angle) / (arcLength / rc.chords),
-        1,
-      );
-      diff = 1 - diff;
-      angle = angle * direction;
-      const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
-      return {
-        r: angle,
-        s: { x: vs, y: vs },
-      };
-    },
-    [vPanPos, rc.chords, arcLength, direction],
-  );
-  const wGetZIndex = useCallback(
-    (src: { rings: number; chords: number }) => {
-      "worklet";
-      let angle = wChordToAngle(src.chords, arcLength, rc.chords, rotationR);
-      let diff = Math.max(
-        Math.abs(vPanPos.value.angle - angle) / (arcLength / rc.chords),
-        0,
-      );
-      return Math.round((1 - diff) * rc.chords);
-    },
-    [rc.rings, rc.chords],
-  );
-
+  const wTransformMatrix = (input: tAttributeMap) => {
+    "worklet";
+    let angle = wChordToAngle(input.chord, arcLength, rc.chords, rotationR);
+    let diff = Math.min(
+      Math.abs(angle - vPanPos.value.angle) / (arcLength / rc.chords),
+      1,
+    );
+    diff = 1 - diff;
+    const z = Math.round(diff * rc.chords);
+    angle = angle * direction;
+    const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
+    return {
+      ...input,
+      rotationZ: angle,
+      scale: vs,
+      zIndex: z,
+    };
+  };
+  const transformModifier = {
+    deps: [vPanPos],
+    modifier: wTransformMatrix,
+  };
   return (
     <RadialContext
       value={{
         radii,
         fPathFunction: fMakePetalPath,
         wGetColor,
-        wTransformMatrix,
+        transformModifier,
         vPanPos,
-        wGetZIndex,
         deps: [dAR, dL, dC],
         isSelected,
       }}

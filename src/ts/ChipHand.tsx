@@ -7,6 +7,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { useVerse, useVerseRelay } from "./Verse";
 import { eChipMap } from "./PaintChip";
 import { useBucketContext } from "./BucketContext";
+import { useSharedValue } from "react-native-reanimated";
 
 export type tChipHand = {
   radius?: number;
@@ -18,7 +19,7 @@ export type tChipHand = {
 export const ChipHand = ({
   radius = 80,
   rotationR = 6 / 7,
-  arcLength = 10 / 7,
+  arcLength = 12 / 7,
   holdRadius = 200,
 }: tChipHand) => {
   const startAngle = rotationR - arcLength / 2;
@@ -33,9 +34,10 @@ export const ChipHand = ({
     vHeldChipRoot,
   } = useUserContext();
   const { registerBucket, unregisterBucket } = useBucketContext();
-  const origin: [number, number] = [30, Dimensions.get("window").height];
+  const origin: [number, number] = [30, Dimensions.get("window").height * 0.95];
   const [touching, setTouching] = React.useState(false);
   const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
+  const nudge = useSharedValue({ x: 0, y: 0 });
   const pan = usePanGesture({
     minDistance: 0,
     onBegin: (event) => {
@@ -45,22 +47,43 @@ export const ChipHand = ({
         event.absoluteY - origin[1],
         event.absoluteX - origin[0],
       );
+      const distance = Math.sqrt(
+        (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
+      );
       const index =
         (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
           0.5) /
         userPallete.length;
+      nudge.value = {
+        x: Math.cos(angle) * distance * 0.3,
+        y: Math.sin(angle) * distance * 0.3,
+      };
       selectVerse.dispatch(index);
+      holdChip([eLayers.chipHand, index], ["idle", "choosing"]);
       scheduleOnRN(setTouching, true);
     },
     onUpdate: (event) => {
       "worklet";
+      vPanX.shared.value = event.absoluteX;
+      vPanY.shared.value = event.absoluteY;
+      vVelocityX.shared.value = event.velocityX;
       const angle = Math.atan2(
         event.absoluteY - origin[1],
         event.absoluteX - origin[0],
       );
+      const index =
+        (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
+          0.5) /
+        userPallete.length;
+
       const distance = Math.sqrt(
         (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
       );
+      nudge.value = {
+        x: Math.cos(angle) * distance * 0.3,
+        y: Math.sin(angle) * distance * 0.3,
+      };
+
       if (distance > holdRadius) {
         if (vHeldChipStatus?.shared.value[0] !== "grabbed") {
           holdChip(
@@ -68,14 +91,7 @@ export const ChipHand = ({
             ["grabbed", "pushed"],
           );
         }
-        vPanX.shared.value = event.absoluteX;
-        vPanY.shared.value = event.absoluteY;
-        vVelocityX.shared.value = event.velocityX;
       } else {
-        const index =
-          (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
-            0.5) /
-          userPallete.length;
         holdChip([eLayers.chipHand, index], ["idle", "choosing"]);
         selectVerse.dispatch(index);
       }
@@ -83,6 +99,7 @@ export const ChipHand = ({
     onFinalize: (event) => {
       "worklet";
       console.log("Hand Deactivate");
+      nudge.value = { x: 0, y: 0 };
       holdChip();
       scheduleOnRN(setTouching, false);
     },
@@ -116,12 +133,10 @@ export const ChipHand = ({
         rotationR={rotationR}
         arcLength={arcLength}
         firstIndex={0}
+        gapIndex={selectVerse.state}
         fGetChipModifier={(chip) => {
           return {
             ...chip,
-            zIndex:
-              (1 - Math.abs(selectVerse.state - chip.chipID[1])) *
-              userPallete.length,
             radialOffset:
               chip.radialOffset +
               (Math.abs(selectVerse.state - chip.chipID[1]) < 0.1 ? 20 : 0),

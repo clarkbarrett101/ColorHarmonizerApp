@@ -2,7 +2,7 @@ import React from "react";
 import { DerivedValue, SharedValue } from "react-native-reanimated";
 import { tCLARColor } from "./CLAcolor";
 import { tSector, tSectorGroup } from "./sectorTypes";
-import { tMatrix } from "./Verse";
+import { tAttributeModifier } from "./Actor";
 
 export const wDefaultAngleToChord = (
   angle: number,
@@ -51,13 +51,9 @@ type tRadialContext = {
   dL?: DerivedValue<number>;
   dAR?: DerivedValue<number>;
   vRotationROffset?: SharedValue<number> | { value: number };
-  wTransformMatrix?: (
-    src: { rings: number; chords: number },
-    rotationR: number,
-  ) => tMatrix;
+  transformModifier?: tAttributeModifier;
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
   wGetColor?: (rc: { rings: number; chords: number }) => string;
-  wGetZIndex?: (rc: { rings: number; chords: number }) => number;
   deps?: SharedValue<any>[];
   isSelected?: boolean;
   selectedRing?: number;
@@ -74,17 +70,9 @@ const Ctx = React.createContext<tRadialContext>({
   wAngleToChord: wDefaultAngleToChord,
   wChordToAngle: wDefaultChordToAngle,
   vRotationROffset: { value: 0 },
-  wTransformMatrix: () =>
-    ({
-      t: { x: 0, y: 0 },
-      r: 0,
-      s: { x: 1, y: 1 },
-      offset: 0,
-      tilt: 0,
-    }) as tMatrix,
+  transformModifier: { modifier: (input) => input },
   vPanPos: undefined,
   wGetColor: () => "#000000",
-  wGetZIndex: () => 0,
   isSelected: false,
   selectedRing: 0,
   wUpdateState: () => {},
@@ -113,17 +101,9 @@ export const RadialContext = ({
         dC: undefined,
         dL: undefined,
         vRotationROffset: { value: 0 },
-        wTransformMatrix: () =>
-          ({
-            t: { x: 0, y: 0 },
-            r: 0,
-            s: { x: 1, y: 1 },
-            offset: 0,
-            tilt: 0,
-          }) as tMatrix,
+        transformModifier: { modifier: (input) => input },
         vPanPos: undefined,
         wGetColor: () => "#000000",
-        wGetZIndex: () => 0,
         isSelected: false,
         selectedRing: 0,
         wUpdateState: () => {},

@@ -22,6 +22,7 @@ export type tChipFan = {
   size?: keyof typeof eChipSizes;
   sideA?: boolean;
   groupLayer?: number;
+  gapIndex?: number;
 };
 
 export const ChipFan = ({
@@ -37,6 +38,7 @@ export const ChipFan = ({
   firstIndex = 0.5,
   fGetChipModifier = (chip) => chip,
   groupLayer = 0,
+  gapIndex = 1.1,
 }: tChipFan) => {
   const groupID = useState(groupLayer)[0];
   const chipStack = () => {
@@ -53,7 +55,9 @@ export const ChipFan = ({
           y: origin[1] - eChipSizes[size][1] / 2,
         },
         size,
-        startRotation: rotationR + arcLength * (z - 0.5),
+        startRotation:
+          rotationR +
+          arcLength * (z - 0.5 + (z >= gapIndex ? 0 : -1 / paintsA.length)),
         zIndex: Math.round((1 - Math.abs(z - firstIndex)) * paintsA.length),
         chipID: [groupLayer, z],
         sideA,

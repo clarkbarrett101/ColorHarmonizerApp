@@ -7,9 +7,11 @@ import {
   useSharedValue,
   SharedValue,
   withTiming,
+  makeMutable,
 } from "react-native-reanimated";
 import { usePanManager } from "./PanManager";
 import { RadialContext, useRadialContext } from "./RadialContext";
+import { tAttributeMap, tAttributeModifier } from "./Actor";
 
 type tColorWheel = {
   radii?: [number, number];
@@ -50,41 +52,38 @@ function ColorWheel({
     },
     [dC, dL, rc.rings, rc.chords, arcLength],
   );
-  const wGetZIndex = useCallback(
-    (src: { rings: number; chords: number }) => {
-      "worklet";
-      const selectedSector = wAngleToChord(dAR.value, arcLength, rc.chords, 0);
-      let diff = Math.abs(src.chords - selectedSector) % rc.chords;
-      if (diff > rc.chords / 2) {
-        diff = rc.chords - diff;
-      }
-      return Math.round(rc.chords / 2 - diff);
-    },
-    [dAR, rc.chords, arcLength],
-  );
-  const wTransformMatrix = useCallback(
-    (src: { rings: number; chords: number }, rotationR: number) => {
-      "worklet";
-      const adjustedRotationROffset = dAR.value;
-      const rotation = wChordToAngle(src.chords, arcLength, rc.chords, 0);
-      let diff = Math.abs(rotation - adjustedRotationROffset) % (44 / 7);
-      if (diff > 22 / 7) {
-        diff = 44 / 7 - diff;
-      }
 
-      diff =
-        Math.max(0, (2 * arcLength) / rc.chords - diff) /
-        ((2 * arcLength) / rc.chords);
-      const vR = (rotationR + -vRotationROffset.value) * direction;
-      const vS = 1 + (diff > 0.8 ? 0.3 : 0);
-      return {
-        r: vR,
-        s: { x: vS, y: vS },
-        offset: diff * 25,
-      };
-    },
-    [],
-  );
+  const wTransformMatrix = (input: tAttributeMap) => {
+    "worklet";
+    const adjustedRotationROffset = dAR.value;
+    const rotation = wChordToAngle(input.chord, arcLength, rc.chords, 0);
+    let diff = Math.abs(rotation - adjustedRotationROffset) % (44 / 7);
+    if (diff > 22 / 7) {
+      diff = 44 / 7 - diff;
+    }
+    const selectedSector = wAngleToChord(dAR.value, arcLength, rc.chords, 0);
+    let zDiff = Math.abs(input.chord - selectedSector) % rc.chords;
+    if (zDiff > rc.chords / 2) {
+      zDiff = rc.chords - zDiff;
+    }
+    const zIndex = Math.round(rc.chords / 2 - zDiff);
+    diff =
+      Math.max(0, (2 * arcLength) / rc.chords - diff) /
+      ((2 * arcLength) / rc.chords);
+    const vR = (input.rotationZ + -vRotationROffset.value) * direction;
+    const vS = 1 + (diff > 0.8 ? 0.3 : 0);
+    return {
+      ...input,
+      zIndex,
+      rotationZ: vR,
+      scale: vS,
+      translateX: diff * 25,
+    };
+  };
+  const transformModifier: tAttributeModifier = {
+    deps: [dAR, dL, dC],
+    modifier: wTransformMatrix,
+  };
   const [selectedRing, setSelectedRing] = useState(-1);
   const fOnLeave = (angleOffset = 0) => {
     let nearestSector = wAngleToChord(
@@ -144,8 +143,7 @@ function ColorWheel({
         radii,
         fPathFunction: fMakePetalPath,
         wGetColor,
-        wTransformMatrix,
-        wGetZIndex,
+        transformModifier,
         deps: [dC, dL],
         selectedRing,
       }}

@@ -9,6 +9,8 @@ import Svg, {
 } from "react-native-svg";
 import { tPaint } from "./CLAcolor";
 import Animated, {
+  DerivedValue,
+  SharedValue,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
@@ -59,6 +61,7 @@ export type tPaintChip = {
   sideA?: boolean;
   groupLayer?: number;
   direction?: 1 | -1;
+  nudge?: SharedValue<{ angle: number; distance: number }>;
 };
 
 export const PaintChip = ({
@@ -73,9 +76,10 @@ export const PaintChip = ({
   sideA = true,
   groupLayer = 0,
   direction = 1,
+  nudge,
 }: tPaintChip) => {
   /// O N  M O U N T ///
-  console.log("rendering chip", zIndex);
+
   let flag = "#0f0";
   const {
     vPanX,
@@ -87,13 +91,20 @@ export const PaintChip = ({
     vHeldChipRoot,
     setHeldChipPaint,
   } = useUserContext();
+
   const [isPaintA, setIsPaintA] = useState(false);
+  const paint = isPaintA ? paintA : paintB;
+
   const vLocalChipStatus = useVerse<tChipStatus>(["idle", "ready"]);
   const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
   const anim = useSharedValue(0);
   const vTilt = useSharedValue(0);
+
   const vR = useSharedValue(startRotation);
-  const paint = isPaintA ? paintA : paintB;
+  useEffect(() => {
+    vR.value = withTiming(startRotation);
+  }, [startRotation]);
+
   useEffect(() => {
     if (vLocalChipStatus.state[1] === "flippingUp") {
       vLocalChipStatus.dispatch(["idle", "flippingDown"]);
@@ -113,6 +124,7 @@ export const PaintChip = ({
       vLocalChipStatus.dispatch(["idle", "returning"]);
     }
   }, [vHeldChipStatus.state]);
+
   useEffect(() => {
     if (
       heldChipID !== null &&

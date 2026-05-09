@@ -44,7 +44,7 @@ export default function ColorMixer({
   lightnessArcRotation = [5.5 / 7, 28 / 7],
   origin = [
     Dimensions.get("window").width + radii[1] * 0.3,
-    Dimensions.get("window").height / 2,
+    Dimensions.get("window").height * 0.45,
   ],
 }: tColorMixer) {
   /// O N  M O U N T ///

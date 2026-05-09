@@ -50,7 +50,7 @@ float3 fCLARToRGB(float c, float l) {
 
 export function BGGradient() {
   const time = useClock();
-  const dAR = useRadialContext().dAR;
+  const { dAR, dC, dL } = useRadialContext();
   const density = 1;
   const dimensions = useSharedValue({
     width: Dimensions.get("window").width / density,
@@ -58,8 +58,16 @@ export function BGGradient() {
   });
   const dimensionsRef = useRef(dimensions.value);
   const colors = useDerivedValue(() => {
-    const color1 = fCLARColorToString({ c: 0.1, l: 0.9, ar: dAR.value });
-    const color2 = fCLARColorToString({ c: 0.3, l: 0.8, ar: dAR.value });
+    const color1 = fCLARColorToString({
+      c: 0.2 * dC.value,
+      l: 0.5 + 0.3 * dL.value,
+      ar: dAR.value,
+    });
+    const color2 = fCLARColorToString({
+      c: 0.3 * dC.value,
+      l: 0.4 + 0.3 * dL.value,
+      ar: dAR.value,
+    });
     return [color1, color2, color1];
   });
   return (

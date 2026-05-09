@@ -1,13 +1,10 @@
-import Animated, {
-  useAnimatedProps,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { useAnimatedProps } from "react-native-reanimated";
 import { Sector } from "./Sector";
 import Svg from "react-native-svg";
 import { useEffect, useState } from "react";
 import { tSectorGroup } from "./sectorTypes";
 import { useRadialContext } from "./RadialContext";
+import { useActor } from "./Actor";
 
 export const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 export const SectorGroup = ({
@@ -20,8 +17,34 @@ export const SectorGroup = ({
   rotationR = 0,
   sectorGroupID = 0,
 }: tSectorGroup) => {
-  const { wTransformMatrix, wGetZIndex, selectedRing, dAR, dL, dC } =
-    useRadialContext();
+  const actor = useActor({
+    ring: rc.rings,
+    chord: rc.chords,
+    groupID: sectorGroupID,
+    rotationZ: rotationR,
+  });
+
+  const { transformModifier, selectedRing } = useRadialContext();
+
+  useEffect(() => {
+    actor.addModifier("transform", transformModifier);
+    return () => {
+      actor.removeModifier("transform");
+    };
+  }, []);
+
+  const animatedProps = useAnimatedProps(() => {
+    return actor.get((attributes) => {
+      return {
+        zIndex: attributes.zIndex || 0,
+        transform: [
+          { rotateZ: `${attributes.rotationZ || 0}rad` },
+          { translateX: attributes.translateX || 0 },
+          { scale: attributes.scale || 1 },
+        ],
+      };
+    });
+  });
   const [isSelected, setIsSelected] = useState(selectedRing === sectorGroupID);
   useEffect(() => {
     setIsSelected(selectedRing === sectorGroupID);
@@ -34,20 +57,6 @@ export const SectorGroup = ({
     },
     [undefined, undefined] as [number | undefined, number | undefined],
   );
-  const animatedProps = useAnimatedProps(() => {
-    const deps = [dAR.value, dL.value, dC.value];
-    const matrix = wTransformMatrix ? wTransformMatrix(rc, rotationR) : {};
-
-    const z = wGetZIndex ? wGetZIndex(rc) : 0;
-    return {
-      zIndex: z,
-      transform: [
-        { rotateZ: `${matrix.r || 0}rad` },
-        { translateX: matrix.offset || 0 },
-        { scale: matrix.s ? matrix.s.x : 1 },
-      ],
-    };
-  });
   return (
     <AnimatedSvg
       {...props}

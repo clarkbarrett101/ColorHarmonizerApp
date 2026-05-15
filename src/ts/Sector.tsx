@@ -5,6 +5,8 @@ import Animated, {
 import { Path } from "react-native-svg";
 import { useRadialContext } from "./RadialContext";
 import { tSector } from "./sectorTypes";
+import { useActor } from "./Actor";
+import { useEffect } from "react";
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export const Sector = ({
@@ -15,21 +17,25 @@ export const Sector = ({
 }: tSector) => {
   const {
     fPathFunction,
-    wGetColor,
+    colorModifier,
     radii: contextRadii,
     deps,
   } = useRadialContext();
   const path = fPathFunction(radii, arcLength, contextRadii[1]);
-
-  const dFill = useDerivedValue(() => {
-    deps?.forEach((dep) => dep.value);
-    const color = wGetColor(rc);
-    return color;
+  const actor = useActor({ ring: rc.rings, chord: rc.chords });
+  useEffect(() => {
+    actor.addModifier(colorModifier);
+    return () => {
+      actor.removeModifier(colorModifier.modID);
+    };
   }, []);
-  const animatedProps = useAnimatedProps(() => ({
-    fill: dFill.value,
-  }));
-
+  const animatedProps = useAnimatedProps(() => {
+    return actor.get((attributes) => {
+      return {
+        fill: `rgba(${attributes.red || 0},${attributes.green || 0},${attributes.blue || 0},1)`,
+      };
+    });
+  });
   return (
     <AnimatedPath animatedProps={animatedProps} d={path} strokeWidth={1} />
   );

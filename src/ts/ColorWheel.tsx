@@ -1,4 +1,4 @@
-import { fCLARColorToString, tPaint } from "./CLAcolor";
+import { fCLARColorToRGB, fCLARColorToString, tPaint } from "./CLAcolor";
 import { RadialGraphic } from "./RadialGraphic";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { fMakePetalPath } from "./Sector";
@@ -40,49 +40,59 @@ function ColorWheel({
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const { registerZone, unregisterZone } = usePanManager();
 
-  const wGetColor = useCallback(
-    (src: { rings: number; chords: number }) => {
+  const colorModifier: tAttributeModifier = {
+    modID: 0,
+    deps: [dC, dL, dAR],
+    modifier: (input: tAttributeMap) => {
       "worklet";
       const rdc = Math.pow(0.5, 1 / Math.max(rc.rings - 1, 1));
       const rdl = Math.pow(0.5, 1 / Math.max(rc.rings - 1, 1));
-      let c = Math.pow(rdc, rc.rings - 1 - src.rings) * dC.value;
-      let l = Math.pow(rdl, rc.rings - 1 - src.rings) * dL.value;
-      let ar = wChordToAngle(src.chords, arcLength, rc.chords, 0);
-      return fCLARColorToString({ c, l, ar });
+      let c = Math.pow(rdc, rc.rings - 1 - input.ring) * dC.value;
+      let l = Math.pow(rdl, rc.rings - 1 - input.ring) * dL.value;
+      let ar = wChordToAngle(input.chord, arcLength, rc.chords, 0);
+      const [r, g, b] = fCLARColorToRGB({ c, l, ar });
+      return {
+        ...input,
+        red: r,
+        green: g,
+        blue: b,
+      };
     },
-    [dC, dL, rc.rings, rc.chords, arcLength],
-  );
-
-  const wTransformMatrix = (input: tAttributeMap) => {
-    "worklet";
-    const adjustedRotationROffset = dAR.value;
-    const rotation = wChordToAngle(input.chord, arcLength, rc.chords, 0);
-    let diff = Math.abs(rotation - adjustedRotationROffset) % (44 / 7);
-    if (diff > 22 / 7) {
-      diff = 44 / 7 - diff;
-    }
-    const selectedSector = wAngleToChord(dAR.value, arcLength, rc.chords, 0);
-    let zDiff = Math.abs(input.chord - selectedSector) % rc.chords;
-    if (zDiff > rc.chords / 2) {
-      zDiff = rc.chords - zDiff;
-    }
-    const zIndex = Math.round(rc.chords / 2 - zDiff);
-    diff =
-      Math.max(0, (2 * arcLength) / rc.chords - diff) /
-      ((2 * arcLength) / rc.chords);
-    const vR = (input.rotationZ + -vRotationROffset.value) * direction;
-    const vS = 1 + (diff > 0.8 ? 0.3 : 0);
-    return {
-      ...input,
-      zIndex,
-      rotationZ: vR,
-      scale: vS,
-      translateX: diff * 25,
-    };
   };
   const transformModifier: tAttributeModifier = {
+    modID: 0,
     deps: [dAR, dL, dC],
-    modifier: wTransformMatrix,
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      const adjustedRotationROffset = dAR.value;
+      const rotation = wChordToAngle(input.chord, arcLength, rc.chords, 0);
+      let diff = Math.abs(rotation - adjustedRotationROffset) % (44 / 7);
+      if (diff > 22 / 7) {
+        diff = 44 / 7 - diff;
+      }
+      const selectedSector = wAngleToChord(dAR.value, arcLength, rc.chords, 0);
+      let zDiff = Math.abs(input.chord - selectedSector) % rc.chords;
+      if (zDiff > rc.chords / 2) {
+        zDiff = rc.chords - zDiff;
+      }
+      const zIndex = Math.round(rc.chords / 2 - zDiff);
+      diff =
+        Math.max(0, (2 * arcLength) / rc.chords - diff) /
+        ((2 * arcLength) / rc.chords);
+      const vR = (input.rotateZ + -vRotationROffset.value) * direction;
+      const vS = 1 + Math.max(0, diff - 0.8);
+      return {
+        ...input,
+        zIndex,
+        rotateZ: vR,
+        scaleX: vS,
+        scaleY: vS,
+        translateX: diff * 25,
+        shadowRadius: input.shadowRadius * vS,
+        shadowX: input.shadowX * vS,
+        shadowY: input.shadowY * vS,
+      };
+    },
   };
   const [selectedRing, setSelectedRing] = useState(-1);
   const fOnLeave = (angleOffset = 0) => {
@@ -142,7 +152,7 @@ function ColorWheel({
       value={{
         radii,
         fPathFunction: fMakePetalPath,
-        wGetColor,
+        colorModifier,
         transformModifier,
         deps: [dC, dL],
         selectedRing,

@@ -1,12 +1,13 @@
 import { createContext, useContext, useState } from "react";
 import { tChipBucket } from "./ChipBucket";
 import { tChipStatus } from "./PaintChip";
-import { tVerse } from "./Verse";
+import { tVerse, useVerse } from "./Verse";
 
 export type tBucketContext = {
   buckets?: tChipBucket[];
   registerBucket?: (bucket: tChipBucket) => void;
   unregisterBucket?: (id: string) => void;
+  vDropScreen?: tVerse<boolean>;
 };
 export const ctx = createContext<tBucketContext>({
   buckets: [],
@@ -29,8 +30,16 @@ export default function BucketContext({
   const unregisterBucket = (id: string) => {
     setBuckets((prev) => prev.filter((b) => b.id !== id));
   };
+  const vDropScreen = useVerse(false);
   return (
-    <ctx.Provider value={{ buckets, registerBucket, unregisterBucket }}>
+    <ctx.Provider
+      value={{
+        buckets,
+        registerBucket,
+        unregisterBucket,
+        vDropScreen,
+      }}
+    >
       {children}
     </ctx.Provider>
   );

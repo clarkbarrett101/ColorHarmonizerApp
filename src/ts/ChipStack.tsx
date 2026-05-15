@@ -13,7 +13,6 @@ export type tChipFan = {
   arcLength: number;
   radius: number;
   direction?: 1 | -1;
-  firstIndex?: number;
   fGetChipModifier?: (chip: tPaintChip) => tPaintChip;
   paintsA: tPaint[];
   paintsB?: tPaint[];
@@ -22,7 +21,6 @@ export type tChipFan = {
   size?: keyof typeof eChipSizes;
   sideA?: boolean;
   groupLayer?: number;
-  gapIndex?: number;
 };
 
 export const ChipFan = ({
@@ -35,10 +33,8 @@ export const ChipFan = ({
   radius,
   direction = 1,
   sideA = true,
-  firstIndex = 0.5,
   fGetChipModifier = (chip) => chip,
   groupLayer = 0,
-  gapIndex = 1.1,
 }: tChipFan) => {
   const groupID = useState(groupLayer)[0];
   const chipStack = () => {
@@ -55,13 +51,10 @@ export const ChipFan = ({
           y: origin[1] - eChipSizes[size][1] / 2,
         },
         size,
-        startRotation:
-          rotationR +
-          arcLength * (z - 0.5 + (z >= gapIndex ? 0 : -1 / paintsA.length)),
-        zIndex: Math.round((1 - Math.abs(z - firstIndex)) * paintsA.length),
-        chipID: [groupLayer, z],
+        startRotation: rotationR + arcLength * (z - 0.5),
+        relativeZ: z,
+        chipID: [groupLayer, i],
         sideA,
-        groupLayer,
         direction,
       };
       const modifiedChip = fGetChipModifier(chip);
@@ -144,10 +137,8 @@ function findColors(
   let u = Math.cos(ar) * 0.5 * c;
   let v = Math.sin(ar) * 0.5 * c;
   let paintRanks: tPaintRank[] = [];
-
   for (let i = 0; i < clarColorsList.length; i++) {
     const paintColor = clarColorsList[i];
-    if (paintColor.index === undefined) paintColor.index = i;
     const dy = paintColor.yuv[0] - y;
     const du = paintColor.yuv[1] - u;
     const dv = paintColor.yuv[2] - v;
@@ -155,18 +146,88 @@ function findColors(
       Math.sqrt(dy * dy + du * du + dv * dv) +
       (paintColor.brand === "Behr" ? 0.02 : 0);
     paintRanks.push({
-      index: paintColor.index!,
+      index: i,
       distance,
     });
   }
   paintRanks.sort((a, b) => a.distance - b.distance);
-  paintRanks = paintRanks.slice(0, targetNumber);
-  const midDistance = paintRanks[Math.floor(targetNumber / 2)].distance;
-  paintRanks.sort((a, b) => {
-    const midDiffA = Math.abs(a.distance - midDistance);
-    const midDiffB = Math.abs(b.distance - midDistance);
-    return midDiffA - midDiffB;
-  });
-
+  if (targetNumber > 0) paintRanks = paintRanks.slice(0, targetNumber);
   return paintRanks;
+}
+export type tClosestColors = {
+  moreRed?: tPaint;
+  moreYellow?: tPaint;
+  moreBlue?: tPaint;
+  moreWhite?: tPaint;
+  moreBlack?: tPaint;
+  moreGrey?: tPaint;
+};
+function calculateRYBScore(color, index) {
+  if (index === 0) {
+    return color[0] - color[1] - 2 * color[2];
+  } else if (index === 1) {
+    return color[0] + color[1] - color[2] - Math.abs(color[0] - color[1]) / 2;
+  } else {
+    return -2 * color[0] - color[1] / 2 + color[2];
+  }
+}
+export function fClosestColors(targetColor: tPaint): tPaint[] {
+  let rankedColors = findColors(targetColor.clar, -1);
+  let colorMap: tPaint[] = Array(6).fill(undefined);
+  const targetScores = targetColor.rgb.map((c, i) =>
+    calculateRYBScore(targetColor.rgb, i),
+  );
+  console.log(
+    "Finding closest colors to",
+    targetColor.name,
+    targetColor.clar,
+    targetScores,
+  );
+  for (let rank of rankedColors) {
+    const paint = clarColorsList[rank.index];
+    const paintScores = paint.rgb.map((c, i) =>
+      calculateRYBScore(paint.rgb, i),
+    );
+    if (!colorMap[5] && paint.clar.c < targetColor.clar.c * 0.8) {
+      colorMap[5] = paint;
+      console.log("Found more grey:", paint.name, paint.clar);
+      continue;
+    }
+    if (!colorMap[1] && paintScores[1] > targetScores[1] * 1.5) {
+      colorMap[1] = paint;
+      console.log("Found more yellow:", paint.name, paintScores[1]);
+      continue;
+    }
+    if (!colorMap[0] && paintScores[0] > targetScores[0] * 1.5) {
+      colorMap[0] = paint;
+      console.log("Found more red:", paint.name, paintScores[0]);
+      continue;
+    }
+
+    if (!colorMap[2] && paintScores[2] > targetScores[2] * 1.5) {
+      colorMap[2] = paint;
+      console.log("Found more blue:", paint.name, paintScores[2]);
+      continue;
+    }
+    if (
+      !colorMap[3] &&
+      paint.clar.l > targetColor.clar.l * 1.2 &&
+      paint.clar.c <= targetColor.clar.c
+    ) {
+      colorMap[3] = paint;
+      console.log("Found more white:", paint.name, paint.clar);
+      continue;
+    }
+
+    if (
+      !colorMap[4] &&
+      paint.clar.l < targetColor.clar.l * 0.9 &&
+      paint.clar.c <= targetColor.clar.c
+    ) {
+      colorMap[4] = paint;
+      console.log("Found more black:", paint.name, paint.clar);
+      continue;
+    }
+  }
+  return colorMap.filter((paint) => paint !== undefined) as tPaint[];
 }

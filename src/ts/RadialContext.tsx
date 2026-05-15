@@ -53,7 +53,7 @@ type tRadialContext = {
   vRotationROffset?: SharedValue<number> | { value: number };
   transformModifier?: tAttributeModifier;
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
-  wGetColor?: (rc: { rings: number; chords: number }) => string;
+  colorModifier?: tAttributeModifier;
   deps?: SharedValue<any>[];
   isSelected?: boolean;
   selectedRing?: number;
@@ -70,9 +70,9 @@ const Ctx = React.createContext<tRadialContext>({
   wAngleToChord: wDefaultAngleToChord,
   wChordToAngle: wDefaultChordToAngle,
   vRotationROffset: { value: 0 },
-  transformModifier: { modifier: (input) => input },
+  transformModifier: null,
   vPanPos: undefined,
-  wGetColor: () => "#000000",
+  colorModifier: null,
   isSelected: false,
   selectedRing: 0,
   wUpdateState: () => {},
@@ -101,9 +101,9 @@ export const RadialContext = ({
         dC: undefined,
         dL: undefined,
         vRotationROffset: { value: 0 },
-        transformModifier: { modifier: (input) => input },
+        transformModifier: null,
         vPanPos: undefined,
-        wGetColor: () => "#000000",
+        colorModifier: null,
         isSelected: false,
         selectedRing: 0,
         wUpdateState: () => {},

@@ -1,4 +1,8 @@
-import Animated, { useAnimatedProps } from "react-native-reanimated";
+import Animated, {
+  useAnimatedProps,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { Sector } from "./Sector";
 import Svg from "react-native-svg";
 import { useEffect, useState } from "react";
@@ -20,28 +24,44 @@ export const SectorGroup = ({
   const actor = useActor({
     ring: rc.rings,
     chord: rc.chords,
-    groupID: sectorGroupID,
-    rotationZ: rotationR,
+    id: sectorGroupID,
+    rotateZ: rotationR,
+    shadowRadius: 3,
+    shadowX: -2,
+    shadowY: 2,
   });
 
-  const { transformModifier, selectedRing } = useRadialContext();
-
+  const { transformModifier, selectedRing, origin } = useRadialContext();
   useEffect(() => {
-    actor.addModifier("transform", transformModifier);
+    if (!transformModifier) return;
+    actor.addModifier(transformModifier);
     return () => {
-      actor.removeModifier("transform");
+      actor.removeModifier(transformModifier.modID);
     };
   }, []);
 
   const animatedProps = useAnimatedProps(() => {
     return actor.get((attributes) => {
       return {
-        zIndex: attributes.zIndex || 0,
         transform: [
-          { rotateZ: `${attributes.rotationZ || 0}rad` },
+          { rotateZ: `${attributes.rotateZ || 0}rad` },
           { translateX: attributes.translateX || 0 },
-          { scale: attributes.scale || 1 },
+          { translateY: attributes.translateY || 0 },
+          { scaleX: attributes.scaleX || 1 },
+          { scaleY: attributes.scaleY || 1 },
         ],
+      };
+    });
+  });
+  const containerStyle = useAnimatedStyle(() => {
+    return actor.get((attributes) => {
+      return {
+        zIndex: attributes.zIndex || 0,
+        shadowOffset: {
+          width: attributes.shadowX || 0,
+          height: attributes.shadowY || 0,
+        },
+        shadowRadius: attributes.shadowRadius || 0,
       };
     });
   });
@@ -58,29 +78,38 @@ export const SectorGroup = ({
     [undefined, undefined] as [number | undefined, number | undefined],
   );
   return (
-    <AnimatedSvg
-      {...props}
-      animatedProps={animatedProps}
-      width={radii?.[1] * 2}
-      height={radii?.[1] * 2}
-      viewBox={`-${radii?.[1] * 1.1} -${radii?.[1] * 1.1} ${radii?.[1] * 2.2} ${radii?.[1] * 2.2}`}
-      style={{
-        margin: -radii?.[1],
-        shadowColor: "black",
-        shadowOffset: { width: -1, height: -1 },
-        shadowOpacity: 0.8,
-        shadowRadius: 5,
-        ...style,
-        ...(isSelected ? selectedStyle : {}),
-      }}
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          left: origin[0],
+          top: origin[1],
+          shadowColor: "black",
+          shadowOpacity: 0.8,
+        },
+        containerStyle,
+      ]}
     >
-      {sectors?.map((sector, index) => (
-        <Sector
-          {...sector}
-          key={`${index}-${sector.rc?.rings}-${sector.rc?.chords}`}
-        />
-      ))}
-      {children}
-    </AnimatedSvg>
+      <AnimatedSvg
+        {...props}
+        animatedProps={animatedProps}
+        width={radii?.[1] * 2}
+        height={radii?.[1] * 2}
+        viewBox={`-${radii?.[1] * 1.1} -${radii?.[1] * 1.1} ${radii?.[1] * 2.2} ${radii?.[1] * 2.2}`}
+        style={{
+          margin: -radii?.[1],
+          ...style,
+          ...(isSelected ? selectedStyle : {}),
+        }}
+      >
+        {sectors?.map((sector, index) => (
+          <Sector
+            {...sector}
+            key={`${index}-${sector.rc?.rings}-${sector.rc?.chords}`}
+          />
+        ))}
+        {children}
+      </AnimatedSvg>
+    </Animated.View>
   );
 };

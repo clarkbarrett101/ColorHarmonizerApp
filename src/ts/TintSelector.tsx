@@ -5,7 +5,7 @@ import { usePanManager } from "./PanManager";
 import { tSector, tSectorGroup } from "./sectorTypes";
 import { SharedValue } from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "./RadialContext";
-import { tAttributeMap } from "./Actor";
+import { tAttributeMap, tAttributeModifier } from "./Actor";
 
 export type tTintSelector = {
   rc?: { rings: number; chords: number };
@@ -15,7 +15,7 @@ export type tTintSelector = {
   fSectorModifier?: (sector: tSector) => tSector;
   fSectorGroupModifier?: (group: tSectorGroup) => any;
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
-  wGetColor?: (rc: { rings: number; chords: number }) => string;
+  colorModifier?: tAttributeModifier;
 };
 
 export function TintSelector({
@@ -26,7 +26,7 @@ export function TintSelector({
   vPanPos,
   fSectorModifier,
   fSectorGroupModifier,
-  wGetColor,
+  colorModifier,
 }: tTintSelector) {
   const { registerZone, unregisterZone } = usePanManager();
   const [isSelected, setIsSelected] = useState(false);
@@ -74,37 +74,40 @@ export function TintSelector({
     };
   }, []);
 
-  const wTransformMatrix = (input: tAttributeMap) => {
-    "worklet";
-    let angle = wChordToAngle(input.chord, arcLength, rc.chords, rotationR);
-    let diff = Math.min(
-      Math.abs(angle - vPanPos.value.angle) / (arcLength / rc.chords),
-      1,
-    );
-    diff = 1 - diff;
-    const z = Math.round(diff * rc.chords);
-    angle = angle * direction;
-    const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
-    return {
-      ...input,
-      rotationZ: angle,
-      scale: vs,
-      zIndex: z,
-    };
-  };
-  const transformModifier = {
+  const transformModifier: tAttributeModifier = {
+    modID: 0,
     deps: [vPanPos],
-    modifier: wTransformMatrix,
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      let angle = wChordToAngle(input.chord, arcLength, rc.chords, rotationR);
+      let diff = Math.min(
+        Math.abs(angle - vPanPos.value.angle) / (arcLength / rc.chords),
+        1,
+      );
+      diff = 1 - diff;
+      const z = Math.round(diff * rc.chords);
+      angle = angle * direction;
+      const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
+      return {
+        ...input,
+        rotateZ: angle,
+        scaleX: vs,
+        scaleY: vs,
+        zIndex: z,
+        shadowRadius: input.shadowRadius * vs,
+        shadowX: input.shadowX * vs,
+        shadowY: input.shadowY * vs,
+      };
+    },
   };
   return (
     <RadialContext
       value={{
         radii,
         fPathFunction: fMakePetalPath,
-        wGetColor,
+        colorModifier,
         transformModifier,
         vPanPos,
-        deps: [dAR, dL, dC],
         isSelected,
       }}
     >

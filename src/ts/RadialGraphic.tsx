@@ -103,19 +103,7 @@ export function RadialGraphic({
   };
   //// Render ////
 
-  return (
-    <View
-      {...props}
-      style={{
-        top: origin[1],
-        left: origin[0],
-        position: "absolute",
-        ...style,
-      }}
-    >
-      {zGroups()}
-    </View>
-  );
+  return <>{zGroups()}</>;
 }
 
 export type tColorRange = {

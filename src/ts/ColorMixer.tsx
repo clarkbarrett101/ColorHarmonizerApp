@@ -1,286 +1,192 @@
-import { useCallback, useEffect, useState } from "react";
+import { Dimensions } from "react-native";
 import { fCLARColorToString, tCLARColor, tPaint } from "./CLAcolor";
-import { ColorWheel } from "./ColorWheel";
-import { TintSelector } from "./TintSelector";
-import { Dimensions, View } from "react-native";
-import PanManager from "./PanManager";
 import {
   RadialContext,
   wDefaultAngleToChord,
   wDefaultChordToAngle,
 } from "./RadialContext";
-import { useDerivedValue, useSharedValue } from "react-native-reanimated";
-import { ColorChipFan } from "./ChipStack";
-import { scheduleOnRN } from "react-native-worklets";
-import UserContext, { eLayers, useUserContext } from "./UserContext";
-import { eChipMap, eChipSizes } from "./PaintChip";
+import { RadialGraphic } from "./RadialGraphic";
 import { useVerse } from "./Verse";
+import { fMakePetalPath } from "./Sector";
+import { tAttributeMap, tAttributeModifier } from "./Actor";
+import {
+  ChipFan,
+  ColorChipFan,
+  fClosestColors,
+  tClosestColors,
+} from "./ChipStack";
+import { use, useEffect, useRef } from "react";
+import { eLayers, useUserContext } from "./UserContext";
+import { tSectorGroup } from "./sectorTypes";
 import { useBucketContext } from "./BucketContext";
-import { BGGradient } from "./BGGradient";
+import { Paint } from "@shopify/react-native-skia";
+import { eChipSizes, PaintChip } from "./PaintChip";
 const clarColorsList: tPaint[] = require("./clarColors.json");
-
-type tColorMixer = {
-  wheelCenter?: number;
+export type tColorMixer = {
   radii?: [number, number];
+  rc?: { rings: number; chords: number };
   arcLength?: number;
-  direction?: 1 | -1;
-  litDimensions?: [number, number];
-  litRange?: [number, number];
-  chromaRange?: [number, number];
-  chromaDimensions?: [number, number];
-  chromaArcRotation?: [number, number];
-  lightnessArcRotation?: [number, number];
-  origin?: [number, number];
+  rotationR?: number;
 };
-export default function ColorMixer({
-  wheelCenter = 22 / 7,
-  radii = [50, 250],
-  direction = -1,
-  litDimensions = [4, 5],
-  litRange = [0.15, 1],
-  chromaRange = [0.1, 0.8],
-  chromaDimensions = [4, 4],
-  chromaArcRotation = [4.4 / 7, 16 / 7],
-  lightnessArcRotation = [5.5 / 7, 28 / 7],
-  origin = [
-    Dimensions.get("window").width + radii[1] * 0.3,
-    Dimensions.get("window").height * 0.45,
-  ],
+export function ColorMixer({
+  radii = [0, 450],
+  rc = { rings: 5, chords: 6 },
+  arcLength = 10 / 7,
+  rotationR = 22 / 7,
 }: tColorMixer) {
-  /// O N  M O U N T ///
+  const vTargetColor = useVerse<tPaint>(clarColorsList[500]);
+  const paints = useRef<tPaint[]>(fClosestColors(vTargetColor.state));
 
-  const vSideA = useVerse(true);
-  const vTargetColor = useVerse<tCLARColor>({
-    c: 0.5,
-    l: 0.5,
-    ar: 0,
-  });
-  const vWheelRotation = useSharedValue(wheelCenter);
-  const vChromaPanPos = useSharedValue({
-    angle: chromaArcRotation[1] + chromaArcRotation[0] / 3,
-    radius: radii[1],
-  });
-  const vLightnessPanPos = useSharedValue({
-    angle: lightnessArcRotation[1],
-    radius: radii[1],
-  });
+  useEffect(() => {
+    paints.current = fClosestColors(vTargetColor.state);
+    console.log(
+      "Updated closest colors:",
+      paints.current.reduce(
+        (acc, paint, index) => {
+          acc[paint.name] = index;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+    );
+  }, [vTargetColor.state]);
+  const fSectorGroupModifier = (sectorGroup: tSectorGroup) => {
+    return {
+      ...sectorGroup,
+      zIndex: eLayers.colorMixer,
+    };
+  };
+  const origin: [number, number] = [
+    Dimensions.get("window").width + radii[1] * 0.1,
+    Dimensions.get("window").height * 0.45,
+  ];
+  //YUV Yellow = .88,-.44,.1 Red = .3,-.15,.6 Blue = .11,.44,-.1
+  const clarRed: tCLARColor = { c: 0.9, l: 0.6, ar: Math.atan2(0.6, -0.15) };
+  const clarYellow: tCLARColor = { c: 0.9, l: 0.8, ar: Math.atan2(0.1, -0.44) };
+  const clarBlue: tCLARColor = { c: 0.9, l: 0.6, ar: Math.atan2(-0.1, 0.44) };
+  const clarWhite: tCLARColor = { c: 0, l: 1, ar: 0 };
+  const clarBlack: tCLARColor = { c: 0, l: 0, ar: 0 };
+  const clarGrey: tCLARColor = { c: 0, l: 0.5, ar: 0 };
+  const colors = [
+    clarGrey,
+    clarBlack,
+    clarWhite,
+    clarBlue,
+    clarYellow,
+    clarRed,
+  ];
+  function colorLerp(
+    colorA: tCLARColor,
+    colorB: tCLARColor,
+    t: number,
+  ): tCLARColor {
+    "worklet";
+    const c = colorA.c + (colorB.c - colorA.c) * t;
+    const l = colorA.l + (colorB.l - colorA.l) * t;
+    const ar = colorA.ar + (colorB.ar - colorA.ar) * t;
+    return { c, l, ar };
+  }
+  function wGetColor(src: { rings: number; chords: number }) {
+    "worklet";
+    const { rings, chords } = src;
+    let color = colors[chords];
+    color = colorLerp(vTargetColor.shared.value.clar, color, rings / rc.rings);
+    return fCLARColorToString(color);
+  }
+  const wTransformMatrix: tAttributeModifier = {
+    modID: 0,
+    deps: [],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      const z = eLayers.chipFan + input.chord * 2 + 1;
+      console.log(
+        "Modifying sectorGroup with chord",
+        input.chord,
+        "to have zIndex",
+        z,
+      );
+      return {
+        ...input,
+        translateX: input.translateX + 50,
+        zIndex: z,
+      };
+    },
+  };
   const { registerBucket, unregisterBucket } = useBucketContext();
-
   useEffect(() => {
     registerBucket({
       origin: [
-        Dimensions.get("window").width - eChipSizes.default[0] / 3,
+        Dimensions.get("window").width - 100,
         Dimensions.get("window").height / 2,
       ],
-      radius: [radii[1], radii[1] + 75],
-      callback: fOnDrop,
-      statusTrigger: ["grabbed", "pushed"],
+      radius: [radii[1] - 75, radii[1]],
+      callback: (paint) => {
+        vTargetColor.dispatch(paint);
+      },
+      targetLayer: eLayers.chipHand,
       id: "colorMixerBucket",
     });
     return () => {
       unregisterBucket("colorMixerBucket");
     };
   }, []);
-
-  /// C L AR  C O L O R ///
-
-  const dC = useDerivedValue(() => {
-    let c =
-      (vChromaPanPos.value.angle -
-        chromaArcRotation[1] +
-        chromaArcRotation[0] / 2) /
-      chromaArcRotation[0];
-    c = (c - 0.5 / chromaDimensions[1]) / (1 - 1 / chromaDimensions[1]);
-    c = chromaRange[0] + c * (chromaRange[1] - chromaRange[0]);
-    c = Math.round(c * 100) / 100;
-    return c;
-  });
-  const dL = useDerivedValue(() => {
-    let l =
-      1 -
-      (vLightnessPanPos.value.angle -
-        lightnessArcRotation[1] +
-        lightnessArcRotation[0] / 2) /
-        lightnessArcRotation[0];
-    l = (l - 0.5 / litDimensions[1]) / (1 - 1 / litDimensions[1]);
-    l = litRange[0] + l * (litRange[1] - litRange[0]);
-    l = Math.round(l * 100) / 100;
-    return l;
-  });
-  const dAR = useDerivedValue(() => {
-    let ar = ((vWheelRotation.value % (44 / 7)) + 44 / 7) % (44 / 7);
-    ar = Math.round(ar * 100) / 100;
-    return ar;
-  });
-
-  /// C A L L B A C K S ///
-
-  const wGetChromaColor = useCallback(
-    (src: { rings: number; chords: number }) => {
+  const chipModifier: tAttributeModifier = {
+    modID: 30,
+    deps: [],
+    modifier: (input: tAttributeMap) => {
       "worklet";
-      const _ = vChromaPanPos.value;
-      let chord = src.chords / (chromaDimensions[1] - 1);
-      let r = src.rings / (chromaDimensions[0] - 1);
-      let c = chromaRange[0] + chord * (chromaRange[1] - chromaRange[0]);
-      r = 0.5 + r * 0.5;
-      c *= r;
-      const l = dL.value * r;
-      const ar = dAR.value;
-
-      return fCLARColorToString({
-        c,
-        l: l,
-        ar: ar,
-      });
+      const z =
+        eLayers.chipFan + (rc.chords - (input.id - eLayers.chipFan)) * 2;
+      return {
+        ...input,
+        zIndex: z,
+      };
     },
-    [chromaDimensions, chromaRange],
-  );
-
-  const wGetLightnessColor = useCallback(
-    (src: { rings: number; chords: number }) => {
-      "worklet";
-      const _ = vLightnessPanPos.value;
-      let l = 1 - (src.chords + 0.5) / (litDimensions[1] - 1);
-      l = litRange[0] + l * (litRange[1] - litRange[0]);
-      let r = src.rings / (litDimensions[0] - 1);
-      l *= r * 0.25 + 0.75;
-      r = 0.5 + r * 0.5;
-      return fCLARColorToString({
-        c: dC.value * r,
-        l,
-        ar: dAR.value,
-      });
-    },
-    [dC, dAR],
-  );
-
-  const wUpdateState = useCallback(
-    (pc?, pl?, par?) => {
-      "worklet";
-      const c = pc !== undefined ? pc : dC.value;
-      const l = pl !== undefined ? pl : dL.value;
-      const ar = par !== undefined ? par : dAR.value;
-      scheduleOnRN(vTargetColor.dispatch, {
-        c,
-        l,
-        ar,
-      });
-      scheduleOnRN(vSideA.dispatch, !vSideA.shared.value);
-    },
-    [dC, dL, dAR, vTargetColor, vSideA],
-  );
-
-  const fOnDrop = useCallback((paint: tPaint) => {
-    console.log("Dropped paint", paint);
-    const c = paint.clar.c;
-    const l = paint.clar.l;
-    let pAR = wDefaultAngleToChord(paint.clar.ar, 44 / 7, 24, 0);
-    pAR = wDefaultChordToAngle(pAR, 44 / 7, 24, 0);
-    vWheelRotation.value = pAR;
-    let pL =
-      lightnessArcRotation[1] -
-      lightnessArcRotation[0] / 2 +
-      lightnessArcRotation[0] * (1 - l);
-    pL = wDefaultAngleToChord(
-      pL,
-      lightnessArcRotation[0],
-      litDimensions[1],
-      lightnessArcRotation[1],
-    );
-    pL = wDefaultChordToAngle(
-      pL,
-      lightnessArcRotation[0],
-      litDimensions[1],
-      lightnessArcRotation[1],
-    );
-    vLightnessPanPos.value = { angle: pL, radius: radii[1] };
-    let pC =
-      chromaArcRotation[1] -
-      chromaArcRotation[0] / 2 +
-      chromaArcRotation[0] * c;
-    pC = wDefaultAngleToChord(
-      pC,
-      chromaArcRotation[0],
-      chromaDimensions[1],
-      chromaArcRotation[1],
-    );
-    pC = wDefaultChordToAngle(
-      pC,
-      chromaArcRotation[0],
-      chromaDimensions[1],
-      chromaArcRotation[1],
-    );
-    vChromaPanPos.value = { angle: pC, radius: radii[1] };
-    wUpdateState(paint.clar.c, paint.clar.l, paint.clar.ar);
-  }, []);
-
-  /// R E N D E R ///
-
+  };
+  const { registerModifier, unregisterModifier } = useUserContext();
+  useEffect(() => {
+    const id = registerModifier(chipModifier);
+    return () => {
+      unregisterModifier(id);
+    };
+  }, [chipModifier]);
   return (
     <>
-      <View
-        style={{
-          flex: 1,
-          zIndex: 0,
+      <RadialContext
+        value={{
+          origin,
+          radii,
+          wGetColor,
+          wAngleToChord: wDefaultAngleToChord,
+          wChordToAngle: wDefaultChordToAngle,
+          fPathFunction: fMakePetalPath,
+          transformModifier: wTransformMatrix,
         }}
       >
-        <RadialContext
-          value={{
-            radii,
-
-            origin,
-            direction,
-            wAngleToChord: wDefaultAngleToChord,
-            wChordToAngle: wDefaultChordToAngle,
-            dC,
-            dL,
-            dAR,
-            wUpdateState,
-          }}
-        >
-          <BGGradient />
-          <PanManager>
-            <TintSelector
-              key={`Lightness Selector`}
-              arcLength={lightnessArcRotation[0]}
-              rotationR={lightnessArcRotation[1]}
-              rc={{ rings: litDimensions[0], chords: litDimensions[1] }}
-              radii={[radii[1] - 50, radii[1] + 75]}
-              vPanPos={vLightnessPanPos}
-              wGetColor={wGetLightnessColor}
-            />
-            <TintSelector
-              key={`Chroma Selector`}
-              arcLength={chromaArcRotation[0]}
-              rotationR={chromaArcRotation[1]}
-              rc={{ rings: chromaDimensions[0], chords: chromaDimensions[1] }}
-              radii={[radii[1] - 50, radii[1] + 75]}
-              vPanPos={vChromaPanPos}
-              wGetColor={wGetChromaColor}
-            />
-            <ColorWheel
-              radii={radii}
-              rc={{ rings: 5, chords: 24 }}
-              vRotationROffset={vWheelRotation}
-              wheelCenter={wheelCenter}
-            />
-          </PanManager>
-        </RadialContext>
-      </View>
-      <ColorChipFan
-        targetColor={vTargetColor.state}
-        targetNumber={9}
+        <RadialGraphic
+          rc={rc}
+          arcLength={arcLength}
+          rotationR={rotationR}
+          fSectorGroupModifier={fSectorGroupModifier}
+        />
+      </RadialContext>
+      <PaintChip
+        paintA={vTargetColor.state}
+        origin={{
+          x: Dimensions.get("window").width - eChipSizes.grabbed[0] * 0.7,
+          y: Dimensions.get("window").height * 0.4,
+        }}
+        size="grabbed"
+        chipID={[eLayers.chipHand, 12]}
+        startRotation={6 / 7}
+      />
+      <ChipFan
+        paintsA={paints.current}
         origin={origin}
-        size={"default"}
-        rotationR={22 / 7}
-        arcLength={13 / 7}
-        radius={origin[0] * 0.8}
-        direction={direction}
-        firstIndex={0}
-        sideA={vSideA.state}
-        cSteps={chromaDimensions[1]}
-        lSteps={litDimensions[1]}
-        arSteps={24}
+        sideA={true}
+        arcLength={arcLength}
+        rotationR={rotationR + 0.02}
+        radius={radii[1] * 0.75}
         groupLayer={eLayers.chipFan}
       />
     </>

@@ -20,13 +20,7 @@ import Svg, {
 import { useUserContext, eLayers } from "./UserContext";
 import { eChipMap, eChipSizes, tChipStatus } from "./PaintChip";
 import { useVerse, useVerseRelay } from "./Verse";
-import { tPaint } from "./CLAcolor";
-import { scheduleOnRN } from "react-native-worklets";
-import { transform } from "@babel/core";
-
-const clarColorsList: tPaint[] = require("./clarColors.json");
-
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+import { tAttributeMap, tAttributeModifier } from "./Actor";
 
 const fLerp = (a, b, t) => {
   "worklet";
@@ -37,7 +31,7 @@ export type tChipBucket = {
   origin: [number, number];
   radius: [number, number];
   callback?: (paint: any) => void;
-  statusTrigger?: tChipStatus;
+  targetLayerRange?: [number, number];
   outlineOffset?: [number, number];
   zIndex?: number;
 };
@@ -46,26 +40,36 @@ export const ChipBucket = ({
   origin = [0, 0],
   radius = [100, 200],
   callback,
-  statusTrigger = ["grabbed", "pulled"],
+  targetLayerRange = [eLayers.chipHand, eLayers.chipHand + 100],
   outlineOffset = [0, 0],
   zIndex = eLayers.buckets,
 }: tChipBucket) => {
-  const { vPanX, vPanY, vPanOverride, vHeldChipRoot, heldChipPaint } =
-    useUserContext();
-  const circleRadius = 150;
+  const {
+    heldChipPaint,
+    vHeldChipID,
+    registerModifier,
+    unregisterModifier,
+    vPanX,
+    vPanY,
+  } = useUserContext();
   const vActive = useVerse(false);
   const inRadius = useVerse(false);
-  const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
-  const paintColor = inRadius.state ? heldChipPaint.hex : "white";
+  const vHeldChipIDRelay = useVerseRelay(vHeldChipID);
+  const paintColor = inRadius.state ? (heldChipPaint?.hex ?? "white") : "white";
+  const bucketAnim = useSharedValue(0);
+
   useEffect(() => {
-    if (
-      vHeldChipStatus.state[0] === statusTrigger[0] &&
-      vHeldChipStatus.state[1] === statusTrigger[1] &&
-      !vActive.state
-    ) {
-      vActive.dispatch(true);
+    if (vHeldChipIDRelay.state != null) {
+      if (
+        vHeldChipIDRelay.state > targetLayerRange[0] &&
+        vHeldChipIDRelay.state < targetLayerRange[1] &&
+        !vActive.state
+      ) {
+        vActive.dispatch(true);
+        inRadius.dispatch(false);
+      }
     } else {
-      if (vHeldChipStatus?.state[1] === "returning" && vActive.state) {
+      if (vActive.state) {
         if (inRadius.state) {
           callback?.(heldChipPaint);
         }
@@ -73,7 +77,7 @@ export const ChipBucket = ({
         inRadius.dispatch(false);
       }
     }
-  }, [vHeldChipStatus.state]);
+  }, [vHeldChipIDRelay.state]);
 
   const dDistance = useDerivedValue(() => {
     const distance = Math.sqrt(
@@ -86,52 +90,56 @@ export const ChipBucket = ({
   useAnimatedReaction(
     () => dDistance.value,
     (distance) => {
-      if (
-        !vActive.shared.value ||
-        vHeldChipStatus?.shared.value[1] === "returning"
-      )
-        return;
+      if (!vActive.shared.value) return;
       if (inRadius.shared.value && distance > 1.1) {
-        vHeldChipStatus.dispatch(statusTrigger);
+        bucketAnim.value = withTiming(0, { duration: 500 });
         inRadius.dispatch(false);
       } else if (!inRadius.shared.value && distance < 0.9) {
+        bucketAnim.value = withTiming(1, { duration: 500 });
         inRadius.dispatch(true);
-        vHeldChipStatus.dispatch(["grabbed", "inBucket"]);
-        vPanOverride.value = {
-          x: origin[0] + outlineOffset[0],
-          y: origin[1] + outlineOffset[1],
-        };
       }
     },
   );
-  const angle = useDerivedValue(() => {
-    if (!vActive.state) return 0;
-    return Math.atan2(
-      vPanY.shared.value - origin[1],
-      vPanX.shared.value - origin[0],
-    );
-  });
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: vActive.state ? 1 / dDistance.value : 0 }],
   }));
-  const circleAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: vActive.state ? 1 : 0,
-    transform: [{ scale: 1 }],
-    left: vPanX.shared.value - radius[0],
-    top: vPanY.shared.value - radius[0] - circleRadius / 2,
-  }));
-  const rectProps = useAnimatedProps(() => {
-    const length = radius[0] * 2 * dDistance.value;
-    const height = (radius[0] * 2) / dDistance.value;
-    return {
-      width: length,
-      height: height,
-      transform: [
-        { translateY: -height / 2 + radius[0] },
-        { rotate: `${angle.value}rad` },
-      ],
+
+  const bucketModifier: tAttributeModifier = {
+    modID: 20,
+    deps: [
+      vHeldChipIDRelay.shared,
+      vActive.shared,
+      bucketAnim,
+      vPanX.shared,
+      vPanY.shared,
+    ],
+    modifier: (input: tAttributeMap, last) => {
+      "worklet";
+      if (!vActive.shared.value) return { ...input };
+      if (vHeldChipIDRelay.shared.value !== input.id) return { ...input };
+      return {
+        ...input,
+        translateX: fLerp(
+          input.translateX || 0,
+          origin[0] - eChipSizes["default"][0] / 2,
+          bucketAnim.value,
+        ),
+        translateY: fLerp(
+          input.translateY || 0,
+          origin[1] - eChipSizes["default"][1] / 2,
+          bucketAnim.value,
+        ),
+      };
+    },
+  };
+
+  useEffect(() => {
+    console.log("Registering Bucket Modifier");
+    const id = registerModifier(bucketModifier);
+    return () => {
+      unregisterModifier?.(id);
     };
-  });
+  }, []);
 
   return (
     <View

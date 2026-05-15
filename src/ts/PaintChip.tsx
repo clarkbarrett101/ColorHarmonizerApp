@@ -20,10 +20,18 @@ import Animated, {
 } from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { use, useCallback, useEffect, useRef, useState } from "react";
-import { runOnJS } from "react-native-worklets";
-import { View } from "react-native";
+import { Dimensions, View } from "react-native";
 import { eLayers, useUserContext } from "./UserContext";
 import { useVerse, useVerseRelay } from "./Verse";
+import {
+  fLerpModifierFactory,
+  tAttribute,
+  tAttributeMap,
+  tAttributeModifier,
+  useActor,
+} from "./Actor";
+import { BlurView } from "expo-blur";
+import { useBucketContext } from "./BucketContext";
 const clarColorsList: tPaint[] = require("./clarColors.json");
 export const eChipMap = {
   idle: {
@@ -49,19 +57,23 @@ export const eChipSizes = {
   grabbed: [180, 108],
   outline: [210, 126],
 };
+
 export type tPaintChip = {
   paintA: tPaint;
   paintB?: tPaint;
   origin: { x: number; y: number };
   size?: keyof typeof eChipSizes;
   startRotation?: number;
-  zIndex?: number;
   radialOffset?: number;
   chipID: [number, number];
+  relativeZ?: number;
   sideA?: boolean;
-  groupLayer?: number;
   direction?: 1 | -1;
-  nudge?: SharedValue<{ angle: number; distance: number }>;
+};
+
+export const fLerp = (a: number, b: number, t: number): number => {
+  "worklet";
+  return a * (1 - t) + b * t;
 };
 
 export const PaintChip = ({
@@ -70,76 +82,154 @@ export const PaintChip = ({
   origin = { x: 0, y: 0 },
   size = "default",
   startRotation = 0,
-  zIndex = 0,
+  relativeZ = 0,
   radialOffset = 0,
   chipID,
   sideA = true,
-  groupLayer = 0,
   direction = 1,
-  nudge,
 }: tPaintChip) => {
   /// O N  M O U N T ///
 
   let flag = "#0f0";
+  const id = chipID[0] + chipID[1];
   const {
+    holdChip,
+    vHeldChipID,
+    // vHeldChipRoot,
+    setHeldChipPaint,
+    registerChipActor,
+    unregisterChipActor,
     vPanX,
     vPanY,
     vVelocityX,
-    holdChip,
-    vPanOverride,
-    heldChipID,
-    vHeldChipRoot,
-    setHeldChipPaint,
   } = useUserContext();
+  const { vDropScreen } = useBucketContext();
+  const rotateZ =
+    Math.abs(startRotation) > 11 / 7 ? -22 / 7 + startRotation : startRotation;
+  const startPosition = {
+    x: origin.x + Math.cos(-direction * startRotation) * radialOffset,
+    y: origin.y + Math.sin(-direction * startRotation) * radialOffset,
+  };
+  const actor = useActor({
+    rotateZ: rotateZ * -direction,
+    translateX: startPosition.x,
+    translateY: startPosition.y,
+    id,
+    rotateX: 0,
+    shadowRadius: 3,
+    shadowX: -2,
+    shadowY: 2,
+  });
+  const vPaintA = useVerse(false);
+  const paint = vPaintA.state ? paintA : paintB;
+  const vHeldChipIDRelay = useVerseRelay(vHeldChipID);
+  const panWeight = useSharedValue(0);
+  const flipAnim = useSharedValue(0);
 
-  const [isPaintA, setIsPaintA] = useState(false);
-  const paint = isPaintA ? paintA : paintB;
-
-  const vLocalChipStatus = useVerse<tChipStatus>(["idle", "ready"]);
-  const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
-  const anim = useSharedValue(0);
-  const vTilt = useSharedValue(0);
-
-  const vR = useSharedValue(startRotation);
+  function flipDown(isSideA) {
+    "worklet";
+    flipAnim.value = isSideA ? 0.4 : 0.6;
+    vPaintA.dispatch(isSideA);
+    flipAnim.value = withTiming(isSideA ? 0 : 1, {
+      duration: 200,
+    });
+  }
+  function flipUp(isSideA) {
+    "worklet";
+    flipAnim.value = withDelay(
+      isSideA ? 500 * relativeZ : (1 - relativeZ) * 500,
+      withTiming(0.5, { duration: 200 }, (finished) => {
+        if (finished) {
+          flipDown(isSideA);
+        }
+      }),
+    );
+  }
   useEffect(() => {
-    vR.value = withTiming(startRotation);
-  }, [startRotation]);
-
-  useEffect(() => {
-    if (vLocalChipStatus.state[1] === "flippingUp") {
-      vLocalChipStatus.dispatch(["idle", "flippingDown"]);
+    if (flipAnim.value > 0 && flipAnim.value < 1) {
+      flipDown(sideA);
     } else {
-      vLocalChipStatus.dispatch(["idle", "flippingUp"]);
+      flipUp(sideA);
     }
   }, [sideA]);
 
-  useEffect(() => {
-    if (
-      heldChipID !== null &&
-      heldChipID[0] === chipID[0] &&
-      heldChipID[1] === chipID[1]
-    ) {
-      vLocalChipStatus.dispatch(vHeldChipStatus.state);
-    } else if (vLocalChipStatus.state[0] === "grabbed") {
-      vLocalChipStatus.dispatch(["idle", "returning"]);
-    }
-  }, [vHeldChipStatus.state]);
+  const flipModifier: tAttributeModifier = {
+    modID: 0,
+    deps: [flipAnim],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      const rx = fLerp(0.5 / 7, 21.5 / 7, flipAnim.value);
+      return {
+        ...input,
+        rotateX: rx,
+        zIndex:
+          flipAnim.value > 0.5 ? chipID[0] + chipID[1] : chipID[0] - chipID[1],
+      };
+    },
+  };
 
+  const dPanx = useDerivedValue(() => {
+    return vPanX.shared.value - eChipSizes[size][0] / 2;
+  });
+  const dPany = useDerivedValue(() => {
+    return vPanY.shared.value - eChipSizes[size][1] / 2;
+  });
+  const dRotation = useDerivedValue(() => {
+    return vVelocityX.shared.value * 0.0005;
+  });
+  const dScale = useDerivedValue(() => {
+    return 1.3;
+  });
+  const panMod = fLerpModifierFactory(
+    1,
+    {
+      translateX: dPanx,
+      translateY: dPany,
+      rotateZ: dRotation,
+      scaleX: dScale,
+      scaleY: dScale,
+    },
+    panWeight,
+    [vPanX.shared, vPanY.shared, vVelocityX.shared, panWeight],
+  );
+
+  const dimensions = Dimensions.get("window");
+  const shadowModifier: tAttributeModifier = {
+    modID: 2,
+    deps: [panWeight, vPanX.shared, vPanY.shared],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+
+      const x = -0.25 + input.translateX / dimensions.width;
+      const y = -0.5 + input.translateY / dimensions.height;
+      return {
+        ...input,
+        shadowX: fLerp(input.shadowX || 0, -x * 10, panWeight.value),
+        shadowY: fLerp(input.shadowY || 0, y * 10, panWeight.value),
+        shadowRadius: fLerp(input.shadowRadius || 3, 6, panWeight.value),
+      };
+    },
+  };
   useEffect(() => {
-    if (
-      heldChipID !== null &&
-      heldChipID[0] === chipID[0] &&
-      heldChipID[1] === chipID[1]
-    ) {
-      setHeldChipPaint(paint);
-    }
-  }, [heldChipID]);
+    actor.addModifier(flipModifier);
+    actor.addModifier(panMod);
+    actor.addModifier(shadowModifier);
+    registerChipActor(id, actor);
+    return () => {
+      actor.removeModifier(flipModifier.modID);
+      actor.removeModifier(panMod.modID);
+      actor.removeModifier(shadowModifier.modID);
+      unregisterChipActor(id);
+    };
+  }, []);
 
   /// P A N  G E S T U R E///
   flag = "#ff0";
   const panGesture = usePanGesture({
     onActivate: (event) => {
-      holdChip(chipID, ["grabbed", "pulled"]);
+      panWeight.value = withTiming(1, { duration: 300 });
+      holdChip(id);
+      vDropScreen.dispatch(true);
     },
     onUpdate: (event) => {
       vPanX.shared.value = event.absoluteX;
@@ -147,171 +237,103 @@ export const PaintChip = ({
       vVelocityX.shared.value = event.velocityX;
     },
     onDeactivate: (event) => {
+      panWeight.value = withTiming(0, { duration: 300 });
       holdChip();
+      vDropScreen.dispatch(false);
     },
   });
 
   /// S T A T E  M A C H I N E ///
-
   flag = "#f00";
+
   useEffect(() => {
-    if (vLocalChipStatus.state[0] === "grabbed") {
-      vR.value = 0;
-      if (vLocalChipStatus.state[1] === "inBucket") {
-        anim.value = withTiming(1, { duration: 300 });
-      } else {
-        anim.value = withTiming(0, { duration: 300 });
-      }
-    } else if (
-      vLocalChipStatus.state[0] === "idle" &&
-      vLocalChipStatus.state[1] === "returning"
-    ) {
-      anim.value = 1;
-      anim.value = withTiming(0, { duration: 300 }, (finished) => {
-        finished && vLocalChipStatus.dispatch(["idle", "ready"]);
-      });
-    } else {
-      vR.value = startRotation;
-      anim.value = withTiming(0, { duration: 300 });
+    if (vHeldChipIDRelay.state !== null && vHeldChipIDRelay.state === id) {
+      setHeldChipPaint(paint);
     }
-    if (vLocalChipStatus.state[1] === "flippingUp") {
-      vTilt.value = withDelay(
-        sideA ? 500 * chipID[1] : (1 - chipID[1]) * 500,
-        withTiming(11 / 7, { duration: 200 }, (finished) => {
-          if (finished) {
-            vLocalChipStatus.dispatch(["idle", "flippingDown"]);
-          }
-        }),
-      );
-    } else if (vLocalChipStatus.state[1] === "flippingDown") {
-      runOnJS(setIsPaintA)(sideA);
-      vTilt.value = sideA ? 9 / 7 : 13 / 7;
-      vTilt.value = withTiming(
-        sideA ? 1 / 7 : 21 / 7,
-        {
-          duration: 200,
-        },
-        (finished) => {
-          finished && vLocalChipStatus.dispatch(["idle", "ready"]);
-        },
-      );
-    }
-  }, [vLocalChipStatus.state]);
+  }, [vHeldChipIDRelay.state]);
+
+  const grabbed = vHeldChipIDRelay.state === id;
 
   /// T R A N S F O R M ///
   flag = "#f0f";
-
-  const fLerp = (a: number, b: number, t: number): number => {
-    "worklet";
-    return a * (1 - t) + b * t;
-  };
-
-  const startPosition = {
-    x: origin.x + Math.cos(-direction * startRotation) * radialOffset,
-    y: origin.y + Math.sin(-direction * startRotation) * radialOffset,
-  };
-
-  const dPosition = useDerivedValue(() => {
-    if (vLocalChipStatus.shared.value[0] === "grabbed") {
-      return {
-        x:
-          fLerp(vPanX.shared.value, vPanOverride.value.x, anim.value) -
-          eChipSizes[size][0] / 2,
-        y:
-          fLerp(vPanY.shared.value, vPanOverride.value.y, anim.value) -
-          eChipSizes[size][1] / 2,
-      };
-    } else {
-      return {
-        x: fLerp(startPosition.x, vPanX.shared.value, anim.value),
-        y: fLerp(startPosition.y, vPanY.shared.value, anim.value),
-      };
-    }
-  });
-
-  const dTransform = useDerivedValue(() => {
-    let rotation = vR.value * -direction - (vR.value > 11 / 7 ? 22 / 7 : 0);
-    if (vLocalChipStatus.shared.value[0] === "grabbed") {
-      rotation += vVelocityX.shared.value / 1000;
-    }
-    return {
-      transform: [
-        { perspective: 1000 },
-        {
-          translateX: dPosition.value.x,
-        },
-        {
-          translateY: dPosition.value.y,
-        },
-        {
-          rotateZ: `${rotation}rad`,
-        },
-        { rotateX: `${vTilt.value}rad` },
-      ],
-    };
-  });
-
   const animatedStyle = useAnimatedStyle(() => {
-    return {
-      ...dTransform.value,
-    } as any;
+    return actor.get((attributes) => {
+      return {
+        transform: [
+          { perspective: 1000 },
+          { translateX: attributes.translateX || 0 },
+          { translateY: attributes.translateY || 0 },
+          { rotateZ: `${attributes.rotateZ || 0}rad` },
+          { scaleX: attributes.scaleX || 1 },
+          { scaleY: attributes.scaleY || 1 },
+          { rotateX: `${attributes.rotateX || 0}rad` },
+        ],
+      };
+    });
   });
-
+  const zStyle = useAnimatedStyle(() => {
+    return actor.get((attributes) => {
+      return {
+        zIndex:
+          panWeight.value > 0 ? eLayers.grabbedChip : attributes.zIndex || 0,
+        shadowOffset: {
+          width: attributes.shadowX || 0,
+          height: attributes.shadowY || 0,
+        },
+        shadowRadius: attributes.shadowRadius || 0,
+      };
+    });
+  });
+  const highlightAngle =
+    Math.atan2(startPosition.y, -startPosition.x) -
+    (grabbed ? 22 / 7 : startRotation);
   /// R E N D E R ///
   flag = "#00f";
   return (
-    <View
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: eChipSizes.grabbed[0],
-        height: eChipSizes.grabbed[1],
-        zIndex:
-          vLocalChipStatus.state[0] === "grabbed"
-            ? eLayers.grabbedChip
-            : isPaintA
-              ? zIndex + groupLayer
-              : groupLayer - zIndex,
-      }}
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: eChipSizes.grabbed[0],
+          height: eChipSizes.grabbed[1],
+          shadowColor: "#000",
+          shadowOpacity: 0.7,
+        },
+        zStyle,
+      ]}
     >
       <Animated.View
         style={[
           {
             position: "absolute",
+            left: 0,
+            top: 0,
+            width: eChipSizes.grabbed[0],
+            height: eChipSizes.grabbed[1],
           },
           animatedStyle,
+          zStyle,
         ]}
       >
         <GestureDetector gesture={panGesture}>
           <Svg
             viewBox={`0 0 32 20`}
             style={{
-              width:
-                vLocalChipStatus.state[0] === "grabbed"
-                  ? eChipSizes.grabbed[0]
-                  : eChipSizes[size][0],
-              height:
-                vLocalChipStatus.state[0] === "grabbed"
-                  ? eChipSizes.grabbed[1]
-                  : eChipSizes[size][1],
-              shadowColor: "#000",
-              shadowOffset: {
-                width: vLocalChipStatus.state[0] === "grabbed" ? -10 : 2,
-                height: vLocalChipStatus.state[0] === "grabbed" ? -10 : 2,
-              },
-              shadowOpacity: 0.7,
-              shadowRadius: 5,
-              transform: [{ scaleY: isPaintA ? 1 : -1 }],
+              width: eChipSizes[size][0],
+              height: eChipSizes[size][1],
+
+              transform: [{ scaleY: vPaintA.state ? 1 : -1 }],
             }}
           >
             <Defs>
               <LinearGradient
                 id="grad"
-                x1={`${Math.cos(-(vLocalChipStatus.state[0] === "grabbed" ? 0 : startRotation) + 22 / 7) * 50 + 50}%`}
-                y1={`${Math.sin(-(vLocalChipStatus.state[0] === "grabbed" ? 0 : startRotation) + 22 / 7) * 50 + 50}%`}
-                x2={`${Math.cos(-(vLocalChipStatus.state[0] === "grabbed" ? 0 : startRotation)) * 50 + 50}%`}
-                y2={`${Math.sin(-(vLocalChipStatus.state[0] === "grabbed" ? 0 : startRotation)) * 50 + 50}%`}
+                x1={`${Math.cos(highlightAngle) * 50 + 50}%`}
+                y1={`${Math.sin(highlightAngle) * 50 + 50}%`}
+                x2={`${Math.cos(highlightAngle + 22 / 7) * 50 + 50}%`}
+                y2={`${Math.sin(highlightAngle + 22 / 7) * 50 + 50}%`}
               >
                 <Stop offset="0%" stopColor="#fff" stopOpacity=".2" />
                 <Stop
@@ -360,6 +382,6 @@ export const PaintChip = ({
           </Svg>
         </GestureDetector>
       </Animated.View>
-    </View>
+    </Animated.View>
   );
 };

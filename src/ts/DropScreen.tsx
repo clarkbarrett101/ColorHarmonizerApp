@@ -10,38 +10,34 @@ import Svg, {
 } from "react-native-svg";
 import { eLayers, useUserContext } from "./UserContext";
 import Animated, {
+  useAnimatedProps,
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
 import { ChipBucket } from "./ChipBucket";
 import { useBucketContext } from "./BucketContext";
 import { useVerseRelay } from "./Verse";
+import { Blur } from "@shopify/react-native-skia";
+import { BlurView } from "expo-blur";
 
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 export type tDropScreen = {};
 
 export default function DropScreen({}: tDropScreen) {
-  const { buckets } = useBucketContext();
-  const { vHeldChipRoot, eLayers } = useUserContext();
-  const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
+  const { buckets, vDropScreen } = useBucketContext();
+  const vDropScreenRelay = useVerseRelay(vDropScreen);
   const dimensions = Dimensions.get("window");
   const aspectRatio = dimensions.height / dimensions.width;
-  const [active, setActive] = useState(false);
-  useEffect(() => {
-    if (
-      vHeldChipStatus.state[0] === "grabbed" ||
-      vHeldChipStatus.state[1] === "choosing"
-    ) {
-      setActive(true);
-    } else {
-      setActive(false);
-    }
-  }, [vHeldChipStatus.state]);
-  const animatedStyle = useAnimatedStyle(() => {
+  console.log(
+    "DropScreen Render - DropScreen State:",
+    vDropScreenRelay.state,
+    vDropScreenRelay.shared.value,
+  );
+  const animatedStyle = useAnimatedProps(() => {
     return {
-      opacity: withTiming(active ? 1 : 0, { duration: 200 }),
-      width: active ? dimensions.width : 0,
-      height: active ? dimensions.height : 0,
-      zIndex: active ? eLayers.dropScreen : -1,
+      intensity: withTiming(vDropScreenRelay.shared.value ? 10 : 0, {
+        duration: 300,
+      }),
     };
   });
   const bucketComps = () => {
@@ -54,43 +50,19 @@ export default function DropScreen({}: tDropScreen) {
 
   return (
     <>
-      <Animated.View
-        style={[
-          animatedStyle,
-          {
-            position: "absolute",
-            left: 0,
-            top: 0,
-          },
-        ]}
-      >
-        <Svg
-          width={dimensions.width}
-          height={dimensions.height}
-          viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-        >
-          <Defs>
-            <RadialGradient
-              id="grad"
-              cx={dimensions.width / 2}
-              cy={dimensions.height / 2 / aspectRatio}
-              r={dimensions.width * 0.75}
-              gradientUnits="userSpaceOnUse"
-              gradientTransform={`scale(1, ${aspectRatio})`}
-            >
-              <Stop offset="0%" stopColor="#000000" stopOpacity={0} />
-              <Stop offset="100%" stopColor="#000000" stopOpacity={0.5} />
-            </RadialGradient>
-          </Defs>
-          <Rect
-            x={0}
-            y={0}
-            width={dimensions.width}
-            height={dimensions.height}
-            fill="url(#grad)"
-          />
-        </Svg>
-      </Animated.View>
+      <AnimatedBlurView
+        animatedProps={animatedStyle}
+        tint={"systemChromeMaterial"}
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: dimensions.width,
+          height: dimensions.height,
+          zIndex: vDropScreenRelay.state ? eLayers.dropScreen : -1,
+        }}
+      />
+
       {bucketComps()}
     </>
   );

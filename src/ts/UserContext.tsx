@@ -1,26 +1,14 @@
 import React, {
   createContext,
-  Dispatch,
   ReactNode,
-  RefObject,
-  use,
-  useCallback,
   useContext,
   useEffect,
-  useReducer,
   useRef,
   useState,
 } from "react";
-import { fRandomPaints, tPaint } from "./CLAcolor";
-import {
-  DerivedValue,
-  runOnJS,
-  SharedValue,
-  useAnimatedReaction,
-  useSharedValue,
-} from "react-native-reanimated";
+import { tPaint } from "./CLAcolor";
 import { tVerse, useVerse } from "./Verse";
-import { eChipMap, tChipStatus } from "./PaintChip";
+import { tChipStatus } from "./PaintChip";
 import { tActor, tAttributeModifier } from "./Actor";
 const clarColorsList: tPaint[] = require("./clarColors.json");
 
@@ -31,22 +19,18 @@ export const eLayers = {
   chipHand: 600,
   dropScreen: 400,
   chipFan: 200,
-  colorMixer: 0,
-};
-
-type modEntry = {
-  id: number;
-  modifier: tAttributeModifier;
+  panManager: 150,
+  colorMixer: 100,
+  background: 10,
 };
 
 export type tUserContext = {
   userPallete: tPaint[];
-  addPaint: (paint: tPaint) => void;
+  addPaint: (paint: tPaint, index?: number) => void;
   holdChip: (chipID?: number, status?: tChipStatus) => void;
   vPanX: tVerse<number>;
   vPanY: tVerse<number>;
   vVelocityX: tVerse<number>;
-  //vHeldChipRoot?: tVerse<tChipStatus>;
   vHeldChipID: tVerse<number | null>;
   heldChipPaint: tPaint | null;
   setHeldChipPaint?: (paint: tPaint | null) => void;
@@ -59,7 +43,7 @@ export type tUserContext = {
 
 export const Context = createContext<tUserContext>({
   userPallete: [],
-  addPaint: (paint: tPaint) => {},
+  addPaint: (paint: tPaint, index?: number) => {},
   holdChip: (chipID?: number, status?: tChipStatus) => {},
   vPanX: null,
   vPanY: null,
@@ -75,7 +59,6 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const allChipActors = useRef<Record<number, tActor>>({}).current;
   const registerModifier = (attributeModifier: tAttributeModifier) => {
     const id = Object.keys(allModifiers).length + 1;
-    console.log("Registering Modifier:", id, attributeModifier);
     allModifiers[id] = attributeModifier;
     for (let chipID in allChipActors) {
       allChipActors[chipID].addModifier(attributeModifier);
@@ -111,8 +94,15 @@ export default function UserContext({ children }: { children: ReactNode }) {
     const indexes = randomIndexes(5, clarColorsList.length);
     return indexes.map((i) => clarColorsList[i]);
   });
-  const addPaint = (paint: tPaint) => {
-    setUserPallete((prev) => [...prev, paint]);
+  const addPaint = (paint: tPaint, index?: number) => {
+    setUserPallete((prev) => {
+      if (index !== undefined) {
+        const newPallete = [...prev];
+        newPallete.splice(index, 0, paint);
+        return newPallete;
+      }
+      return [...prev, paint];
+    });
   };
   const vPanX = useVerse(0);
   const vPanY = useVerse(0);

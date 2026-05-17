@@ -9,9 +9,6 @@ import Svg, {
 } from "react-native-svg";
 import { tPaint } from "./CLAcolor";
 import Animated, {
-  DerivedValue,
-  SharedValue,
-  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -19,20 +16,17 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import { use, useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, View } from "react-native";
+import { useEffect } from "react";
+import { Dimensions } from "react-native";
 import { eLayers, useUserContext } from "./UserContext";
 import { useVerse, useVerseRelay } from "./Verse";
 import {
   fLerpModifierFactory,
-  tAttribute,
   tAttributeMap,
   tAttributeModifier,
   useActor,
 } from "./Actor";
-import { BlurView } from "expo-blur";
 import { useBucketContext } from "./BucketContext";
-const clarColorsList: tPaint[] = require("./clarColors.json");
 export const eChipMap = {
   idle: {
     ready: { idle: { ready: {} } },
@@ -227,6 +221,7 @@ export const PaintChip = ({
   flag = "#ff0";
   const panGesture = usePanGesture({
     onActivate: (event) => {
+      console.log("Dispatch start:", performance.now());
       panWeight.value = withTiming(1, { duration: 300 });
       holdChip(id);
       vDropScreen.dispatch(true);
@@ -251,9 +246,6 @@ export const PaintChip = ({
       setHeldChipPaint(paint);
     }
   }, [vHeldChipIDRelay.state]);
-
-  const grabbed = vHeldChipIDRelay.state === id;
-
   /// T R A N S F O R M ///
   flag = "#f0f";
   const animatedStyle = useAnimatedStyle(() => {
@@ -284,6 +276,7 @@ export const PaintChip = ({
       };
     });
   });
+  const grabbed = vHeldChipIDRelay.state === id;
   const highlightAngle =
     Math.atan2(startPosition.y, -startPosition.x) -
     (grabbed ? 22 / 7 : startRotation);

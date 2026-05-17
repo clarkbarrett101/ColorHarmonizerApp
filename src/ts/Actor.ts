@@ -1,7 +1,8 @@
 import { add } from "@shopify/react-native-skia";
 import { useEffect, useRef } from "react";
+
 import { DerivedValue, makeMutable, SharedValue, useDerivedValue, useSharedValue } from "react-native-reanimated";
-import { runOnUI, scheduleOnUI } from "react-native-worklets";
+import { isWorkletFunction, runOnUI, RuntimeKind, scheduleOnUI } from "react-native-worklets";
 export type tAttribute = 'ring' | 'chord' | 'rotateZ' | 'zIndex' | 'scaleX'|'scaleY' | 'translateX'|'id'|'translateY'|'rotateX'|'shadowX'|'shadowY'|'shadowRadius'|'red'|'green'|'blue';
 export type wModifier = (input:tAttributeMap,last?:tAttributeMap) => tAttributeMap;
 export type tAttributeModifier = {modID: number, deps?: SharedValue<any>[], modifier: wModifier};
@@ -33,7 +34,6 @@ const defaultAttributes: tAttributeMap = {
 };
 export function useActor(initialAttributes: tAttributeMap): tActor {
     const attributes : SharedValue<tAttributeMap> = useSharedValue<tAttributeMap>({ ...defaultAttributes, ...initialAttributes });
-    const lastAttributes : SharedValue<tAttributeMap> = useSharedValue<tAttributeMap>(attributes.value);
     useEffect(() => {
         attributes.value = { ...defaultAttributes, ...initialAttributes };
     }, [initialAttributes]);
@@ -42,7 +42,6 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
     const depsMap = useRef<{ [key: string]: SharedValue<any>[] }>({}).current;
     function addModifier( attributeModifier: tAttributeModifier) {
         const mod = makeMutable(attributeModifier.modifier);
-        console.log("Registering modifier with ID:", attributeModifier.modID, initialAttributes.id);
         scheduleOnUI(() => {
             'worklet';
             const mods = modifiers.value;
@@ -80,18 +79,18 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
             }
         });
     }
-    function get(callback: (attributes: tAttributeMap) => any) {
-        'worklet';
-                const depsValues = deps.map(dep => dep.value);
-        let modifiedAttributes = { ...attributes.value };
 
+const get = 
+    (callback: (attributes: tAttributeMap) => any) => {
+        'worklet';
+        const depsValues = deps.map(dep => dep.value);
+        let modifiedAttributes = { ...attributes.value };
         for (let id in modifiers.value) {
             const modifier = modifiers.value[id].value;
-            modifiedAttributes = modifier(modifiedAttributes, lastAttributes.value);
+            modifiedAttributes = modifier(modifiedAttributes);
         }
-        lastAttributes.value = modifiedAttributes;
         return callback(modifiedAttributes);
-    }
+    };
     return {
         attributes,
         addModifier,

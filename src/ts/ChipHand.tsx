@@ -1,12 +1,19 @@
 import { View, Dimensions } from "react-native";
-import React, { use, useEffect, useRef, useState } from "react";
+import React, {
+  Profiler,
+  use,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
-import { eLayers, useUserContext } from "./UserContext";
+import UserContext, { eLayers, useUserContext } from "./UserContext";
 import { scheduleOnRN } from "react-native-worklets";
 import { useVerse, useVerseRelay } from "./Verse";
 import { eChipMap, eChipSizes, fLerp } from "./PaintChip";
-import { useBucketContext } from "./BucketContext";
+import BucketContext, { useBucketContext } from "./BucketContext";
 import {
   useDerivedValue,
   useSharedValue,
@@ -18,7 +25,7 @@ import {
   tAttributeMap,
   fLerpModifierFactory,
 } from "./Actor";
-
+import { tPaint } from "./CLAcolor";
 export type tChipHand = {
   radius?: number;
   rotationR?: number;
@@ -190,8 +197,8 @@ export const ChipHand = ({
         const pullY = Math.sin(input.rotateZ) * diff * (holdRadius - radius);
         return {
           ...input,
-          translateX: (input.translateX + pullX + (last?.translateX || 0)) / 2,
-          translateY: (input.translateY + pullY + (last?.translateY || 0)) / 2,
+          translateX: input.translateX + pullX,
+          translateY: input.translateY + pullY,
           zIndex: eLayers.chipHand + z,
         };
       }
@@ -206,13 +213,19 @@ export const ChipHand = ({
       unregisterModifier(handPanId);
     };
   }, []);
+  const addPaintCallback = useCallback(
+    (paint: tPaint) => {
+      addPaint(paint, selectVerse.state);
+    },
+    [selectVerse.state],
+  );
 
   useEffect(() => {
     registerBucket({
       origin: [origin[0] + radius, origin[1] - radius],
       radius: [holdRadius, holdRadius * 2],
       callback: (paint) => {
-        addPaint(paint);
+        addPaintCallback(paint);
       },
       targetLayerRange: [eLayers.chipFan, eLayers.chipFan + 100],
       id: `hand-bucket`,
@@ -222,6 +235,7 @@ export const ChipHand = ({
       unregisterBucket(`hand-bucket`);
     };
   }, []);
+  console.log("Rendering ChipHand with selected index", selectVerse.state);
   return (
     <>
       <ChipFan
@@ -234,6 +248,7 @@ export const ChipHand = ({
         rotationR={rotationR}
         arcLength={arcLength}
       />
+
       <View
         style={{
           zIndex: eLayers.superMax,

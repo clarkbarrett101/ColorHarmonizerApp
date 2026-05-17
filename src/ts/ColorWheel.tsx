@@ -12,6 +12,7 @@ import {
 import { usePanManager } from "./PanManager";
 import { RadialContext, useRadialContext } from "./RadialContext";
 import { tAttributeMap, tAttributeModifier } from "./Actor";
+import { eLayers } from "./UserContext";
 
 type tColorWheel = {
   radii?: [number, number];
@@ -75,7 +76,7 @@ function ColorWheel({
       if (zDiff > rc.chords / 2) {
         zDiff = rc.chords - zDiff;
       }
-      const zIndex = Math.round(rc.chords / 2 - zDiff);
+      const zIndex = Math.round(rc.chords / 2 - zDiff) + eLayers.colorMixer;
       diff =
         Math.max(0, (2 * arcLength) / rc.chords - diff) /
         ((2 * arcLength) / rc.chords);
@@ -126,7 +127,7 @@ function ColorWheel({
     );
   }, []);
   const [zoneID, setZoneID] = useState(-10);
-
+  console.log("Rendering ColorWheel with selected ring", selectedRing);
   useEffect(() => {
     registerZone({
       fOnLeave,

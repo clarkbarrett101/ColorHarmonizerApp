@@ -8,7 +8,8 @@ import Svg from "react-native-svg";
 import { useEffect, useState } from "react";
 import { tSectorGroup } from "./sectorTypes";
 import { useRadialContext } from "./RadialContext";
-import { useActor } from "./Actor";
+import { tAttributeMap, useActor } from "./Actor";
+import { scheduleOnUI } from "react-native-worklets";
 
 export const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 export const SectorGroup = ({
@@ -39,24 +40,28 @@ export const SectorGroup = ({
       actor.removeModifier(transformModifier.modID);
     };
   }, []);
+  const mapper = (attributes: tAttributeMap) => {
+    "worklet";
+    return {
+      transform: [
+        { rotateZ: `${attributes.rotateZ || 0}rad` },
+        { translateX: attributes.translateX || 0 },
+        { translateY: attributes.translateY || 0 },
+        { scaleX: attributes.scaleX || 1 },
+        { scaleY: attributes.scaleY || 1 },
+      ],
+    };
+  };
 
   const animatedProps = useAnimatedProps(() => {
-    return actor.get((attributes) => {
-      return {
-        transform: [
-          { rotateZ: `${attributes.rotateZ || 0}rad` },
-          { translateX: attributes.translateX || 0 },
-          { translateY: attributes.translateY || 0 },
-          { scaleX: attributes.scaleX || 1 },
-          { scaleY: attributes.scaleY || 1 },
-        ],
-      };
-    });
+    "worklet";
+    return actor.get(mapper);
   });
   const containerStyle = useAnimatedStyle(() => {
+    "worklet";
     return actor.get((attributes) => {
       return {
-        zIndex: attributes.zIndex || 0,
+        zIndex: attributes.zIndex || 3,
         shadowOffset: {
           width: attributes.shadowX || 0,
           height: attributes.shadowY || 0,
@@ -98,8 +103,7 @@ export const SectorGroup = ({
         viewBox={`-${radii?.[1] * 1.1} -${radii?.[1] * 1.1} ${radii?.[1] * 2.2} ${radii?.[1] * 2.2}`}
         style={{
           margin: -radii?.[1],
-          ...style,
-          ...(isSelected ? selectedStyle : {}),
+          zIndex: 5,
         }}
       >
         {sectors?.map((sector, index) => (

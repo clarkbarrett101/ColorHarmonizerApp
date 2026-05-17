@@ -16,6 +16,7 @@ import { View } from "react-native";
 import { runOnJS } from "react-native-worklets";
 import { useRadialContext } from "./RadialContext";
 import { GestureEventCallback } from "react-native-gesture-handler/lib/typescript/v3/types";
+import { eLayers } from "./UserContext";
 
 type tRadialZone = {
   vPanPos: SharedValue<{ angle: number; radius: number }>;
@@ -227,6 +228,7 @@ export default function PanManager({
             left: origin[0] - radii[1] * 1.25,
             width: radii[1] * 2.5,
             height: radii[1] * 2.5,
+            zIndex: eLayers.panManager,
           }}
           viewBox={`${origin[0] - radii[1] * 1.25} ${origin[1] - radii[1] * 1.25} ${radii[1] * 2.5} ${radii[1] * 2.5}`}
         >

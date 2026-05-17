@@ -6,6 +6,7 @@ import { tSector, tSectorGroup } from "./sectorTypes";
 import { SharedValue } from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "./RadialContext";
 import { tAttributeMap, tAttributeModifier } from "./Actor";
+import { eLayers } from "./UserContext";
 
 export type tTintSelector = {
   rc?: { rings: number; chords: number };
@@ -85,7 +86,7 @@ export function TintSelector({
         1,
       );
       diff = 1 - diff;
-      const z = Math.round(diff * rc.chords);
+      const z = Math.round(diff * rc.chords) + eLayers.colorMixer;
       angle = angle * direction;
       const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
       return {

@@ -9,6 +9,8 @@ import PayWall from "./src/pages/PayWall";
 import SandBox from "./src/ts/SandBox";
 
 const App = () => {
+  // In your app entry point (App.tsx/index.js)
+
   return <SandBox />;
 };
 

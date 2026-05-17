@@ -23,6 +23,8 @@ import { useVerse } from "./Verse";
 import { useBucketContext } from "./BucketContext";
 import { BGGradient } from "./BGGradient";
 import { tAttributeModifier } from "./Actor";
+import { ChipHand } from "./ChipHand";
+import DropScreen from "./DropScreen";
 const clarColorsList: tPaint[] = require("./clarColors.json");
 
 type tColorSelector = {
@@ -228,13 +230,12 @@ export default function ColorSelector({
   }, []);
 
   /// R E N D E R ///
-
   return (
     <>
       <View
         style={{
           flex: 1,
-          zIndex: 0,
+          zIndex: eLayers.panManager,
         }}
       >
         <RadialContext
@@ -251,7 +252,7 @@ export default function ColorSelector({
             wUpdateState,
           }}
         >
-          <BGGradient />
+          <DropScreen />
           <PanManager>
             <TintSelector
               key={`Lightness Selector`}
@@ -298,3 +299,6 @@ export default function ColorSelector({
     </>
   );
 }
+/*
+    
+      */

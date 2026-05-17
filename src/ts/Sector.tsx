@@ -30,6 +30,7 @@ export const Sector = ({
     };
   }, []);
   const animatedProps = useAnimatedProps(() => {
+    "worklet";
     return actor.get((attributes) => {
       return {
         fill: `rgba(${attributes.red || 0},${attributes.green || 0},${attributes.blue || 0},1)`,

@@ -140,7 +140,6 @@ export const ChipBucket = ({
       unregisterModifier?.(id);
     };
   }, []);
-
   return (
     <View
       style={{

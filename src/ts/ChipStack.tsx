@@ -1,6 +1,6 @@
 import { eChipSizes, PaintChip, tPaintChip } from "./PaintChip";
 import { tCLARColor, tPaint } from "./CLAcolor";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 const clarColorsList: tPaint[] = require("./clarColors.json");
 const refList: {
   c: number;
@@ -23,49 +23,51 @@ export type tChipFan = {
   groupLayer?: number;
 };
 
-export const ChipFan = ({
-  paintsA,
-  paintsB,
-  origin,
-  size = "default",
-  rotationR = 0,
-  arcLength,
-  radius,
-  direction = 1,
-  sideA = true,
-  fGetChipModifier = (chip) => chip,
-  groupLayer = 0,
-}: tChipFan) => {
-  const groupID = useState(groupLayer)[0];
-  const chipStack = () => {
-    const newChipStack = [];
+export const ChipFan = React.memo(
+  ({
+    paintsA,
+    paintsB,
+    origin,
+    size = "default",
+    rotationR = 0,
+    arcLength,
+    radius,
+    direction = 1,
+    sideA = true,
+    fGetChipModifier = (chip) => chip,
+    groupLayer = 0,
+  }: tChipFan) => {
+    const groupID = useState(groupLayer)[0];
+    const chipStack = () => {
+      const newChipStack = [];
 
-    for (let i = 0; i < paintsA.length; i++) {
-      const z = (i + 0.5) / paintsA.length;
-      const chip: tPaintChip = {
-        paintA: paintsA[i],
-        paintB: paintsB ? paintsB[i] : undefined,
-        radialOffset: radius,
-        origin: {
-          x: origin[0] - eChipSizes[size][0] / 2,
-          y: origin[1] - eChipSizes[size][1] / 2,
-        },
-        size,
-        startRotation: rotationR + arcLength * (z - 0.5),
-        relativeZ: z,
-        chipID: [groupLayer, i],
-        sideA,
-        direction,
-      };
-      const modifiedChip = fGetChipModifier(chip);
-      newChipStack.push(
-        <PaintChip key={`${groupID}-${z}`} {...modifiedChip} />,
-      );
-    }
-    return newChipStack;
-  };
-  return <>{chipStack()}</>;
-};
+      for (let i = 0; i < paintsA.length; i++) {
+        const z = (i + 0.5) / paintsA.length;
+        const chip: tPaintChip = {
+          paintA: paintsA[i],
+          paintB: paintsB ? paintsB[i] : undefined,
+          radialOffset: radius,
+          origin: {
+            x: origin[0] - eChipSizes[size][0] / 2,
+            y: origin[1] - eChipSizes[size][1] / 2,
+          },
+          size,
+          startRotation: rotationR + arcLength * (z - 0.5),
+          relativeZ: z,
+          chipID: [groupLayer, i],
+          sideA,
+          direction,
+        };
+        const modifiedChip = fGetChipModifier(chip);
+        newChipStack.push(
+          <PaintChip key={`${groupID}-${z}`} {...modifiedChip} />,
+        );
+      }
+      return newChipStack;
+    };
+    return <>{chipStack()}</>;
+  },
+);
 type tChipWheel = Omit<tChipFan, "paintsA"> & {
   targetColor: tCLARColor;
   targetNumber?: number;

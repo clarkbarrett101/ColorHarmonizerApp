@@ -1,6 +1,6 @@
-import React, { RefObject, useEffect, useRef, useState } from "react";
-import { DerivedValue, SharedValue, useDerivedValue, useSharedValue } from "react-native-reanimated";
-import { runOnJS, scheduleOnRN } from "react-native-worklets";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SharedValue, useSharedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 export type tVerse<type> = {
     state: type;
@@ -15,54 +15,76 @@ export function useVerse<type>(init: type): tVerse<type> {
     const shared = useSharedValue(init);
     const listeners = useRef(new Set<(value: type) => void>()).current;
 
-    function dispatch(value?: type) {
-        'worklet';
-        if(value !== undefined && value === shared.value) return;
-        let newValue = value !== undefined ? value : shared.value;
+    const dispatch = useCallback((value?: type) => {
+        "worklet";
+        if (value !== undefined && Object.is(value, shared.value)) return;
+        const newValue = value !== undefined ? value : shared.value;
         shared.value = newValue;
         scheduleOnRN(_setState, newValue);
-    }
-    function subscribe(callback: (value: type) => void) {
+    }, []);
+
+    const subscribe = useCallback((callback: (value: type) => void) => {
         listeners.add(callback);
         return () => listeners.delete(callback);
-    }
-    function unSubscribe(callback: (value: type) => void) {
+    }, []);
+
+    const unSubscribe = useCallback((callback: (value: type) => void) => {
         listeners.delete(callback);
-    }
+    }, []);
+
     useEffect(() => {
         listeners.forEach((callback) => callback(state));
     }, [state]);
 
-    return {
-        state,
-        dispatch,    
-        shared,
-        subscribe,
-        unSubscribe,
-    };
+    return useMemo(
+        () => ({
+            state,
+            dispatch,
+            shared,
+            subscribe,
+            unSubscribe,
+        }),
+        [state],
+    );
 }
 
-
-
-export function useVerseRelay<type>(verse: tVerse<type>, callback?: (value: type) => type): tVerse<type> {
+export function useVerseRelay<type>(
+    verse: tVerse<type>,
+    callback?: (value: type) => type,
+): tVerse<type> {
     const { state, dispatch, shared, subscribe, unSubscribe } = verse;
-    const [localState, setLocalState] = useState(state);
+    const callbackRef = useRef(callback);
+    callbackRef.current = callback;
+
+    const [localState, setLocalState] = useState(() =>
+        callback ? callback(state) : state,
+    );
+
+    // Keep relay aligned if parent/state source swaps or callback logic changes.
     useEffect(() => {
-        subscribe?.((value) => {
-            const newValue = callback ? callback(value) : value;
-            setLocalState(newValue);
+        const next = callbackRef.current ? callbackRef.current(state) : state;
+        setLocalState(next);
+    }, [state]);
+
+    useEffect(() => {
+        const unsubscribe = subscribe?.((value) => {
+            const next = callbackRef.current ? callbackRef.current(value) : value;
+            setLocalState((prev) => (Object.is(prev, next) ? prev : next));
         });
-        return () => unSubscribe?.((value) => {
-            const newValue = callback ? callback(value) : value;
-            setLocalState(newValue);
-        });
-    }, []);
-    
-    return {
-        state: localState,
-        dispatch,
-        shared,
-        subscribe,
-        unSubscribe,
-    };
+
+        return () => {
+            unsubscribe?.();
+        };
+    }, [subscribe]);
+
+    return useMemo(
+        () => ({
+            state: localState,
+            dispatch,
+            shared,
+            subscribe,
+            unSubscribe,
+        }),
+        [localState],
+    );
 }

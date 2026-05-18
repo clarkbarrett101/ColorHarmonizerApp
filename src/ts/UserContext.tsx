@@ -1,8 +1,10 @@
 import React, {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -57,21 +59,24 @@ export const useUserContext = () => useContext(Context);
 export default function UserContext({ children }: { children: ReactNode }) {
   const allModifiers = useRef<Record<number, tAttributeModifier>>({}).current;
   const allChipActors = useRef<Record<number, tActor>>({}).current;
-  const registerModifier = (attributeModifier: tAttributeModifier) => {
-    const id = Object.keys(allModifiers).length + 1;
-    allModifiers[id] = attributeModifier;
-    for (let chipID in allChipActors) {
-      allChipActors[chipID].addModifier(attributeModifier);
-    }
-    return id;
-  };
-  const unregisterModifier = (id: number) => {
+  const registerModifier = useCallback(
+    (attributeModifier: tAttributeModifier) => {
+      const id = Object.keys(allModifiers).length + 1;
+      allModifiers[id] = attributeModifier;
+      for (let chipID in allChipActors) {
+        allChipActors[chipID].addModifier(attributeModifier);
+      }
+      return id;
+    },
+    [],
+  );
+  const unregisterModifier = useCallback((id: number) => {
     delete allModifiers[id];
     for (let chipID in allChipActors) {
       allChipActors[chipID].removeModifier(id);
     }
-  };
-  const registerChipActor = (chipID: number, entry: tActor) => {
+  }, []);
+  const registerChipActor = useCallback((chipID: number, entry: tActor) => {
     allChipActors[chipID] = entry;
 
     for (let key in allModifiers) {
@@ -79,10 +84,10 @@ export default function UserContext({ children }: { children: ReactNode }) {
 
       allChipActors[chipID].addModifier(entry);
     }
-  };
-  const unregisterChipActor = (chipID: number) => {
+  }, []);
+  const unregisterChipActor = useCallback((chipID: number) => {
     delete allChipActors[chipID];
-  };
+  }, []);
   function randomIndexes(count: number, max: number) {
     const indexes = new Set<number>();
     while (indexes.size < count) {
@@ -94,7 +99,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
     const indexes = randomIndexes(5, clarColorsList.length);
     return indexes.map((i) => clarColorsList[i]);
   });
-  const addPaint = (paint: tPaint, index?: number) => {
+  const addPaint = useCallback((paint: tPaint, index?: number) => {
     setUserPallete((prev) => {
       if (index !== undefined) {
         const newPallete = [...prev];
@@ -103,49 +108,55 @@ export default function UserContext({ children }: { children: ReactNode }) {
       }
       return [...prev, paint];
     });
-  };
-  const vPanX = useVerse(0);
-  const vPanY = useVerse(0);
-  const vVelocityX = useVerse(0);
-  const vHeldChipID = useVerse<number | null>(null);
+  }, []);
+  // Stable verse refs: hooks must always be called, but we expose only the first-render
+  // instances so context consumers never see a changed object reference.
+  // .shared (SharedValue) and .dispatch/.subscribe are functionally identical across renders.
+  const _vPanX = useVerse(0);
+  const _vPanY = useVerse(0);
+  const _vVelocityX = useVerse(0);
+  const _vHeldChipID = useVerse<number | null>(null);
+  const vPanX = useRef(_vPanX).current;
+  const vPanY = useRef(_vPanY).current;
+  const vVelocityX = useRef(_vVelocityX).current;
+  const vHeldChipID = useRef(_vHeldChipID).current;
   const vHeldChipRoot = useVerse<tChipStatus>(["idle", "ready"]);
   const [heldChipPaint, setHeldChipPaint] = useState<tPaint | null>(null);
-  const holdChip = (chipID?: number) => {
+  const holdChip = useCallback((chipID?: number) => {
     "worklet";
     if (!chipID) {
       vHeldChipID.dispatch(null);
       return;
     }
-    if (vHeldChipID.state !== chipID) {
+    if (vHeldChipID.shared.value !== chipID) {
       vHeldChipID.dispatch(chipID);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    console.log("Held Chip ID:", vHeldChipID.state);
-  }, [vHeldChipID.state]);
+    console.log("Held Chip ID:", _vHeldChipID.state);
+  }, [_vHeldChipID.state]);
 
-  return (
-    <Context.Provider
-      value={{
-        userPallete,
-        addPaint,
-        vPanX,
-        vPanY,
-        vVelocityX,
-        vHeldChipID,
-        holdChip,
-        // vHeldChipRoot,
-        heldChipPaint,
-        setHeldChipPaint,
-        registerChipActor,
-        unregisterChipActor,
-        allChipActors,
-        registerModifier,
-        unregisterModifier,
-      }}
-    >
-      {children}
-    </Context.Provider>
+  const contextValue = useMemo(
+    () => ({
+      userPallete,
+      addPaint,
+      vPanX,
+      vPanY,
+      vVelocityX,
+      vHeldChipID,
+      holdChip,
+      // vHeldChipRoot,
+      heldChipPaint,
+      setHeldChipPaint,
+      registerChipActor,
+      unregisterChipActor,
+      allChipActors,
+      registerModifier,
+      unregisterModifier,
+    }),
+    [userPallete, heldChipPaint],
   );
+
+  return <Context.Provider value={contextValue}>{children}</Context.Provider>;
 }

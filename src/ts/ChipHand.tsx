@@ -4,6 +4,7 @@ import React, {
   use,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -11,7 +12,7 @@ import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
 import UserContext, { eLayers, useUserContext } from "./UserContext";
 import { scheduleOnRN } from "react-native-worklets";
-import { useVerse, useVerseRelay } from "./Verse";
+import { useVerse } from "./Verse";
 import { eChipMap, eChipSizes, fLerp } from "./PaintChip";
 import BucketContext, { useBucketContext } from "./BucketContext";
 import {
@@ -53,12 +54,14 @@ export const ChipHand = ({
     unregisterModifier,
   } = useUserContext();
   const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
-  const origin: [number, number] = [30, Dimensions.get("window").height * 0.95];
+  const origin = useMemo<[number, number]>(
+    () => [30, Dimensions.get("window").height * 0.95],
+    [],
+  );
   const touching = useVerse(false);
   //const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
   const slowAngle = useSharedValue(0);
   const panWeight = useSharedValue(0);
-  const vHeldChipIDRelay = useVerseRelay(vHeldChipID);
   const pan = usePanGesture({
     minDistance: 0,
     onBegin: (event) => {
@@ -78,10 +81,10 @@ export const ChipHand = ({
           0.5) /
         userPallete.length;
 
-      selectVerse.dispatch(index);
+      selectVerse.shared.value = index;
       holdChip(eLayers.chipHand + index);
-      touching.dispatch(true);
-      vDropScreen.dispatch(true);
+      touching.shared.value = true;
+      vDropScreen.shared.value = true;
     },
     onUpdate: (event) => {
       "worklet";
@@ -108,7 +111,7 @@ export const ChipHand = ({
         holdChip();
         slowAngle.value = withSpring(angle, { stiffness: 1000, damping: 1000 });
         panWeight.value = withTiming(0, { duration: 200 });
-        selectVerse.dispatch(index);
+        selectVerse.shared.value = index;
       }
     },
     onFinalize: (event) => {
@@ -116,8 +119,8 @@ export const ChipHand = ({
       console.log("Hand Deactivate");
       panWeight.value = withTiming(0, { duration: 200 });
       holdChip();
-      touching.dispatch(false);
-      vDropScreen.dispatch(false);
+      touching.shared.value = false;
+      vDropScreen.shared.value = false;
     },
   });
 
@@ -152,7 +155,7 @@ export const ChipHand = ({
       vPanY.shared,
       vVelocityX.shared,
       panWeight,
-      vHeldChipIDRelay.shared,
+      vHeldChipID.shared,
     ],
   );
   const panMod = handPanModifier.modifier;
@@ -160,7 +163,7 @@ export const ChipHand = ({
   handPanModifier.modifier = (input) => {
     "worklet";
     return (() => {
-      if (input.id === vHeldChipIDRelay.shared.value && panWeight.value > 0) {
+      if (input.id === vHeldChipID.shared.value && panWeight.value > 0) {
         return panMod(input);
       } else {
         return input;
@@ -215,9 +218,9 @@ export const ChipHand = ({
   }, []);
   const addPaintCallback = useCallback(
     (paint: tPaint) => {
-      addPaint(paint, selectVerse.state);
+      addPaint(paint, selectVerse.shared.value);
     },
-    [selectVerse.state],
+    [addPaint],
   );
 
   useEffect(() => {
@@ -235,7 +238,6 @@ export const ChipHand = ({
       unregisterBucket(`hand-bucket`);
     };
   }, []);
-  console.log("Rendering ChipHand with selected index", selectVerse.state);
   return (
     <>
       <ChipFan

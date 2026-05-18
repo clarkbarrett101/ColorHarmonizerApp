@@ -1,29 +1,18 @@
-import {
-  Skia,
-  Canvas,
-  vec,
-  useClock,
-  RadialGradient,
-  Rect,
-  Shadow,
-} from "@shopify/react-native-skia";
-import { use, useRef } from "react";
+import { Canvas, Rect, Shadow } from "@shopify/react-native-skia";
 import { Dimensions, Share, View } from "react-native";
-import Animated, {
-  DerivedValue,
-  SharedValue,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-} from "react-native-reanimated";
+import { useDerivedValue } from "react-native-reanimated";
 import { useRadialContext } from "./RadialContext";
 import { fCLARColorToString } from "./CLAcolor";
-import Svg, { Circle } from "react-native-svg";
 import { eLayers } from "./UserContext";
 
 export function BGGradient() {
   const { dAR, dC, dL } = useRadialContext();
   const color = useDerivedValue(() => {
+    console.log("BGGradient color updated", {
+      c: dC.value,
+      l: dL.value,
+      ar: dAR.value,
+    });
     return fCLARColorToString({
       c: dC.value * 0.25,
       l: dL.value * 0.5 + 0.5,
@@ -37,27 +26,39 @@ export function BGGradient() {
       ar: dAR.value,
     });
   });
+
   return (
-    <Canvas
+    <View
       style={{
         position: "absolute",
         top: 0,
         left: 0,
         width: Dimensions.get("window").width,
         height: Dimensions.get("window").height,
-        zIndex: 0,
+        zIndex: eLayers.background,
       }}
     >
-      <Rect
-        x={0}
-        y={0}
-        width={Dimensions.get("window").width}
-        height={Dimensions.get("window").height}
-        color={color}
+      <Canvas
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: Dimensions.get("window").width,
+          height: Dimensions.get("window").height,
+          zIndex: eLayers.background,
+        }}
       >
-        <Shadow dx={5} dy={12} blur={25} color={shadow} inner />
-        <Shadow dx={-12} dy={-5} blur={25} color={shadow} inner />
-      </Rect>
-    </Canvas>
+        <Rect
+          x={0}
+          y={0}
+          width={Dimensions.get("window").width}
+          height={Dimensions.get("window").height}
+          color={color}
+        >
+          <Shadow dx={5} dy={12} blur={25} color={shadow} inner />
+          <Shadow dx={-12} dy={-5} blur={25} color={shadow} inner />
+        </Rect>
+      </Canvas>
+    </View>
   );
 }

@@ -16,10 +16,10 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import { useEffect } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { Dimensions } from "react-native";
 import { eLayers, useUserContext } from "./UserContext";
-import { useVerse, useVerseRelay } from "./Verse";
+import { useVerse } from "./Verse";
 import {
   fLerpModifierFactory,
   tAttributeMap,
@@ -104,21 +104,40 @@ export const PaintChip = ({
     x: origin.x + Math.cos(-direction * startRotation) * radialOffset,
     y: origin.y + Math.sin(-direction * startRotation) * radialOffset,
   };
-  const actor = useActor({
-    rotateZ: rotateZ * -direction,
-    translateX: startPosition.x,
-    translateY: startPosition.y,
-    id,
-    rotateX: 0,
-    shadowRadius: 3,
-    shadowX: -2,
-    shadowY: 2,
-  });
+  // Stable object reference prevents useActor's useEffect from firing on every re-render
+  const initialAttributes = useMemo(
+    () => ({
+      rotateZ: rotateZ * -direction,
+      translateX: startPosition.x,
+      translateY: startPosition.y,
+      id,
+      rotateX: 0,
+      shadowRadius: 3,
+      shadowX: -2,
+      shadowY: 2,
+    }),
+    [],
+  );
+  const actor = useActor(initialAttributes);
   const vPaintA = useVerse(false);
   const paint = vPaintA.state ? paintA : paintB;
-  const vHeldChipIDRelay = useVerseRelay(vHeldChipID);
+  // Only this chip re-renders on grab/release — not all chips
+  const [grabbed, setGrabbed] = useState(false);
   const panWeight = useSharedValue(0);
   const flipAnim = useSharedValue(0);
+  /// S T A T E  M A C H I N E ///
+  flag = "#ff0";
+
+  useEffect(() => {
+    return vHeldChipID.subscribe?.((newID) => {
+      const isGrabbed = newID === id;
+      setGrabbed(isGrabbed);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (grabbed) setHeldChipPaint?.(paint);
+  }, [grabbed]);
 
   function flipDown(isSideA) {
     "worklet";
@@ -162,6 +181,8 @@ export const PaintChip = ({
     },
   };
 
+  /// P A N  G E S T U R E///
+  flag = "#f00";
   const dPanx = useDerivedValue(() => {
     return vPanX.shared.value - eChipSizes[size][0] / 2;
   });
@@ -216,15 +237,11 @@ export const PaintChip = ({
       unregisterChipActor(id);
     };
   }, []);
-
-  /// P A N  G E S T U R E///
-  flag = "#ff0";
   const panGesture = usePanGesture({
     onActivate: (event) => {
-      console.log("Dispatch start:", performance.now());
       panWeight.value = withTiming(1, { duration: 300 });
       holdChip(id);
-      vDropScreen.dispatch(true);
+      vDropScreen.shared.value = true;
     },
     onUpdate: (event) => {
       vPanX.shared.value = event.absoluteX;
@@ -234,18 +251,10 @@ export const PaintChip = ({
     onDeactivate: (event) => {
       panWeight.value = withTiming(0, { duration: 300 });
       holdChip();
-      vDropScreen.dispatch(false);
+      vDropScreen.shared.value = false;
     },
   });
 
-  /// S T A T E  M A C H I N E ///
-  flag = "#f00";
-
-  useEffect(() => {
-    if (vHeldChipIDRelay.state !== null && vHeldChipIDRelay.state === id) {
-      setHeldChipPaint(paint);
-    }
-  }, [vHeldChipIDRelay.state]);
   /// T R A N S F O R M ///
   flag = "#f0f";
   const animatedStyle = useAnimatedStyle(() => {
@@ -276,7 +285,6 @@ export const PaintChip = ({
       };
     });
   });
-  const grabbed = vHeldChipIDRelay.state === id;
   const highlightAngle =
     Math.atan2(startPosition.y, -startPosition.x) -
     (grabbed ? 22 / 7 : startRotation);

@@ -232,27 +232,27 @@ export default function ColorSelector({
   /// R E N D E R ///
   return (
     <>
-      <View
-        style={{
-          flex: 1,
-          zIndex: eLayers.panManager,
+      <RadialContext
+        value={{
+          radii,
+
+          origin,
+          direction,
+          wAngleToChord: wDefaultAngleToChord,
+          wChordToAngle: wDefaultChordToAngle,
+          dC,
+          dL,
+          dAR,
+          wUpdateState,
         }}
       >
-        <RadialContext
-          value={{
-            radii,
-
-            origin,
-            direction,
-            wAngleToChord: wDefaultAngleToChord,
-            wChordToAngle: wDefaultChordToAngle,
-            dC,
-            dL,
-            dAR,
-            wUpdateState,
+        <BGGradient />
+        <View
+          style={{
+            flex: 1,
+            zIndex: eLayers.panManager,
           }}
         >
-          <DropScreen />
           <PanManager>
             <TintSelector
               key={`Lightness Selector`}
@@ -279,8 +279,9 @@ export default function ColorSelector({
               wheelCenter={wheelCenter}
             />
           </PanManager>
-        </RadialContext>
-      </View>
+        </View>
+      </RadialContext>
+      <DropScreen />
       <ColorChipFan
         targetColor={vTargetColor.state}
         targetNumber={9}

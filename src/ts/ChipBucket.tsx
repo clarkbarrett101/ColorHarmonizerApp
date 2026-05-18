@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback, use } from "react";
-import { Dimensions, View } from "react-native";
+import React, { useEffect } from "react";
+import { View } from "react-native";
 import Animated, {
-  useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
@@ -12,13 +11,11 @@ import Svg, {
   Defs,
   RadialGradient,
   Stop,
-  Rect,
   Circle,
   Path,
-  Line,
 } from "react-native-svg";
 import { useUserContext, eLayers } from "./UserContext";
-import { eChipMap, eChipSizes, tChipStatus } from "./PaintChip";
+import { eChipSizes } from "./PaintChip";
 import { useVerse, useVerseRelay } from "./Verse";
 import { tAttributeMap, tAttributeModifier } from "./Actor";
 
@@ -54,30 +51,30 @@ export const ChipBucket = ({
   } = useUserContext();
   const vActive = useVerse(false);
   const inRadius = useVerse(false);
-  const vHeldChipIDRelay = useVerseRelay(vHeldChipID);
+  const vHeldChipRelay = useVerseRelay(vHeldChipID);
   const paintColor = inRadius.state ? (heldChipPaint?.hex ?? "white") : "white";
   const bucketAnim = useSharedValue(0);
 
   useEffect(() => {
-    if (vHeldChipIDRelay.state != null) {
+    if (vHeldChipRelay.state != null) {
       if (
-        vHeldChipIDRelay.state > targetLayerRange[0] &&
-        vHeldChipIDRelay.state < targetLayerRange[1] &&
-        !vActive.state
+        vHeldChipRelay.state > targetLayerRange[0] &&
+        vHeldChipRelay.state < targetLayerRange[1] &&
+        !vActive.shared.value
       ) {
         vActive.dispatch(true);
         inRadius.dispatch(false);
       }
     } else {
-      if (vActive.state) {
-        if (inRadius.state) {
+      if (vActive.shared.value) {
+        if (inRadius.shared.value) {
           callback?.(heldChipPaint);
         }
         vActive.dispatch(false);
         inRadius.dispatch(false);
       }
     }
-  }, [vHeldChipIDRelay.state]);
+  }, [vHeldChipRelay.state]);
 
   const dDistance = useDerivedValue(() => {
     const distance = Math.sqrt(
@@ -100,14 +97,15 @@ export const ChipBucket = ({
       }
     },
   );
+  // vActive.state is a stale JS closure inside a worklet — must use .shared.value
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: vActive.state ? 1 / dDistance.value : 0 }],
+    transform: [{ scale: vActive.shared.value ? 1 / dDistance.value : 0 }],
   }));
 
   const bucketModifier: tAttributeModifier = {
     modID: 20,
     deps: [
-      vHeldChipIDRelay.shared,
+      vHeldChipID.shared,
       vActive.shared,
       bucketAnim,
       vPanX.shared,
@@ -116,7 +114,7 @@ export const ChipBucket = ({
     modifier: (input: tAttributeMap, last) => {
       "worklet";
       if (!vActive.shared.value) return { ...input };
-      if (vHeldChipIDRelay.shared.value !== input.id) return { ...input };
+      if (vHeldChipID.shared.value !== input.id) return { ...input };
       return {
         ...input,
         translateX: fLerp(

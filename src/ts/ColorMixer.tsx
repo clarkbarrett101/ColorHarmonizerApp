@@ -1,5 +1,14 @@
 import { Dimensions } from "react-native";
-import { fCLARColorToString, tCLARColor, tPaint } from "./CLAcolor";
+import {
+  fCLARColorToRGB,
+  fClosestColors,
+  fGetRandomPaint,
+  refColors,
+  tBrand,
+  tCLARColor,
+  tColorMap,
+  tPaint,
+} from "./CLAcolor";
 import {
   RadialContext,
   wDefaultAngleToChord,
@@ -9,46 +18,67 @@ import { RadialGraphic } from "./RadialGraphic";
 import { useVerse } from "./Verse";
 import { fMakePetalPath } from "./Sector";
 import { tAttributeMap, tAttributeModifier } from "./Actor";
-import {
-  ChipFan,
-  ColorChipFan,
-  fClosestColors,
-  tClosestColors,
-} from "./ChipStack";
-import { use, useEffect, useRef } from "react";
-import { eLayers, useUserContext } from "./UserContext";
-import { tSectorGroup } from "./sectorTypes";
+import { ChipFan } from "./ChipStack";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { eLayers } from "./UserContext";
+import { tRadialObject, tSectorGroup } from "./sectorTypes";
 import { useBucketContext } from "./BucketContext";
-import { Paint } from "@shopify/react-native-skia";
 import { eChipSizes, PaintChip } from "./PaintChip";
-const clarColorsList: tPaint[] = require("./clarColors.json");
-export type tColorMixer = {
-  radii?: [number, number];
-  rc?: { rings: number; chords: number };
-  arcLength?: number;
-  rotationR?: number;
-};
+import {
+  withTiming,
+  useSharedValue,
+  useDerivedValue,
+} from "react-native-reanimated";
+import BrandFilter from "./BrandFilter";
+import PanManager from "./PanManager";
+import { rotateZ, translate } from "@shopify/react-native-skia";
+import { transform } from "@babel/core";
+import { ColorWheel } from "./ColorWheel";
+
 export function ColorMixer({
   radii = [0, 450],
-  rc = { rings: 5, chords: 6 },
+  ring = 5,
+  chord = 6,
   arcLength = 10 / 7,
   rotationR = 22 / 7,
-}: tColorMixer) {
-  const vTargetColor = useVerse<tPaint>(clarColorsList[500]);
-  const paints = useRef<tPaint[]>(fClosestColors(vTargetColor.state));
-
+}: tRadialObject) {
+  const origin: [number, number] = [
+    Dimensions.get("window").width / 2,
+    Dimensions.get("window").height * 0.45,
+  ];
+  const colorIndexes = {
+    0: "red",
+    1: "yellow",
+    2: "blue",
+    3: "white",
+    4: "grey",
+    5: "black",
+  };
+  const [brand, setBrand] = useState<tBrand>(null);
+  const randomPaint = useMemo(() => fGetRandomPaint(), []);
+  const vTargetColor = useVerse<tPaint>(randomPaint);
+  function colorMaptoArray(colorMap: tColorMap<tPaint>): tPaint[] {
+    const arg = Array(6);
+    for (let i = 0; i < 6; i++) {
+      const colorKey = colorIndexes[i];
+      arg[i] = colorMap[colorKey] || vTargetColor.state;
+    }
+    return arg;
+  }
+  const paints = useRef<tPaint[]>(
+    colorMaptoArray(fClosestColors(vTargetColor.state)),
+  );
+  const [sideA, setSideA] = useState(true);
+  const rotationAnim = useSharedValue(0);
   useEffect(() => {
-    paints.current = fClosestColors(vTargetColor.state);
-    console.log(
-      "Updated closest colors:",
-      paints.current.reduce(
-        (acc, paint, index) => {
-          acc[paint.name] = index;
-          return acc;
-        },
-        {} as Record<string, number>,
-      ),
-    );
+    rotationAnim.value = withTiming(1, { duration: 500 });
+  }, []);
+  useEffect(() => {
+    paints.current = colorMaptoArray(fClosestColors(vTargetColor.state));
+
+    sideA ? setSideA(false) : setSideA(true);
+    rotationAnim.value = 0;
+    rotationAnim.value = withTiming(1, { duration: 500 });
   }, [vTargetColor.state]);
   const fSectorGroupModifier = (sectorGroup: tSectorGroup) => {
     return {
@@ -56,25 +86,7 @@ export function ColorMixer({
       zIndex: eLayers.colorMixer,
     };
   };
-  const origin: [number, number] = [
-    Dimensions.get("window").width + radii[1] * 0.1,
-    Dimensions.get("window").height * 0.45,
-  ];
-  //YUV Yellow = .88,-.44,.1 Red = .3,-.15,.6 Blue = .11,.44,-.1
-  const clarRed: tCLARColor = { c: 0.9, l: 0.6, ar: Math.atan2(0.6, -0.15) };
-  const clarYellow: tCLARColor = { c: 0.9, l: 0.8, ar: Math.atan2(0.1, -0.44) };
-  const clarBlue: tCLARColor = { c: 0.9, l: 0.6, ar: Math.atan2(-0.1, 0.44) };
-  const clarWhite: tCLARColor = { c: 0, l: 1, ar: 0 };
-  const clarBlack: tCLARColor = { c: 0, l: 0, ar: 0 };
-  const clarGrey: tCLARColor = { c: 0, l: 0.5, ar: 0 };
-  const colors = [
-    clarGrey,
-    clarBlack,
-    clarWhite,
-    clarBlue,
-    clarYellow,
-    clarRed,
-  ];
+
   function colorLerp(
     colorA: tCLARColor,
     colorB: tCLARColor,
@@ -86,32 +98,43 @@ export function ColorMixer({
     const ar = colorA.ar + (colorB.ar - colorA.ar) * t;
     return { c, l, ar };
   }
-  function wGetColor(src: { rings: number; chords: number }) {
+  function fLerp(a: number, b: number, t: number): number {
     "worklet";
-    const { rings, chords } = src;
-    let color = colors[chords];
-    color = colorLerp(vTargetColor.shared.value.clar, color, rings / rc.rings);
-    return fCLARColorToString(color);
+    return a * (1 - t) + b * t;
   }
-  const wTransformMatrix: tAttributeModifier = {
+  const mTransformModifier: tAttributeModifier = {
     modID: 0,
-    deps: [],
+    deps: [rotationAnim],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const z = eLayers.chipFan + input.chord * 2 + 1;
-      console.log(
-        "Modifying sectorGroup with chord",
-        input.chord,
-        "to have zIndex",
-        z,
-      );
       return {
         ...input,
+        rotateZ: fLerp(11 / 7, input.rotateZ, rotationAnim.value),
         translateX: input.translateX + 50,
-        zIndex: z,
       };
     },
   };
+  const mColorModifier: tAttributeModifier = {
+    modID: 1,
+    deps: [vTargetColor.shared],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      let color = refColors[colorIndexes[chord - input.chord - 1]];
+      color = colorLerp(
+        vTargetColor.shared.value.clar,
+        color,
+        input.ring / ring,
+      );
+      const [r, g, b] = fCLARColorToRGB(color);
+      return {
+        ...input,
+        red: r,
+        green: g,
+        blue: b,
+      };
+    },
+  };
+
   const { registerBucket, unregisterBucket } = useBucketContext();
   useEffect(() => {
     registerBucket({
@@ -119,52 +142,62 @@ export function ColorMixer({
         Dimensions.get("window").width - 100,
         Dimensions.get("window").height / 2,
       ],
-      radius: [radii[1] - 75, radii[1]],
+      radii: [radii[1] * 0.2, radii[1] * 0.3],
+      rotationR: -11 / 7,
       callback: (paint) => {
         vTargetColor.dispatch(paint);
       },
-      targetLayer: eLayers.chipHand,
+      targetLayerRange: [eLayers.chipFan - 10, eLayers.chipHand + 100],
       id: "colorMixerBucket",
     });
     return () => {
       unregisterBucket("colorMixerBucket");
     };
   }, []);
-  const chipModifier: tAttributeModifier = {
-    modID: 30,
-    deps: [],
-    modifier: (input: tAttributeMap) => {
-      "worklet";
-      const z =
-        eLayers.chipFan + (rc.chords - (input.id - eLayers.chipFan)) * 2;
-      return {
-        ...input,
-        zIndex: z,
-      };
-    },
-  };
-  const { registerModifier, unregisterModifier } = useUserContext();
-  useEffect(() => {
-    const id = registerModifier(chipModifier);
-    return () => {
-      unregisterModifier(id);
-    };
-  }, [chipModifier]);
+  const dC = useDerivedValue(() => vTargetColor.shared.value.clar.c);
+  const dL = useDerivedValue(() => vTargetColor.shared.value.clar.l);
+  const dAR = useDerivedValue(() => vTargetColor.shared.value.clar.ar);
   return (
     <>
-      <RadialContext
+      <PanManager drawSectors={true}>
+        <RadialContext
+          value={{
+            origin,
+            radii: [0, 200],
+            mainRotationR: rotationR,
+            totalArcLength: 3 / 7,
+            dAR,
+            dC,
+            dL,
+          }}
+        >
+          <BrandFilter
+            brand={brand}
+            setBrand={setBrand}
+            height={50}
+            width={(50 * (1 + Math.sqrt(5))) / 2}
+          />
+        </RadialContext>
+      </PanManager>
+    </>
+  );
+}
+/*
+   <RadialContext
         value={{
           origin,
           radii,
-          wGetColor,
+          direction: -1,
+          mColorModifier,
           wAngleToChord: wDefaultAngleToChord,
           wChordToAngle: wDefaultChordToAngle,
           fPathFunction: fMakePetalPath,
-          transformModifier: wTransformMatrix,
+          mTransformModifier,
         }}
       >
         <RadialGraphic
-          rc={rc}
+          ring={ring}
+          chord={chord}
           arcLength={arcLength}
           rotationR={rotationR}
           fSectorGroupModifier={fSectorGroupModifier}
@@ -174,14 +207,15 @@ export function ColorMixer({
         paintA={vTargetColor.state}
         origin={{
           x: Dimensions.get("window").width - eChipSizes.grabbed[0] * 0.7,
-          y: Dimensions.get("window").height * 0.4,
+          y: Dimensions.get("window").height / 2 - eChipSizes.grabbed[1],
         }}
         size="grabbed"
-        chipID={[eLayers.chipHand, 12]}
-        startRotation={6 / 7}
+        chipID={[eLayers.chipFan - 25, 12]}
+        startRotation={11 / 7}
       />
       <ChipFan
-        paintsA={paints.current}
+        paintsA={Object.values(paints.current)}
+        paintsB={Object.values(paints.current)}
         origin={origin}
         sideA={true}
         arcLength={arcLength}
@@ -189,6 +223,4 @@ export function ColorMixer({
         radius={radii[1] * 0.75}
         groupLayer={eLayers.chipFan}
       />
-    </>
-  );
-}
+      */

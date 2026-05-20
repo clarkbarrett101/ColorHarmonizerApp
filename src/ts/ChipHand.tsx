@@ -1,20 +1,11 @@
 import { View, Dimensions } from "react-native";
-import React, {
-  Profiler,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
-import UserContext, { eLayers, useUserContext } from "./UserContext";
-import { scheduleOnRN } from "react-native-worklets";
+import { eLayers, useUserContext } from "./UserContext";
 import { useVerse } from "./Verse";
-import { eChipMap, eChipSizes, fLerp } from "./PaintChip";
-import BucketContext, { useBucketContext } from "./BucketContext";
+import { eChipSizes } from "./PaintChip";
+import { useBucketContext } from "./BucketContext";
 import {
   useDerivedValue,
   useSharedValue,
@@ -27,15 +18,14 @@ import {
   fLerpModifierFactory,
 } from "./Actor";
 import { tPaint } from "./CLAcolor";
-export type tChipHand = {
-  radius?: number;
-  rotationR?: number;
-  arcLength?: number;
+import { tRadialObject } from "./sectorTypes";
+
+export type tChipHand = tRadialObject & {
   holdRadius?: number;
 };
 
 export const ChipHand = ({
-  radius = 80,
+  radii = [80, 80],
   rotationR = 6 / 7,
   arcLength = 12 / 7,
   holdRadius = 200,
@@ -48,6 +38,7 @@ export const ChipHand = ({
     vVelocityX,
     userPallete,
     addPaint,
+    removePaint,
     holdChip,
     vHeldChipID,
     registerModifier,
@@ -196,8 +187,8 @@ export const ChipHand = ({
           ) / holdRadius,
         );
 
-        const pullX = Math.cos(input.rotateZ) * diff * (holdRadius - radius);
-        const pullY = Math.sin(input.rotateZ) * diff * (holdRadius - radius);
+        const pullX = Math.cos(input.rotateZ) * diff * (holdRadius - radii[0]);
+        const pullY = Math.sin(input.rotateZ) * diff * (holdRadius - radii[0]);
         return {
           ...input,
           translateX: input.translateX + pullX,
@@ -222,20 +213,38 @@ export const ChipHand = ({
     },
     [addPaint],
   );
+  const removePaintCallback = useCallback(
+    (paint: tPaint) => {
+      removePaint(paint);
+    },
+    [removePaint],
+  );
 
   useEffect(() => {
     registerBucket({
-      origin: [origin[0] + radius, origin[1] - radius],
-      radius: [holdRadius, holdRadius * 2],
+      origin: [origin[0] + radii[0], origin[1] - radii[0]],
+      radii: [holdRadius, holdRadius * 2],
+      rotationR: -rotationR,
       callback: (paint) => {
         addPaintCallback(paint);
       },
-      targetLayerRange: [eLayers.chipFan, eLayers.chipFan + 100],
+      targetLayerRange: [eLayers.chipFan - 50, eLayers.chipFan + 50],
       id: `hand-bucket`,
       zIndex: eLayers.buckets + 100,
     });
+    registerBucket({
+      origin: [Dimensions.get("window").width / 2, eChipSizes.outline[1] / 2],
+      radii: [holdRadius, holdRadius * 2],
+      targetLayerRange: [eLayers.chipHand - 50, eLayers.chipHand + 50],
+      id: `discard-bucket`,
+      zIndex: eLayers.buckets + 100,
+      callback: (paint) => {
+        removePaintCallback(paint);
+      },
+    });
     return () => {
       unregisterBucket(`hand-bucket`);
+      unregisterBucket(`discard-bucket`);
     };
   }, []);
   return (
@@ -244,7 +253,7 @@ export const ChipHand = ({
         groupLayer={eLayers.chipHand}
         paintsA={userPallete}
         size={"default"}
-        radius={radius}
+        radius={radii[0]}
         direction={1}
         origin={origin}
         rotationR={rotationR}

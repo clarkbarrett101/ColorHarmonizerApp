@@ -9,24 +9,29 @@ import { useActor } from "./Actor";
 import { useEffect } from "react";
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-export const Sector = ({
-  arcLength = 44 / 7,
-  radii = [20, 200],
-  sectorGroupID = 0,
-  rc = { rings: 5, chords: 18 },
-}: tSector) => {
-  const {
-    fPathFunction,
-    colorModifier,
-    radii: contextRadii,
-    deps,
-  } = useRadialContext();
-  const path = fPathFunction(radii, arcLength, contextRadii[1]);
-  const actor = useActor({ ring: rc.rings, chord: rc.chords });
+export const Sector = (props: tSector) => {
+  const context = useRadialContext();
+  const arcLength = props.arcLength || 0.1;
+  const fPathFunction = context.fPathFunction || fMakeSectorPath;
+  const mColorModifier = context.mColorModifier;
+
+  const path = fPathFunction(
+    props.radii || [20, 200],
+    arcLength,
+    (context.radii || [20, 200])[1],
+  );
+  const actor = useActor({
+    ring: props.ring,
+    chord: props.chord,
+    red: 125,
+    green: 125,
+    blue: 125,
+  });
   useEffect(() => {
-    actor.addModifier(colorModifier);
+    if (!mColorModifier) return;
+    actor.addModifier(mColorModifier);
     return () => {
-      actor.removeModifier(colorModifier.modID);
+      actor.removeModifier(mColorModifier.modID);
     };
   }, []);
   const animatedProps = useAnimatedProps(() => {
@@ -38,7 +43,7 @@ export const Sector = ({
     });
   });
   return (
-    <AnimatedPath animatedProps={animatedProps} d={path} strokeWidth={1} />
+    <AnimatedPath animatedProps={animatedProps} d={path} strokeWidth={2} />
   );
 };
 export const fMakeSectorPath = (

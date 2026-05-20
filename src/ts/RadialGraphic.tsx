@@ -3,51 +3,49 @@ import { PanResponder, Dimensions } from "react-native";
 import { tSector, tSectorGroup } from "./sectorTypes";
 import { SectorGroup } from "./SectorGroup";
 import { tCLARColor } from "./CLAcolor";
-import { View } from "react-native";
-import { SharedValue, withTiming } from "react-native-reanimated";
-import { useRadialContext } from "./RadialContext";
+import {
+  useRadialContext,
+  wDefaultAngleToChord,
+  wDefaultChordToAngle,
+} from "./RadialContext";
 
 export type tRadialGraphic = tSectorGroup & {
   fSectorModifier?: (sector: tSector) => tSector;
   fSectorGroupModifier?: (group: tSectorGroup) => any;
 };
 
-export function RadialGraphic({
-  rotationR = 0,
-  arcLength = 44 / 7,
-  rc = { rings: 5, chords: 18 },
-  fSectorModifier = (sector) => sector,
-  fSectorGroupModifier = (group) => group,
-  style = {},
-  ...props
-}: tRadialGraphic) {
-  const { origin, direction, wAngleToChord, wChordToAngle, radii } =
-    useRadialContext();
-  if (!origin) {
-    throw new Error(
-      "RadialGraphic must be used within a RadialContext provider",
-    );
-  }
+export function RadialGraphic(props: tRadialGraphic) {
+  const ctx = useRadialContext();
+  const radii = ctx.radii || [20, 200];
+  const wAngleToChord = ctx.wAngleToChord || wDefaultAngleToChord;
+  const wChordToAngle = ctx.wChordToAngle || wDefaultChordToAngle;
+  const arcLength = props.arcLength || ctx.totalArcLength;
+  const ring = props.ring || ctx.totalRings;
+  const chord = props.chord || ctx.totalChords;
+  const rotationR = props.rotationR || ctx.mainRotationR;
+  const fSectorModifier = props.fSectorModifier || ((sector) => sector);
+  const fSectorGroupModifier = props.fSectorGroupModifier || ((group) => group);
   if (
     wAngleToChord(
-      wChordToAngle(0, arcLength, rc.chords, rotationR),
+      wChordToAngle(0, arcLength, chord, rotationR),
       arcLength,
-      rc.chords,
+      chord,
       rotationR,
     ) !== 0
-  )
+  ) {
     throw new Error(
-      `angleToChord:${wAngleToChord(wChordToAngle(0, arcLength, rc.chords, rotationR), arcLength, rc.chords, rotationR)} and chordToAngle:${wChordToAngle(0, arcLength, rc.chords, rotationR)} are not consistent with each other`,
+      `angleToChord:${wAngleToChord(wChordToAngle(0, arcLength, chord, rotationR), arcLength, chord, rotationR)} and chordToAngle:${wChordToAngle(0, arcLength, chord, rotationR)} are not consistent with each other`,
     );
+  }
 
   //// Init sectors ////
 
-  const arcStep = arcLength / rc.chords;
-  const radStep = (radii[1] - radii[0]) / rc.rings;
+  const arcStep = arcLength / chord;
+  const radStep = (radii[1] - radii[0]) / ring;
   const sectors = [];
 
-  for (let r = rc.rings - 1; r >= 0; r--) {
-    for (let c = 0; c < rc.chords; c++) {
+  for (let r = ring - 1; r >= 0; r--) {
+    for (let c = 0; c < chord; c++) {
       const sectorRadii: [number, number] = [
         radii[0] + r * radStep,
         radii[0] + (r + 1) * radStep,
@@ -56,7 +54,8 @@ export function RadialGraphic({
       let sector: tSector = {
         arcLength: arcStep,
         radii: sectorRadii,
-        rc: { rings: r, chords: c },
+        ring: r,
+        chord: c,
         sectorGroupID: c,
       };
       if (fSectorModifier) {
@@ -71,12 +70,7 @@ export function RadialGraphic({
   let groups: tSectorGroup[] = [];
   sectors.forEach((sector: tSector) => {
     const groupID = sector.sectorGroupID || 0;
-    const rotation = wChordToAngle(
-      sector.rc.chords,
-      arcLength,
-      rc.chords,
-      rotationR,
-    );
+    const rotation = wChordToAngle(sector.chord, arcLength, chord, rotationR);
     let group = groups[groupID];
     if (!group) {
       group = {
@@ -94,9 +88,7 @@ export function RadialGraphic({
     const zGroups = [];
     groups.forEach((element) => {
       zGroups.push(
-        <SectorGroup key={element.sectorGroupID} {...element}>
-          {element.children}
-        </SectorGroup>,
+        <SectorGroup key={element.sectorGroupID} {...element}></SectorGroup>,
       );
     });
     return zGroups;

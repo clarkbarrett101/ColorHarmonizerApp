@@ -3,6 +3,7 @@ import { DerivedValue, SharedValue } from "react-native-reanimated";
 import { tCLARColor } from "./CLAcolor";
 import { tSector, tSectorGroup } from "./sectorTypes";
 import { tAttributeModifier } from "./Actor";
+import { fMakePetalPath } from "./Sector";
 
 export const wDefaultAngleToChord = (
   angle: number,
@@ -30,6 +31,10 @@ type tRadialContext = {
   origin?: [number, number];
   direction?: 1 | -1;
   radii?: [number, number];
+  totalArcLength?: number;
+  mainRotationR?: number;
+  totalRings?: number;
+  totalChords?: number;
   fPathFunction?: (
     radii: [number, number],
     arcLength: number,
@@ -51,12 +56,9 @@ type tRadialContext = {
   dL?: DerivedValue<number>;
   dAR?: DerivedValue<number>;
   vRotationROffset?: SharedValue<number> | { value: number };
-  transformModifier?: tAttributeModifier;
+  mTransformModifier?: tAttributeModifier;
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
-  colorModifier?: tAttributeModifier;
-  deps?: SharedValue<any>[];
-  isSelected?: boolean;
-  selectedRing?: number;
+  mColorModifier?: tAttributeModifier;
   wUpdateState?: () => void;
   collapsed?: boolean;
   setCollapsed?: (collapsed: boolean) => void;
@@ -66,18 +68,19 @@ const Ctx = React.createContext<tRadialContext>({
   origin: [0, 0],
   direction: 1,
   radii: [20, 200],
-  fPathFunction: (radii, arcLength, maxRadius) => "",
+  totalArcLength: 11 / 7,
+  mainRotationR: 0,
+  totalRings: 4,
+  totalChords: 6,
+  fPathFunction: (radii, arcLength, maxRadius) =>
+    fMakePetalPath(radii, arcLength, maxRadius),
   wAngleToChord: wDefaultAngleToChord,
   wChordToAngle: wDefaultChordToAngle,
   vRotationROffset: { value: 0 },
-  transformModifier: null,
+  mTransformModifier: null,
   vPanPos: undefined,
-  colorModifier: null,
-  isSelected: false,
-  selectedRing: 0,
+  mColorModifier: null,
   wUpdateState: () => {},
-  collapsed: false,
-  setCollapsed: () => {},
 });
 export const useRadialContext = () => React.useContext(Ctx);
 export const RadialContext = ({
@@ -91,25 +94,6 @@ export const RadialContext = ({
   return (
     <Ctx.Provider
       value={{
-        origin: [0, 0],
-        direction: 1,
-        radii: [20, 200],
-        fPathFunction: (radii, arcLength, maxRadius) => "",
-        wAngleToChord: wDefaultAngleToChord,
-        wChordToAngle: wDefaultChordToAngle,
-        dAR: undefined,
-        dC: undefined,
-        dL: undefined,
-        vRotationROffset: { value: 0 },
-        transformModifier: null,
-        vPanPos: undefined,
-        colorModifier: null,
-        isSelected: false,
-        selectedRing: 0,
-        wUpdateState: () => {},
-        collapsed: false,
-        setCollapsed: () => {},
-
         ...context,
         ...value,
       }}

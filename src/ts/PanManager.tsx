@@ -1,10 +1,6 @@
-import React, { use, useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   GestureDetector,
-  GestureEvent,
-  GestureEventPayload,
-  GestureHandlerGestureEvent,
-  PanGestureHandlerEventPayload,
   usePanGesture,
   useSimultaneousGestures,
   useTapGesture,
@@ -15,7 +11,6 @@ import { fMakeSectorPath } from "./Sector";
 import { View } from "react-native";
 import { runOnJS } from "react-native-worklets";
 import { useRadialContext } from "./RadialContext";
-import { GestureEventCallback } from "react-native-gesture-handler/lib/typescript/v3/types";
 import { eLayers } from "./UserContext";
 
 type tRadialZone = {
@@ -57,8 +52,7 @@ const RadialZone = ({
 };
 
 type tPanManager = {
-  registerZone: (zone: tRadialZone) => void;
-  unregisterZone: (i: number) => void;
+  registerZone: (zone: tRadialZone) => () => void;
   selectedZone: number;
 };
 
@@ -106,10 +100,11 @@ export default function PanManager({
       );
       return updated;
     });
+    return () => unregisterZone(zone);
   }, []);
 
-  const unregisterZone = useCallback((i: number) => {
-    setZoneRefs((refs) => refs.filter((_, index) => index !== i));
+  const unregisterZone = useCallback((zone: tRadialZone) => {
+    setZoneRefs((refs) => refs.filter((z) => z !== zone));
   }, []);
   const releaseZone = () => {
     "worklet";
@@ -205,7 +200,6 @@ export default function PanManager({
     <Ctx.Provider
       value={{
         registerZone,
-        unregisterZone,
         selectedZone: zoneState,
       }}
     >

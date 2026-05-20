@@ -13,18 +13,16 @@ import { scheduleOnUI } from "react-native-worklets";
 
 export const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 export const SectorGroup = ({
-  rc = { rings: 0, chords: 0 },
+  ring = 5,
+  chord = 18,
   sectors = [],
-  children = null,
-  props = {},
-  style = {},
-  selectedStyle = {},
   rotationR = 0,
   sectorGroupID = 0,
+  children,
 }: tSectorGroup) => {
   const actor = useActor({
-    ring: rc.rings,
-    chord: rc.chords,
+    ring,
+    chord,
     id: sectorGroupID,
     rotateZ: rotationR,
     shadowRadius: 3,
@@ -32,12 +30,12 @@ export const SectorGroup = ({
     shadowY: 2,
   });
 
-  const { transformModifier, selectedRing, origin } = useRadialContext();
+  const { mTransformModifier, origin } = useRadialContext();
   useEffect(() => {
-    if (!transformModifier) return;
-    actor.addModifier(transformModifier);
+    if (!mTransformModifier) return;
+    actor.addModifier(mTransformModifier);
     return () => {
-      actor.removeModifier(transformModifier.modID);
+      actor.removeModifier(mTransformModifier.modID);
     };
   }, []);
   const mapper = (attributes: tAttributeMap) => {
@@ -70,10 +68,7 @@ export const SectorGroup = ({
       };
     });
   });
-  const [isSelected, setIsSelected] = useState(selectedRing === sectorGroupID);
-  useEffect(() => {
-    setIsSelected(selectedRing === sectorGroupID);
-  }, [selectedRing, sectorGroupID]);
+
   const radii = sectors.reduce(
     (acc, sector) => {
       if (!acc[0] || sector.radii?.[0] < acc[0]) acc[0] = sector.radii?.[0];
@@ -87,8 +82,8 @@ export const SectorGroup = ({
       style={[
         {
           position: "absolute",
-          left: origin[0],
-          top: origin[1],
+          left: origin[0] || 0,
+          top: origin[1] || 0,
           shadowColor: "black",
           shadowOpacity: 0.8,
         },
@@ -96,7 +91,6 @@ export const SectorGroup = ({
       ]}
     >
       <AnimatedSvg
-        {...props}
         animatedProps={animatedProps}
         width={radii?.[1] * 2}
         height={radii?.[1] * 2}
@@ -107,10 +101,7 @@ export const SectorGroup = ({
         }}
       >
         {sectors?.map((sector, index) => (
-          <Sector
-            {...sector}
-            key={`${index}-${sector.rc?.rings}-${sector.rc?.chords}`}
-          />
+          <Sector {...sector} key={`${index}-${ring}-${chord}`} />
         ))}
         {children}
       </AnimatedSvg>

@@ -1,17 +1,20 @@
 import { SharedValue } from "react-native-reanimated";
 import{  tCLARColor } from "./CLAcolor";
+import { ReactNode } from "react";
 
-export type tSector = {
+export type tRadialObject = {
   radii?: [number, number];
-  rc?: { rings: number; chords: number };
+  ring?: number;
+  chord?: number;
+  rotationR?: number;
   arcLength?: number;
+  origin?: [number, number];
+};
+
+export type tSector = tRadialObject & {
   sectorGroupID?: number;
 };
 export type tSectorGroup = tSector & {
-  rotationR?: number;
-  style?: any;
-  selectedStyle?: any;
   sectors?: tSector[];
-  children?: React.ReactNode;
-  props?: any;
+  children?: ReactNode[];
 };

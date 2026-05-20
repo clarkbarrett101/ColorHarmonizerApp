@@ -18,15 +18,14 @@ import { useUserContext, eLayers } from "./UserContext";
 import { eChipSizes } from "./PaintChip";
 import { useVerse, useVerseRelay } from "./Verse";
 import { tAttributeMap, tAttributeModifier } from "./Actor";
+import { tRadialObject } from "./sectorTypes";
 
 const fLerp = (a, b, t) => {
   "worklet";
   return a * (1 - t) + b * t;
 };
-export type tChipBucket = {
+export type tChipBucket = tRadialObject & {
   id?: string;
-  origin: [number, number];
-  radius: [number, number];
   callback?: (paint: any) => void;
   targetLayerRange?: [number, number];
   outlineOffset?: [number, number];
@@ -35,11 +34,12 @@ export type tChipBucket = {
 
 export const ChipBucket = ({
   origin = [0, 0],
-  radius = [100, 200],
+  radii = [100, 200],
   callback,
   targetLayerRange = [eLayers.chipHand, eLayers.chipHand + 100],
   outlineOffset = [0, 0],
   zIndex = eLayers.buckets,
+  rotationR = 0,
 }: tChipBucket) => {
   const {
     heldChipPaint,
@@ -69,6 +69,8 @@ export const ChipBucket = ({
       if (vActive.shared.value) {
         if (inRadius.shared.value) {
           callback?.(heldChipPaint);
+
+          bucketAnim.value = withTiming(0, { duration: 500 });
         }
         vActive.dispatch(false);
         inRadius.dispatch(false);
@@ -81,13 +83,17 @@ export const ChipBucket = ({
       (vPanX.shared.value - origin[0]) ** 2 +
         (vPanY.shared.value - origin[1]) ** 2,
     );
-    return Math.max(distance / radius[0], 0.5);
+    return Math.max(distance / radii[0], 0.5);
   });
 
   useAnimatedReaction(
     () => dDistance.value,
     (distance) => {
-      if (!vActive.shared.value) return;
+      if (!vActive.shared.value) {
+        inRadius.shared.value = false;
+        bucketAnim.value = 0;
+        return;
+      }
       if (inRadius.shared.value && distance > 1.1) {
         bucketAnim.value = withTiming(0, { duration: 500 });
         inRadius.dispatch(false);
@@ -127,6 +133,11 @@ export const ChipBucket = ({
           origin[1] - eChipSizes["default"][1] / 2,
           bucketAnim.value,
         ),
+        rotateZ: fLerp(
+          input.rotateZ || 0,
+          rotationR,
+          Math.min(1, bucketAnim.value * 2),
+        ),
       };
     },
   };
@@ -142,8 +153,8 @@ export const ChipBucket = ({
     <View
       style={{
         position: "absolute",
-        left: origin[0] - radius[0],
-        top: origin[1] - radius[0],
+        left: origin[0] - radii[0],
+        top: origin[1] - radii[0],
         zIndex: vActive.state ? zIndex : -1,
       }}
     >
@@ -158,16 +169,16 @@ export const ChipBucket = ({
         ]}
       >
         <Svg
-          width={radius[0] * 2}
-          height={radius[0] * 2}
-          viewBox={`0 0 ${radius[0] * 2} ${radius[0] * 2}`}
+          width={radii[0] * 2}
+          height={radii[0] * 2}
+          viewBox={`0 0 ${radii[0] * 2} ${radii[0] * 2}`}
         >
           <Defs>
             <RadialGradient
               id="grad"
-              cx={radius[0]}
-              cy={radius[0]}
-              r={radius[0]}
+              cx={radii[0]}
+              cy={radii[0]}
+              r={radii[0]}
               gradientUnits="userSpaceOnUse"
             >
               <Stop offset="0%" stopColor={paintColor} />
@@ -175,12 +186,7 @@ export const ChipBucket = ({
             </RadialGradient>
           </Defs>
 
-          <Circle
-            cx={radius[0]}
-            cy={radius[0]}
-            r={radius[0]}
-            fill="url(#grad)"
-          />
+          <Circle cx={radii[0]} cy={radii[0]} r={radii[0]} fill="url(#grad)" />
         </Svg>
       </Animated.View>
 
@@ -190,13 +196,14 @@ export const ChipBucket = ({
         viewBox={`0 0 32 20`}
         style={{
           position: "absolute",
-          top: radius[0] - eChipSizes.outline[1] / 2,
-          left: radius[0] - eChipSizes.outline[0] / 2,
+          top: radii[0] - eChipSizes.outline[1] / 2,
+          left: radii[0] - eChipSizes.outline[0] / 2,
           shadowOpacity: 0.5,
           shadowRadius: 5,
           transform: [
             { translateX: outlineOffset[0] },
             { translateY: outlineOffset[1] },
+            { rotateZ: `${rotationR}rad` },
           ],
           opacity: vActive.state ? 1 : 0,
           zIndex: zIndex + 20,

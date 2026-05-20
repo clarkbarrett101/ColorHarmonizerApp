@@ -1,10 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  fCLARColorToRGB,
-  fCLARColorToString,
-  tCLARColor,
-  tPaint,
-} from "./CLAcolor";
+import { useCallback, useEffect } from "react";
+import { fCLARColorToRGB, tCLARColor, tPaint } from "./CLAcolor";
 import { ColorWheel } from "./ColorWheel";
 import { TintSelector } from "./TintSelector";
 import { Dimensions, View } from "react-native";
@@ -17,20 +12,16 @@ import {
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { ColorChipFan } from "./ChipStack";
 import { scheduleOnRN } from "react-native-worklets";
-import UserContext, { eLayers, useUserContext } from "./UserContext";
-import { eChipMap, eChipSizes } from "./PaintChip";
+import { eLayers } from "./UserContext";
+import { eChipSizes } from "./PaintChip";
 import { useVerse } from "./Verse";
 import { useBucketContext } from "./BucketContext";
 import { BGGradient } from "./BGGradient";
 import { tAttributeModifier } from "./Actor";
-import { ChipHand } from "./ChipHand";
-import DropScreen from "./DropScreen";
-const clarColorsList: tPaint[] = require("./clarColors.json");
+import { tRadialObject } from "./sectorTypes";
 
-type tColorSelector = {
+type tColorSelector = tRadialObject & {
   wheelCenter?: number;
-  radii?: [number, number];
-  arcLength?: number;
   direction?: 1 | -1;
   litDimensions?: [number, number];
   litRange?: [number, number];
@@ -38,7 +29,6 @@ type tColorSelector = {
   chromaDimensions?: [number, number];
   chromaArcRotation?: [number, number];
   lightnessArcRotation?: [number, number];
-  origin?: [number, number];
 };
 export default function ColorSelector({
   wheelCenter = 22 / 7,
@@ -80,7 +70,7 @@ export default function ColorSelector({
         Dimensions.get("window").width - eChipSizes.default[0] / 3,
         Dimensions.get("window").height / 2,
       ],
-      radius: [radii[1] - 75, radii[1]],
+      radii: [radii[1] - 75, radii[1]],
       callback: fOnDrop,
       targetLayerRange: [eLayers.chipHand, eLayers.chipHand + 100],
       id: "colorMixerBucket",
@@ -258,7 +248,8 @@ export default function ColorSelector({
               key={`Lightness Selector`}
               arcLength={lightnessArcRotation[0]}
               rotationR={lightnessArcRotation[1]}
-              rc={{ rings: litDimensions[0], chords: litDimensions[1] }}
+              ring={litDimensions[0]}
+              chord={litDimensions[1]}
               radii={[radii[1] - 50, radii[1] + 75]}
               vPanPos={vLightnessPanPos}
               colorModifier={lightnessModifier}
@@ -267,21 +258,22 @@ export default function ColorSelector({
               key={`Chroma Selector`}
               arcLength={chromaArcRotation[0]}
               rotationR={chromaArcRotation[1]}
-              rc={{ rings: chromaDimensions[0], chords: chromaDimensions[1] }}
+              ring={chromaDimensions[0]}
+              chord={chromaDimensions[1]}
               radii={[radii[1] - 50, radii[1] + 75]}
               vPanPos={vChromaPanPos}
               colorModifier={chromaModifier}
             />
             <ColorWheel
               radii={radii}
-              rc={{ rings: 5, chords: 24 }}
+              ring={5}
+              chord={24}
               vRotationROffset={vWheelRotation}
               wheelCenter={wheelCenter}
             />
           </PanManager>
         </View>
       </RadialContext>
-      <DropScreen />
       <ColorChipFan
         targetColor={vTargetColor.state}
         targetNumber={9}

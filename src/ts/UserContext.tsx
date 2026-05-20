@@ -29,6 +29,7 @@ export const eLayers = {
 export type tUserContext = {
   userPallete: tPaint[];
   addPaint: (paint: tPaint, index?: number) => void;
+  removePaint: (paint: tPaint) => void;
   holdChip: (chipID?: number, status?: tChipStatus) => void;
   vPanX: tVerse<number>;
   vPanY: tVerse<number>;
@@ -46,12 +47,12 @@ export type tUserContext = {
 export const Context = createContext<tUserContext>({
   userPallete: [],
   addPaint: (paint: tPaint, index?: number) => {},
+  removePaint: (paint: tPaint) => {},
   holdChip: (chipID?: number, status?: tChipStatus) => {},
   vPanX: null,
   vPanY: null,
   vVelocityX: null,
   vHeldChipID: null,
-  //  vHeldChipRoot: null,
   heldChipPaint: null,
 });
 export const useUserContext = () => useContext(Context);
@@ -109,9 +110,9 @@ export default function UserContext({ children }: { children: ReactNode }) {
       return [...prev, paint];
     });
   }, []);
-  // Stable verse refs: hooks must always be called, but we expose only the first-render
-  // instances so context consumers never see a changed object reference.
-  // .shared (SharedValue) and .dispatch/.subscribe are functionally identical across renders.
+  const removePaint = useCallback((paint: tPaint) => {
+    setUserPallete((prev) => prev.filter((p) => p !== paint));
+  }, []);
   const _vPanX = useVerse(0);
   const _vPanY = useVerse(0);
   const _vVelocityX = useVerse(0);
@@ -120,7 +121,6 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const vPanY = useRef(_vPanY).current;
   const vVelocityX = useRef(_vVelocityX).current;
   const vHeldChipID = useRef(_vHeldChipID).current;
-  const vHeldChipRoot = useVerse<tChipStatus>(["idle", "ready"]);
   const [heldChipPaint, setHeldChipPaint] = useState<tPaint | null>(null);
   const holdChip = useCallback((chipID?: number) => {
     "worklet";
@@ -146,7 +146,6 @@ export default function UserContext({ children }: { children: ReactNode }) {
       vVelocityX,
       vHeldChipID,
       holdChip,
-      // vHeldChipRoot,
       heldChipPaint,
       setHeldChipPaint,
       registerChipActor,
@@ -154,6 +153,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
       allChipActors,
       registerModifier,
       unregisterModifier,
+      removePaint,
     }),
     [userPallete, heldChipPaint],
   );

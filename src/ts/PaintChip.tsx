@@ -27,21 +27,6 @@ import {
   useActor,
 } from "./Actor";
 import { useBucketContext } from "./BucketContext";
-export const eChipMap = {
-  idle: {
-    ready: { idle: { ready: {} } },
-    choosing: { idle: { choosing: {} } },
-    returning: { idle: { returning: {} } },
-    flippingUp: { idle: { flippingUp: {} } },
-    flippingDown: { idle: { flippingDown: {} } },
-  },
-  grabbed: {
-    pulled: { grabbed: { pulled: {} } },
-    pushed: { grabbed: { pushed: {} } },
-    inBucket: { grabbed: { inBucket: {} } },
-  },
-} as const;
-
 export type tChipStatus =
   | ["idle", "ready" | "choosing" | "returning" | "flippingUp" | "flippingDown"]
   | ["grabbed", "pulled" | "pushed" | "inBucket"];
@@ -89,7 +74,6 @@ export const PaintChip = ({
   const {
     holdChip,
     vHeldChipID,
-    // vHeldChipRoot,
     setHeldChipPaint,
     registerChipActor,
     unregisterChipActor,
@@ -104,7 +88,6 @@ export const PaintChip = ({
     x: origin.x + Math.cos(-direction * startRotation) * radialOffset,
     y: origin.y + Math.sin(-direction * startRotation) * radialOffset,
   };
-  // Stable object reference prevents useActor's useEffect from firing on every re-render
   const initialAttributes = useMemo(
     () => ({
       rotateZ: rotateZ * -direction,

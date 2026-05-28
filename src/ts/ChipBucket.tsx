@@ -25,7 +25,7 @@ const fLerp = (a, b, t) => {
   return a * (1 - t) + b * t;
 };
 export type tChipBucket = tRadialObject & {
-  id?: string;
+  id?: number;
   callback?: (paint: any) => void;
   targetLayerRange?: [number, number];
   outlineOffset?: [number, number];
@@ -40,6 +40,7 @@ export const ChipBucket = ({
   outlineOffset = [0, 0],
   zIndex = eLayers.buckets,
   rotationR = 0,
+  id = 0,
 }: tChipBucket) => {
   const {
     heldChipPaint,
@@ -109,7 +110,7 @@ export const ChipBucket = ({
   }));
 
   const bucketModifier: tAttributeModifier = {
-    modID: 20,
+    modID: id,
     deps: [
       vHeldChipID.shared,
       vActive.shared,
@@ -143,8 +144,7 @@ export const ChipBucket = ({
   };
 
   useEffect(() => {
-    console.log("Registering Bucket Modifier");
-    const id = registerModifier(bucketModifier);
+    registerModifier(bucketModifier);
     return () => {
       unregisterModifier?.(id);
     };

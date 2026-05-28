@@ -13,7 +13,7 @@ const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 export type tDropScreen = {};
 
 export default function DropScreen({}: tDropScreen) {
-  const { buckets, vDropScreen } = useBucketContext();
+  const { vBuckets, vDropScreen } = useBucketContext();
   const vDropScreenRelay = useVerseRelay(vDropScreen);
 
   const dimensions = Dimensions.get("window");
@@ -25,8 +25,11 @@ export default function DropScreen({}: tDropScreen) {
   }));
 
   const bucketComps = useMemo(
-    () => buckets.map((bucket) => <ChipBucket key={bucket.id} {...bucket} />),
-    [buckets],
+    () =>
+      Object.values(vBuckets.state).map((bucket) => (
+        <ChipBucket key={bucket.id} {...bucket} />
+      )),
+    [vBuckets.state],
   );
   return (
     <>

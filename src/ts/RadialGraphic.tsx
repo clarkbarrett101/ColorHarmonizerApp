@@ -4,6 +4,7 @@ import { tSector, tSectorGroup } from "./sectorTypes";
 import { SectorGroup } from "./SectorGroup";
 import { tCLARColor } from "./CLAcolor";
 import {
+  tRadialContext,
   useRadialContext,
   wDefaultAngleToChord,
   wDefaultChordToAngle,
@@ -15,8 +16,8 @@ export type tRadialGraphic = tSectorGroup & {
 };
 
 export function RadialGraphic(props: tRadialGraphic) {
-  const ctx = useRadialContext();
-  const radii = ctx.radii || [20, 200];
+  const ctx: tRadialContext = useRadialContext();
+  const radii = ctx.radii || props.radii || [20, 200];
   const wAngleToChord = ctx.wAngleToChord || wDefaultAngleToChord;
   const wChordToAngle = ctx.wChordToAngle || wDefaultChordToAngle;
   const arcLength = props.arcLength || ctx.totalArcLength;
@@ -149,4 +150,23 @@ export function fGetColorsFromGrid({
     colors.push(ringColors);
   }
   return colors;
+}
+
+export function fExperp(
+  colorA: tCLARColor,
+  colorB: tCLARColor,
+  step: number,
+  maxSteps: number,
+): tCLARColor {
+  "worklet";
+  const rdc = Math.pow(colorB.c / colorA.c, 1 / Math.max(maxSteps - 1, 1));
+  const rdl = Math.pow(colorB.l / colorA.l, 1 / Math.max(maxSteps - 1, 1));
+  let c = Math.pow(rdc, maxSteps - 1 - step) * colorA.c;
+  let l = Math.pow(rdl, maxSteps - 1 - step) * colorA.l;
+  const diff = Math.atan2(
+    Math.sin(colorB.ar - colorA.ar),
+    Math.cos(colorB.ar - colorA.ar),
+  );
+  let ar = colorA.ar + diff * (step / Math.max(maxSteps - 1, 1));
+  return { c, l, ar };
 }

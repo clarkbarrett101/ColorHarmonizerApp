@@ -1,4 +1,4 @@
-import { Dimensions } from "react-native";
+import { Dimensions, View } from "react-native";
 import {
   fCLARColorToRGB,
   fClosestColors,
@@ -16,11 +16,10 @@ import {
 } from "./RadialContext";
 import { RadialGraphic } from "./RadialGraphic";
 import { useVerse } from "./Verse";
-import { fMakePetalPath } from "./Sector";
 import { tAttributeMap, tAttributeModifier } from "./Actor";
 import { ChipFan } from "./ChipStack";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { eLayers } from "./UserContext";
+import { use, useEffect, useMemo, useRef, useState } from "react";
+import { eLayers, useUserContext } from "./UserContext";
 import { tRadialObject, tSectorGroup } from "./sectorTypes";
 import { useBucketContext } from "./BucketContext";
 import { eChipSizes, PaintChip } from "./PaintChip";
@@ -29,21 +28,18 @@ import {
   useSharedValue,
   useDerivedValue,
 } from "react-native-reanimated";
-import BrandFilter from "./BrandFilter";
+import { BrandFilter } from "./BrandFilter";
 import PanManager from "./PanManager";
-import { rotateZ, translate } from "@shopify/react-native-skia";
-import { transform } from "@babel/core";
-import { ColorWheel } from "./ColorWheel";
 
 export function ColorMixer({
-  radii = [0, 450],
+  radii = [0, 400],
   ring = 5,
   chord = 6,
-  arcLength = 10 / 7,
+  arcLength = 13 / 7,
   rotationR = 22 / 7,
 }: tRadialObject) {
   const origin: [number, number] = [
-    Dimensions.get("window").width / 2,
+    Dimensions.get("window").width,
     Dimensions.get("window").height * 0.45,
   ];
   const colorIndexes = {
@@ -54,19 +50,24 @@ export function ColorMixer({
     4: "grey",
     5: "black",
   };
-  const [brand, setBrand] = useState<tBrand>(null);
+  const colors = { ...refColors, blue: { ar: -0.23, c: 0.7, l: 0.3 } };
+  const [brand, setBrand] = useState<tBrand>("All Brands");
   const randomPaint = useMemo(() => fGetRandomPaint(), []);
   const vTargetColor = useVerse<tPaint>(randomPaint);
   function colorMaptoArray(colorMap: tColorMap<tPaint>): tPaint[] {
     const arg = Array(6);
     for (let i = 0; i < 6; i++) {
       const colorKey = colorIndexes[i];
-      arg[i] = colorMap[colorKey] || vTargetColor.state;
+      arg[i] = colorMap[colorKey];
     }
+    console.log(
+      "Color map to array",
+      arg.map((c) => c.name),
+    );
     return arg;
   }
   const paints = useRef<tPaint[]>(
-    colorMaptoArray(fClosestColors(vTargetColor.state)),
+    colorMaptoArray(fClosestColors(vTargetColor.state, brand)),
   );
   const [sideA, setSideA] = useState(true);
   const rotationAnim = useSharedValue(0);
@@ -74,12 +75,12 @@ export function ColorMixer({
     rotationAnim.value = withTiming(1, { duration: 500 });
   }, []);
   useEffect(() => {
-    paints.current = colorMaptoArray(fClosestColors(vTargetColor.state));
+    paints.current = colorMaptoArray(fClosestColors(vTargetColor.state, brand));
 
     sideA ? setSideA(false) : setSideA(true);
     rotationAnim.value = 0;
     rotationAnim.value = withTiming(1, { duration: 500 });
-  }, [vTargetColor.state]);
+  }, [vTargetColor.state, brand]);
   const fSectorGroupModifier = (sectorGroup: tSectorGroup) => {
     return {
       ...sectorGroup,
@@ -93,9 +94,17 @@ export function ColorMixer({
     t: number,
   ): tCLARColor {
     "worklet";
-    const c = colorA.c + (colorB.c - colorA.c) * t;
-    const l = colorA.l + (colorB.l - colorA.l) * t;
-    const ar = colorA.ar + (colorB.ar - colorA.ar) * t;
+
+    const c = Math.min(colorA.c + (colorB.c - colorA.c) * t, 0.7);
+    const l = Math.max(
+      Math.min(colorA.l + (colorB.l - colorA.l) * t, 0.9),
+      0.1,
+    );
+    const diff = Math.atan2(
+      Math.sin(colorB.ar - colorA.ar),
+      Math.cos(colorB.ar - colorA.ar),
+    );
+    const ar = colorA.ar + diff * t;
     return { c, l, ar };
   }
   function fLerp(a: number, b: number, t: number): number {
@@ -109,7 +118,7 @@ export function ColorMixer({
       "worklet";
       return {
         ...input,
-        rotateZ: fLerp(11 / 7, input.rotateZ, rotationAnim.value),
+        rotateZ: fLerp(22 / 7, input.rotateZ, rotationAnim.value),
         translateX: input.translateX + 50,
       };
     },
@@ -119,11 +128,11 @@ export function ColorMixer({
     deps: [vTargetColor.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      let color = refColors[colorIndexes[chord - input.chord - 1]];
+      let color = colors[colorIndexes[chord - input.chord - 1]];
       color = colorLerp(
         vTargetColor.shared.value.clar,
         color,
-        input.ring / ring,
+        (input.ring + 0.5) / ring,
       );
       const [r, g, b] = fCLARColorToRGB(color);
       return {
@@ -134,9 +143,29 @@ export function ColorMixer({
       };
     },
   };
-
+  /*
+  const { registerModifier, unregisterModifier } = useUserContext();
+  const chipMod: tAttributeModifier = {
+    modID: 30,
+    deps: [rotationAnim],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      if (input.id > eLayers.chipFan + 50 || input.id < eLayers.chipFan) {
+        return input;
+      }
+      const r = fLerp(22 / 7, input.rotateZ, rotationAnim.value);
+      return {
+        ...input,
+        rotateZ: r,
+        translateY: Math.cos(r) * radii[1] + origin[1],
+        translateX: Math.sin(r) * radii[1] + origin[0],
+      };
+    },
+  };
+*/
   const { registerBucket, unregisterBucket } = useBucketContext();
   useEffect(() => {
+    //registerModifier(chipMod);
     registerBucket({
       origin: [
         Dimensions.get("window").width - 100,
@@ -148,10 +177,11 @@ export function ColorMixer({
         vTargetColor.dispatch(paint);
       },
       targetLayerRange: [eLayers.chipFan - 10, eLayers.chipHand + 100],
-      id: "colorMixerBucket",
+      id: 20,
     });
     return () => {
-      unregisterBucket("colorMixerBucket");
+      unregisterBucket("" + 20);
+      //unregisterModifier(chipMod.modID);
     };
   }, []);
   const dC = useDerivedValue(() => vTargetColor.shared.value.clar.c);
@@ -159,39 +189,11 @@ export function ColorMixer({
   const dAR = useDerivedValue(() => vTargetColor.shared.value.clar.ar);
   return (
     <>
-      <PanManager drawSectors={true}>
-        <RadialContext
-          value={{
-            origin,
-            radii: [0, 200],
-            mainRotationR: rotationR,
-            totalArcLength: 3 / 7,
-            dAR,
-            dC,
-            dL,
-          }}
-        >
-          <BrandFilter
-            brand={brand}
-            setBrand={setBrand}
-            height={50}
-            width={(50 * (1 + Math.sqrt(5))) / 2}
-          />
-        </RadialContext>
-      </PanManager>
-    </>
-  );
-}
-/*
-   <RadialContext
+      <RadialContext
         value={{
           origin,
           radii,
-          direction: -1,
           mColorModifier,
-          wAngleToChord: wDefaultAngleToChord,
-          wChordToAngle: wDefaultChordToAngle,
-          fPathFunction: fMakePetalPath,
           mTransformModifier,
         }}
       >
@@ -214,13 +216,33 @@ export function ColorMixer({
         startRotation={11 / 7}
       />
       <ChipFan
-        paintsA={Object.values(paints.current)}
-        paintsB={Object.values(paints.current)}
+        paintsA={paints.current.reverse()}
+        paintsB={paints.current.reverse()}
         origin={origin}
-        sideA={true}
+        sideA={sideA}
         arcLength={arcLength}
         rotationR={rotationR + 0.02}
         radius={radii[1] * 0.75}
         groupLayer={eLayers.chipFan}
       />
+
+      <PanManager zIndex={eLayers.chipHand}>
+        <BrandFilter
+          brand={brand}
+          setBrand={setBrand}
+          height={50}
+          width={(50 * (1 + Math.sqrt(5))) / 2}
+          dAR={dAR}
+          dC={dC}
+          dL={dL}
+          origin={[origin[0] - radii[1] * 0.1, origin[1] + 200]}
+          mainRotationR={11 / 7}
+          totalArcLength={3 / 7}
+        />
+      </PanManager>
+    </>
+  );
+}
+/*
+   
       */

@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { RadialGraphic } from "./RadialGraphic";
-import { fMakePetalPath } from "./Sector";
-import { usePanManager } from "./PanManager";
+import { ePanEvent, usePanManager } from "./PanManager";
 import { tRadialObject, tSector, tSectorGroup } from "./sectorTypes";
-import { SharedValue } from "react-native-reanimated";
+import {
+  SharedValue,
+  useAnimatedReaction,
+  useSharedValue,
+} from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "./RadialContext";
 import { tAttributeMap, tAttributeModifier } from "./Actor";
 import { eLayers } from "./UserContext";
+import { scheduleOnRN } from "react-native-worklets";
 
 export type tTintSelector = tRadialObject & {
   fSectorModifier?: (sector: tSector) => tSector;
@@ -26,37 +30,59 @@ export function TintSelector({
   fSectorGroupModifier,
   colorModifier,
 }: tTintSelector) {
-  const { registerZone } = usePanManager();
+  const { registerHitBox: registerZone, unregisterHitBox } = usePanManager();
+  const vPanState = useSharedValue<ePanEvent>("leave");
   const context = useRadialContext();
-  const { origin, wAngleToChord, wChordToAngle, direction, wUpdateState } =
-    context;
-  const [lastAngle, setAngle] = useState<number>(0);
+  const { origin, wAngleToChord, wChordToAngle, wUpdateState } = context;
+  const lastAngle = useSharedValue(0);
   const fOnEnter = () => {
+    "worklet";
     let nearestSectorAngle = wChordToAngle(
       wAngleToChord(vPanPos.value.angle, arcLength, chord, rotationR),
       arcLength,
       chord,
       rotationR,
     );
-    if (nearestSectorAngle !== lastAngle) {
+    if (nearestSectorAngle !== lastAngle.value) {
       vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
-      setAngle(nearestSectorAngle);
+      lastAngle.value = nearestSectorAngle;
       wUpdateState();
     }
   };
 
+  useAnimatedReaction(
+    () => vPanState.value,
+    (state) => {
+      switch (state) {
+        case "enter":
+          fOnEnter();
+          break;
+        case "leave":
+          fOnEnter();
+          break;
+        case "drag":
+          break;
+        case "tap":
+          fOnEnter();
+          break;
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
-    const unregisterZone = registerZone({
-      vPanPos,
+    const id = "" + ring + "-" + chord;
+    registerZone({
+      id,
       radii,
       arcLength: (arcLength * (chord - 1)) / chord,
       rotationR,
       origin,
-      fOnEnter,
-      fOnLeave: fOnEnter,
+      vPanPos,
+      vPanState,
     });
     return () => {
-      unregisterZone();
+      unregisterHitBox(id);
     };
   }, []);
 
@@ -72,7 +98,6 @@ export function TintSelector({
       );
       diff = 1 - diff;
       const z = Math.round(diff * chord) + eLayers.colorMixer;
-      angle = angle * direction;
       const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
       return {
         ...input,
@@ -90,7 +115,6 @@ export function TintSelector({
     <RadialContext
       value={{
         radii,
-        fPathFunction: fMakePetalPath,
         mColorModifier: colorModifier,
         mTransformModifier: transformModifier,
         vPanPos,

@@ -48,7 +48,7 @@ export function RadialMenu({
   const { origin, radii, totalArcLength, mainRotationR, totalRings } =
     useRadialContext();
   const optionKeys = Object.keys(options);
-  const { registerZone } = usePanManager();
+  const { registerHitBox: registerZone } = usePanManager();
   if (!registerZone) {
     throw new Error("RadialMenu must be used within a PanManager provider");
   }
@@ -67,7 +67,7 @@ export function RadialMenu({
   }, [options, optionKeys]);
   console.log("optionKeys", optionKeys);
   useEffect(() => {
-  const unregisterZone = registerZone({
+    const unregisterZone = registerZone({
       vPanPos,
       radii,
       arcLength: (totalArcLength * (optionKeys.length - 1)) / optionKeys.length,

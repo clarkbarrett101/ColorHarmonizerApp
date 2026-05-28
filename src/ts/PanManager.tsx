@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useState } from "react";
 import {
   GestureDetector,
   usePanGesture,
@@ -6,35 +6,44 @@ import {
   useTapGesture,
 } from "react-native-gesture-handler";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
-import Svg, { G, Path } from "react-native-svg";
-import { fMakeSectorPath } from "./Sector";
-import { View } from "react-native";
-import { runOnJS } from "react-native-worklets";
-import { useRadialContext } from "./RadialContext";
+import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
+import { fMakeSectorPath } from "./sectorTypes";
+import { Dimensions, Share, View } from "react-native";
+import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 import { eLayers } from "./UserContext";
+import { tVerse, useVerse, useVerseRelay } from "./Verse";
 
-type tRadialZone = {
-  vPanPos: SharedValue<{ angle: number; radius: number }>;
-  vDrag?: SharedValue<number>;
+export type ePanEvent = "enter" | "leave" | "drag" | "tap";
+
+type tRadialHitBox = {
+  shape?: "sector" | "capsule";
+  id: string;
   origin: [number, number];
   radii: [number, number];
+  capsuleMod?: SharedValue<number>;
   arcLength: number;
   rotationR: number;
-  fOnEnter?: (angle: number, radius: number) => void;
-  fOnLeave?: () => void;
-  fOnTap?: () => void;
+  vPanState?: SharedValue<ePanEvent>;
+  vPanPos?: SharedValue<{ angle: number; radius: number }>;
   highlight?: boolean;
-  tickRate?: number;
   priority?: number;
 };
-const RadialZone = ({
+
+//M 0 11 A 11 11 90 0 1 0 -11 H 13 A 11 11 90 0 1 13 11 Z
+const RadialHitbox = ({
   origin,
   radii,
   arcLength,
   rotationR,
+  shape = "sector",
   highlight = false,
-}: tRadialZone) => {
-  const path = fMakeSectorPath(radii, arcLength, radii[1]);
+}: tRadialHitBox) => {
+  const capsulePath = `M 0 ${radii[0]} A ${radii[0]} ${radii[0]} 90 0 1 0 ${-radii[0]} H ${radii[1] - radii[0]} A ${radii[0]} ${radii[0]} 90 0 1 ${radii[1] - radii[0]} ${radii[0]} Z`;
+  const path =
+    shape === "capsule"
+      ? capsulePath
+      : fMakeSectorPath(radii, arcLength, radii[1]);
+  ``;
 
   return (
     <G
@@ -44,7 +53,7 @@ const RadialZone = ({
     >
       <Path
         d={path}
-        fill={highlight ? "rgba(255,255,255,0.25)" : "transparent"}
+        fill={highlight ? "rgba(255,0,0,0.25)" : "rgba(255,255,255,0.25)"}
         stroke="rgba(0,0,0,0.1)"
       />
     </G>
@@ -52,8 +61,8 @@ const RadialZone = ({
 };
 
 type tPanManager = {
-  registerZone: (zone: tRadialZone) => () => void;
-  selectedZone: number;
+  registerHitBox: (hitbox: tRadialHitBox) => void;
+  unregisterHitBox: (id: string) => void;
 };
 
 const Ctx = React.createContext<tPanManager | null>(null);
@@ -69,59 +78,91 @@ export function usePanManager() {
 export default function PanManager({
   children,
   drawSectors = false,
+  zIndex = eLayers.panManager,
 }: {
   children: React.ReactNode;
   drawSectors?: boolean;
+  zIndex?: number;
 }) {
-  const vPanPos = useSharedValue([0, 0]);
-  const vZones = useSharedValue<tRadialZone[]>([]);
-  const vStartAngle = useSharedValue(0);
-  const vDragStart = useSharedValue(0);
-  const vCurrentZone = useSharedValue(-1);
-  const [zoneRefs, setZoneRefs] = useState<tRadialZone[]>([]);
-  const [zoneState, setZoneState] = useState(-1);
-  const { direction = 1, radii, origin } = useRadialContext();
-  useEffect(() => {
-    vZones.value = zoneRefs;
-  }, [zoneRefs]);
-  useEffect(() => {
-    vCurrentZone.value = zoneState;
-    console.log("selected zone", zoneState);
-  }, [zoneState]);
+  const vPanPos = useSharedValue({ angle: 0, radius: 0 });
+  const vHitBoxes = useVerse<Record<string, tRadialHitBox>>({});
+  const vCurrentHitBox = useVerse<string | null>(null);
 
-  const registerZone = useCallback((zone: tRadialZone) => {
-    setZoneRefs((refs) => {
+  const vBounds = useVerse<{
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  }>({
+    minX: 0,
+    minY: 0,
+    maxX: 0,
+    maxY: 0,
+  });
+  const registerHitBox = (hitBox: tRadialHitBox) => {
+    scheduleOnUI(() => {
+      "worklet";
+      /*
+      )*/
+
+      console.log("Registering hitbox with id:", hitBox);
+      if (hitBox.rotationR < 0) {
+        hitBox.rotationR = 44 / 7 + hitBox.rotationR;
+      } else if (hitBox.rotationR > 44 / 7) {
+        hitBox.rotationR = hitBox.rotationR - 44 / 7;
+      }
       const newZone = {
-        ...zone,
-        priority: zone.priority || 0,
+        ...hitBox,
+        priority: hitBox.priority || 0,
       };
-      const updated = [...refs, newZone].sort(
-        (a, b) => (b.priority || 0) - (a.priority || 0),
-      );
-      return updated;
+      const updatedHitBoxes = {
+        ...vHitBoxes.shared.value,
+        [hitBox.id]: newZone,
+      };
+      vHitBoxes.shared.value = updatedHitBoxes;
+      vHitBoxes.dispatch();
+      calculateBounds();
     });
-    return () => unregisterZone(zone);
-  }, []);
+  };
 
-  const unregisterZone = useCallback((zone: tRadialZone) => {
-    setZoneRefs((refs) => refs.filter((z) => z !== zone));
-  }, []);
+  const unregisterHitBox = (id: string) => {
+    /*
+     */
+    scheduleOnUI(() => {
+      "worklet";
+      const updated = { ...vHitBoxes.shared.value };
+      delete updated[id];
+      vHitBoxes.shared.value = updated;
+      vHitBoxes.dispatch();
+      calculateBounds();
+      console.log(
+        "Unregistered hitbox. Total hitboxes:",
+        Object.keys(vHitBoxes.shared.value).length,
+      );
+    });
+  };
   const releaseZone = () => {
     "worklet";
-    if (vCurrentZone.value !== -1) {
-      if (vZones.value[vCurrentZone.value].fOnLeave) {
-        runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
+    if (vCurrentHitBox.shared.value !== null) {
+      if (vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanPos) {
+        vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanPos.value =
+          vPanPos.value;
       }
-      runOnJS(setZoneState)(-1);
-      vCurrentZone.value = -1;
+      if (vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState) {
+        vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState.value =
+          "leave";
+      }
+      vCurrentHitBox.dispatch(null);
     }
   };
   const panUpdate = (e: { absoluteX: number; absoluteY: number }) => {
-    `worklet`;
+    "worklet";
     let foundZone = false;
-    vPanPos.value = [e.absoluteX, e.absoluteY];
-    for (let i = 0; i < vZones.value.length; i++) {
-      const zone = vZones.value[i];
+    const hitBoxesArray = Object.values(vHitBoxes.shared.value);
+    hitBoxesArray.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+    for (let i = 0; i < hitBoxesArray.length; i++) {
+      const zone = hitBoxesArray[i];
       const x = e.absoluteX;
       const y = e.absoluteY;
       const dx = x - zone.origin[0];
@@ -131,39 +172,50 @@ export default function PanManager({
       if (angle < 0) {
         angle += 44 / 7;
       }
-      if (direction === -1) {
-        angle = 44 / 7 - angle;
+      vPanPos.value = { angle, radius: distance };
+      let inZone = false;
+      if (zone.shape === "capsule") {
+        const dx = e.absoluteX - zone.origin[0];
+        const dy = e.absoluteY - zone.origin[1];
+        const localX =
+          dx * Math.cos(-zone.rotationR) - dy * Math.sin(-zone.rotationR);
+        const localY =
+          dx * Math.sin(-zone.rotationR) + dy * Math.cos(-zone.rotationR);
+        const clampedX = Math.max(
+          0,
+          Math.min(
+            zone.capsuleMod.value * (zone.radii[1] - zone.radii[0]),
+            localX,
+          ),
+        );
+        const distX = localX - clampedX;
+        const distY = localY;
+        inZone = distX * distX + distY * distY <= zone.radii[0] * zone.radii[0];
+      } else {
+        const inRadius = distance >= zone.radii[0] && distance <= zone.radii[1];
+        const angleDiff = Math.abs(angle - zone.rotationR);
+        inZone = inRadius && angleDiff <= zone.arcLength / 2;
       }
-      const inArc =
-        angle > zone.rotationR - zone.arcLength / 2 &&
-        angle < zone.rotationR + zone.arcLength / 2;
-      const inRadius =
-        distance >= (zone.radii?.[0] || 0) &&
-        distance <= (zone.radii?.[1] || Infinity);
 
-      if (inArc && inRadius) {
-        zone.vPanPos.value = { angle: angle, radius: distance };
+      if (inZone) {
         foundZone = true;
-
-        if (vCurrentZone.value !== i) {
-          vStartAngle.value = angle;
+        zone.vPanPos && (zone.vPanPos.value = { angle, radius: distance });
+        if (vCurrentHitBox.shared.value !== zone.id) {
           if (
-            vCurrentZone.value !== -1 &&
-            vZones.value[vCurrentZone.value].fOnLeave
+            vCurrentHitBox.shared.value !== null &&
+            vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState
           ) {
-            runOnJS(vZones.value[vCurrentZone.value].fOnLeave)();
+            vHitBoxes.shared.value[
+              vCurrentHitBox.shared.value
+            ].vPanState.value = "leave";
           }
-          if (zone.vDrag) {
-            vDragStart.value = zone.vDrag.value;
+          if (zone.vPanState) {
+            console.log("Entering zone:", zone.id);
+            zone.vPanState.value = "enter";
           }
-          if (zone.fOnEnter) {
-            runOnJS(zone.fOnEnter)(angle, distance);
-          }
-          runOnJS(setZoneState)(i);
-        }
-        vCurrentZone.value = i;
-        if (zone.vDrag) {
-          zone.vDrag.value = vStartAngle.value + vDragStart.value - angle;
+          vCurrentHitBox.dispatch(zone.id);
+        } else if (zone.vPanState) {
+          zone.vPanState.value = "drag";
         }
         break;
       }
@@ -172,14 +224,94 @@ export default function PanManager({
       releaseZone();
     }
   };
+  function calculateBounds() {
+    "worklet";
+    if (Object.keys(vHitBoxes.shared.value).length === 0) {
+      return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+    }
+
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+
+    Object.values(vHitBoxes.shared.value).forEach((zone) => {
+      if (zone.shape === "capsule") {
+        const capRadius = zone.radii[0];
+        const bodyLength = zone.radii[1] + zone.radii[0];
+
+        // Capsule endpoints (centers of the semicircular caps)
+        const startX = zone.origin[0];
+        const startY = zone.origin[1] - capRadius;
+        const endX = zone.origin[0] + bodyLength * Math.cos(zone.rotationR);
+        const endY =
+          zone.origin[1] + bodyLength * Math.sin(zone.rotationR) - capRadius;
+
+        // Account for the radius extending in all directions from endpoints
+        const points = [
+          { x: startX - capRadius, y: startY - capRadius },
+          { x: startX + capRadius, y: startY - capRadius },
+          { x: startX - capRadius, y: startY + capRadius },
+          { x: startX + capRadius, y: startY + capRadius },
+          { x: endX - capRadius, y: endY - capRadius },
+          { x: endX + capRadius, y: endY - capRadius },
+          { x: endX - capRadius, y: endY + capRadius },
+          { x: endX + capRadius, y: endY + capRadius },
+        ];
+
+        points.forEach((p) => {
+          minX = Math.min(minX, p.x);
+          minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x);
+          maxY = Math.max(maxY, p.y);
+        });
+      } else {
+        // Sector (original logic)
+        const maxRadius = zone.radii[1];
+        const angles = [
+          zone.rotationR - zone.arcLength / 2,
+          zone.rotationR + zone.arcLength / 2,
+          zone.rotationR,
+        ];
+
+        angles.forEach((angle) => {
+          const x = zone.origin[0] + maxRadius * Math.cos(angle);
+          const y = zone.origin[1] + maxRadius * Math.sin(angle);
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        });
+
+        // Include inner radius points too
+        const minRadius = Math.max(0, zone.radii[0]);
+        angles.forEach((angle) => {
+          const x = zone.origin[0] + minRadius * Math.cos(angle);
+          const y = zone.origin[1] + minRadius * Math.sin(angle);
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        });
+      }
+
+      // Always include origin
+      minX = Math.min(minX, zone.origin[0]);
+      minY = Math.min(minY, zone.origin[1]);
+      maxX = Math.max(maxX, zone.origin[0]);
+      maxY = Math.max(maxY, zone.origin[1]);
+    });
+
+    vBounds.dispatch({ minX, minY, maxX, maxY });
+  }
 
   const tapUpdate = (e: { absoluteX: number; absoluteY: number }) => {
     "worklet";
     panUpdate(e);
-    if (vCurrentZone.value !== -1) {
-      const zone = vZones.value[vCurrentZone.value];
-      if (zone.fOnTap) {
-        runOnJS(zone.fOnTap)();
+    if (vCurrentHitBox.shared.value !== null) {
+      const zone = vHitBoxes.shared.value[vCurrentHitBox.shared.value];
+      if (zone.vPanState) {
+        zone.vPanState.value = "tap";
       }
       releaseZone();
     }
@@ -196,49 +328,56 @@ export default function PanManager({
     },
   });
   const compGesture = useSimultaneousGestures(tap, pan);
+  const radiusMod = 3;
+  const sectors = () => {
+    if (!drawSectors) {
+      return null;
+    }
+    const group = Object.values(vHitBoxes.state).map((zone, index) => (
+      <RadialHitbox
+        {...zone}
+        rotationR={zone.rotationR}
+        key={index}
+        highlight={vCurrentHitBox.state === zone.id}
+      />
+    ));
+    return group;
+  };
+  const width = vBounds.state.maxX - vBounds.state.minX;
+  const height = vBounds.state.maxY - vBounds.state.minY;
   return (
     <Ctx.Provider
       value={{
-        registerZone,
-        selectedZone: zoneState,
+        registerHitBox,
+        unregisterHitBox,
       }}
     >
+      {children}
       <View
         style={{
           position: "absolute",
-          top: 0,
+          zIndex: zIndex,
           left: 0,
-          zIndex: 0,
+          top: 0,
         }}
       >
-        {children}
+        <GestureDetector gesture={compGesture}>
+          <Svg
+            style={{
+              position: "absolute",
+              borderWidth: drawSectors ? 1 : 0,
+              backgroundColor: drawSectors ? "rgba(0,0,0,0.05)" : "transparent",
+              width: width,
+              height: height,
+              top: vBounds.state.minY,
+              left: vBounds.state.minX,
+            }}
+            viewBox={`${vBounds.state.minX} ${vBounds.state.minY} ${width} ${height}`}
+          >
+            {sectors()}
+          </Svg>
+        </GestureDetector>
       </View>
-
-      <GestureDetector gesture={compGesture}>
-        <Svg
-          style={{
-            position: "absolute",
-            top: origin[1] - radii[1] * 1.25,
-            left: origin[0] - radii[1] * 1.25,
-            width: radii[1] * 2.5,
-            height: radii[1] * 2.5,
-            zIndex: eLayers.panManager,
-          }}
-          viewBox={`${origin[0] - radii[1] * 1.25} ${origin[1] - radii[1] * 1.25} ${radii[1] * 2.5} ${radii[1] * 2.5}`}
-        >
-          {drawSectors &&
-            zoneRefs.map((zone, index) => (
-              <RadialZone
-                {...zone}
-                rotationR={
-                  direction === 1 ? zone.rotationR : 44 / 7 - zone.rotationR
-                }
-                key={index}
-                highlight={zoneState === index}
-              />
-            ))}
-        </Svg>
-      </GestureDetector>
     </Ctx.Provider>
   );
 }

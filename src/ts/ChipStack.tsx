@@ -1,5 +1,12 @@
 import { eChipSizes, PaintChip, tPaintChip } from "./PaintChip";
-import { refColors, tCLARColor, tColorMap, tPaint } from "./CLAcolor";
+import {
+  refColors,
+  tCLARColor,
+  tColorMap,
+  tPaint,
+  findColors,
+  tBrand,
+} from "./CLAcolor";
 import React, { useEffect, useState } from "react";
 const clarColorsList: tPaint[] = require("./clarColors.json");
 const refList: {
@@ -12,7 +19,6 @@ const refList: {
 export type tChipFan = {
   arcLength: number;
   radius: number;
-  direction?: 1 | -1;
   fGetChipModifier?: (chip: tPaintChip) => tPaintChip;
   paintsA: tPaint[];
   paintsB?: tPaint[];
@@ -32,7 +38,6 @@ export const ChipFan = React.memo(
     rotationR = 0,
     arcLength,
     radius,
-    direction = 1,
     sideA = true,
     fGetChipModifier = (chip) => chip,
     groupLayer = 0,
@@ -56,7 +61,6 @@ export const ChipFan = React.memo(
           relativeZ: z,
           chipID: [groupLayer, i],
           sideA,
-          direction,
         };
         const modifiedChip = fGetChipModifier(chip);
         newChipStack.push(
@@ -70,6 +74,7 @@ export const ChipFan = React.memo(
 );
 type tChipWheel = Omit<tChipFan, "paintsA"> & {
   targetColor: tCLARColor;
+  brand?: tBrand;
   targetNumber?: number;
   cSteps?: number;
   lSteps?: number;
@@ -79,6 +84,7 @@ type tChipWheel = Omit<tChipFan, "paintsA"> & {
 export const ColorChipFan = ({
   targetColor,
   targetNumber = 3,
+  brand,
   sideA = true,
   cSteps = 4,
   lSteps = 5,
@@ -100,20 +106,14 @@ export const ColorChipFan = ({
   const [sideABuffer, setSideABuffer] = useState(sideA);
   useEffect(() => {
     console.log("Finding colors for target", targetColor, sideA ? "A" : "B");
-    const foundColors =
-      refList
-        .find((entry) => {
-          return (
-            Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
-            Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
-            Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
-          );
-        })
-        ?.paintIndexes.map((index) => clarColorsList[index]) ?? [];
+    const foundColors = findColors(targetColor, targetNumber, brand);
+    const foundPaints = foundColors.map(
+      (color) => clarColorsList[color.index!],
+    );
     if (sideA) {
-      setPaintsA(foundColors);
+      setPaintsA(foundPaints);
     } else {
-      setPaintsB(foundColors);
+      setPaintsB(foundPaints);
     }
     setSideABuffer(sideA);
   }, [sideA]);

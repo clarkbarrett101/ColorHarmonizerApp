@@ -1,10 +1,8 @@
 import React from "react";
 import { DerivedValue, SharedValue } from "react-native-reanimated";
 import { tCLARColor } from "./CLAcolor";
-import { tSector, tSectorGroup } from "./sectorTypes";
+import { tSector, tSectorGroup, fMakePetalPath } from "./sectorTypes";
 import { tAttributeModifier } from "./Actor";
-import { fMakePetalPath } from "./Sector";
-
 export const wDefaultAngleToChord = (
   angle: number,
   arcLength: number,
@@ -27,9 +25,8 @@ export const wDefaultChordToAngle = (
   return (chord + 0.5) * (arcLength / chords) + rotationOffset - arcLength / 2;
 };
 
-type tRadialContext = {
+export type tRadialContext = {
   origin?: [number, number];
-  direction?: 1 | -1;
   radii?: [number, number];
   totalArcLength?: number;
   mainRotationR?: number;
@@ -66,7 +63,6 @@ type tRadialContext = {
 
 const Ctx = React.createContext<tRadialContext>({
   origin: [0, 0],
-  direction: 1,
   radii: [20, 200],
   totalArcLength: 11 / 7,
   mainRotationR: 0,

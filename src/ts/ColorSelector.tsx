@@ -1,5 +1,5 @@
-import { useCallback, useEffect } from "react";
-import { fCLARColorToRGB, tCLARColor, tPaint } from "./CLAcolor";
+import { useCallback, useEffect, useState } from "react";
+import { fCLARColorToRGB, tBrand, tCLARColor, tPaint } from "./CLAcolor";
 import { ColorWheel } from "./ColorWheel";
 import { TintSelector } from "./TintSelector";
 import { Dimensions, View } from "react-native";
@@ -19,6 +19,7 @@ import { useBucketContext } from "./BucketContext";
 import { BGGradient } from "./BGGradient";
 import { tAttributeModifier } from "./Actor";
 import { tRadialObject } from "./sectorTypes";
+import { BrandFilter } from "./BrandFilter";
 
 type tColorSelector = tRadialObject & {
   wheelCenter?: number;
@@ -33,7 +34,6 @@ type tColorSelector = tRadialObject & {
 export default function ColorSelector({
   wheelCenter = 22 / 7,
   radii = [50, 250],
-  direction = -1,
   litDimensions = [4, 5],
   litRange = [0.15, 1],
   chromaRange = [0.1, 0.8],
@@ -53,6 +53,7 @@ export default function ColorSelector({
     l: 0.5,
     ar: 0,
   });
+  const [brand, setBrand] = useState<tBrand>("All Brands");
   const vWheelRotation = useSharedValue(wheelCenter);
   const vChromaPanPos = useSharedValue({
     angle: chromaArcRotation[1] + chromaArcRotation[0] / 3,
@@ -73,10 +74,10 @@ export default function ColorSelector({
       radii: [radii[1] - 75, radii[1]],
       callback: fOnDrop,
       targetLayerRange: [eLayers.chipHand, eLayers.chipHand + 100],
-      id: "colorMixerBucket",
+      id: 20,
     });
     return () => {
-      unregisterBucket("colorMixerBucket");
+      unregisterBucket("" + 20);
     };
   }, []);
 
@@ -165,12 +166,12 @@ export default function ColorSelector({
       const c = pc !== undefined ? pc : dC.value;
       const l = pl !== undefined ? pl : dL.value;
       const ar = par !== undefined ? par : dAR.value;
-      scheduleOnRN(vTargetColor.dispatch, {
+      vTargetColor.dispatch({
         c,
         l,
         ar,
       });
-      scheduleOnRN(vSideA.dispatch, !vSideA.shared.value);
+      vSideA.dispatch(!vSideA.shared.value);
     },
     [dC, dL, dAR, vTargetColor, vSideA],
   );
@@ -219,31 +220,28 @@ export default function ColorSelector({
     wUpdateState(paint.clar.c, paint.clar.l, paint.clar.ar);
   }, []);
 
+  function dispatchBrand(brand: tBrand) {
+    setBrand(brand);
+    wUpdateState();
+  }
+
   /// R E N D E R ///
   return (
     <>
-      <RadialContext
-        value={{
-          radii,
+      <PanManager>
+        <View>
+          <RadialContext
+            value={{
+              radii,
+              origin,
+              dC,
+              dL,
+              dAR,
+              wUpdateState,
+            }}
+          >
+            <BGGradient />
 
-          origin,
-          direction,
-          wAngleToChord: wDefaultAngleToChord,
-          wChordToAngle: wDefaultChordToAngle,
-          dC,
-          dL,
-          dAR,
-          wUpdateState,
-        }}
-      >
-        <BGGradient />
-        <View
-          style={{
-            flex: 1,
-            zIndex: eLayers.panManager,
-          }}
-        >
-          <PanManager>
             <TintSelector
               key={`Lightness Selector`}
               arcLength={lightnessArcRotation[0]}
@@ -271,18 +269,32 @@ export default function ColorSelector({
               vRotationROffset={vWheelRotation}
               wheelCenter={wheelCenter}
             />
-          </PanManager>
+          </RadialContext>
         </View>
-      </RadialContext>
+      </PanManager>
+      <PanManager zIndex={eLayers.chipHand}>
+        <BrandFilter
+          brand={brand}
+          setBrand={dispatchBrand}
+          height={50}
+          width={(50 * (1 + Math.sqrt(5))) / 2}
+          totalArcLength={3 / 7}
+          mainRotationR={11 / 7}
+          origin={[Dimensions.get("window").width - 60, 75]}
+          dAR={dAR}
+          dC={dC}
+          dL={dL}
+        />
+      </PanManager>
       <ColorChipFan
         targetColor={vTargetColor.state}
         targetNumber={9}
+        brand={brand}
         origin={origin}
         size={"default"}
         rotationR={22 / 7}
         arcLength={13 / 7}
         radius={radii[1] * 1.6}
-        direction={direction}
         sideA={vSideA.state}
         cSteps={chromaDimensions[1]}
         lSteps={litDimensions[1]}
@@ -294,4 +306,5 @@ export default function ColorSelector({
 }
 /*
     
+             
       */

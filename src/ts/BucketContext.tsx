@@ -2,15 +2,16 @@ import { createContext, useContext, useState } from "react";
 import { tChipBucket } from "./ChipBucket";
 import { tChipStatus } from "./PaintChip";
 import { tVerse, useVerse } from "./Verse";
+import { scheduleOnUI } from "react-native-worklets";
 
 export type tBucketContext = {
-  buckets?: tChipBucket[];
+  vBuckets?: tVerse<Record<string, tChipBucket>>;
   registerBucket?: (bucket: tChipBucket) => void;
   unregisterBucket?: (id: string) => void;
   vDropScreen?: tVerse<boolean>;
 };
 export const ctx = createContext<tBucketContext>({
-  buckets: [],
+  vBuckets: undefined,
   registerBucket: (bucket: tChipBucket) => {},
   unregisterBucket: (id: string) => {},
 });
@@ -21,20 +22,31 @@ export default function BucketContext({
 }: {
   children: React.ReactNode;
 }) {
-  const [buckets, setBuckets] = useState<tChipBucket[]>([]);
+  const vBuckets = useVerse<Record<string, tChipBucket>>({});
   const registerBucket = (bucket: tChipBucket) => {
-    if (bucket.id && !buckets.find((b) => b.id === bucket.id)) {
-      setBuckets((prev) => [...prev, bucket]);
-    }
+    "worklet";
+    scheduleOnUI(() => {
+      vBuckets.shared.value = {
+        ...vBuckets.shared.value,
+        [bucket.id]: bucket,
+      };
+      vBuckets.dispatch();
+    });
   };
   const unregisterBucket = (id: string) => {
-    setBuckets((prev) => prev.filter((b) => b.id !== id));
+    "worklet";
+    scheduleOnUI(() => {
+      const newBuckets = { ...vBuckets.shared.value };
+      delete newBuckets[id];
+      vBuckets.shared.value = newBuckets;
+      vBuckets.dispatch();
+    });
   };
   const vDropScreen = useVerse(false);
   return (
     <ctx.Provider
       value={{
-        buckets,
+        vBuckets,
         registerBucket,
         unregisterBucket,
         vDropScreen,

@@ -1,18 +1,18 @@
-import { fCLARColorToRGB, fCLARColorToString, tPaint } from "./CLAcolor";
+import { fCLARColorToRGB } from "./CLAcolor";
 import { RadialGraphic } from "./RadialGraphic";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
-import { fMakePetalPath } from "./Sector";
-import { tRadialObject, tSectorGroup } from "./sectorTypes";
+import { use, useCallback, useEffect, useState } from "react";
+import { tRadialObject } from "./sectorTypes";
 import {
   useSharedValue,
   SharedValue,
   withTiming,
-  makeMutable,
+  useAnimatedReaction,
 } from "react-native-reanimated";
-import { usePanManager } from "./PanManager";
+import { ePanEvent, usePanManager } from "./PanManager";
 import { RadialContext, useRadialContext } from "./RadialContext";
 import { tAttributeMap, tAttributeModifier } from "./Actor";
 import { eLayers } from "./UserContext";
+import { scheduleOnRN } from "react-native-worklets";
 
 type tColorWheel = tRadialObject & {
   vRotationROffset?: SharedValue<number>;
@@ -29,7 +29,6 @@ function ColorWheel({
 }: tColorWheel) {
   const {
     origin,
-    direction,
     wAngleToChord,
     wChordToAngle,
     dC,
@@ -37,8 +36,6 @@ function ColorWheel({
     dAR,
     wUpdateState: fUpdateState,
   } = useRadialContext();
-  const vPanPos = useSharedValue({ angle: 0, radius: 0 });
-  const { registerZone } = usePanManager();
 
   const mColorModifier: tAttributeModifier = {
     modID: 0,
@@ -59,9 +56,14 @@ function ColorWheel({
       };
     },
   };
+  const { registerHitBox: registerZone, unregisterHitBox } = usePanManager();
+  const vPanPos = useSharedValue({ angle: 0, radius: 0 });
+  const vPanState = useSharedValue<ePanEvent>("leave");
+  const vStartAngle = useSharedValue(0);
+  const dragStartAngle = useSharedValue(0);
   const mTransformModifier: tAttributeModifier = {
     modID: 0,
-    deps: [dAR, dL, dC],
+    deps: [dAR, dL, dC, vRotationROffset, vPanPos, vStartAngle, dragStartAngle],
     modifier: (input: tAttributeMap) => {
       "worklet";
       const adjustedRotationROffset = dAR.value;
@@ -78,7 +80,7 @@ function ColorWheel({
       const zIndex = Math.round(chord / 2 - zDiff) + eLayers.colorMixer;
       diff =
         Math.max(0, (2 * arcLength) / chord - diff) / ((2 * arcLength) / chord);
-      const vR = (input.rotateZ + -vRotationROffset.value) * direction;
+      const vR = input.rotateZ + -vRotationROffset.value;
       const vS = 1 + Math.max(0, diff - 0.8);
       return {
         ...input,
@@ -93,8 +95,9 @@ function ColorWheel({
       };
     },
   };
-  const [selectedRing, setSelectedRing] = useState(-1);
+
   const fOnLeave = (angleOffset = 0) => {
+    "worklet";
     let nearestSector = wAngleToChord(
       vRotationROffset.value + angleOffset,
       arcLength,
@@ -103,11 +106,7 @@ function ColorWheel({
     );
     let nearestSectorAngle = wChordToAngle(nearestSector, arcLength, chord, 0);
     vRotationROffset.value = withTiming(nearestSectorAngle);
-    setSelectedRing(nearestSector);
     fUpdateState();
-  };
-  const fSectorGroupModifier = (sectorGroup: tSectorGroup) => {
-    return sectorGroup;
   };
   const fOnTap = useCallback(() => {
     const offsetAngle = vPanPos.value.angle - 22 / 7;
@@ -119,39 +118,68 @@ function ColorWheel({
       "Tapped wheel," + offsetAngle + " rotating to " + vRotationROffset.value,
     );
   }, []);
-  console.log("Rendering ColorWheel with selected ring", selectedRing);
+  useAnimatedReaction(
+    () => vPanPos.value,
+    (pos) => {
+      if (vPanState.value === "drag") {
+        const angleDiff = vPanPos.value.angle - vStartAngle.value;
+        vRotationROffset.value = dragStartAngle.value - angleDiff;
+      }
+    },
+    [],
+  );
+  useAnimatedReaction(
+    () => vPanState.value,
+    (state) => {
+      console.log("Wheel pan state changed:", state);
+      switch (state) {
+        case "enter":
+          vStartAngle.value = vPanPos.value.angle;
+          dragStartAngle.value = vRotationROffset.value;
+          break;
+        case "leave":
+          fOnLeave();
+          break;
+        case "drag":
+          break;
+        case "tap":
+          fOnTap();
+          break;
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
-    const unregisterZone = registerZone({
-      fOnLeave,
+    const id = `${ring}-${chord}`;
+    registerZone({
+      origin,
+      id,
       radii,
       rotationR: wheelCenter,
       arcLength,
       vPanPos,
-      vDrag: vRotationROffset,
-      origin: origin,
-      priority: 10,
-      fOnTap,
+      vPanState,
+      priority: 5,
     });
     fOnLeave();
     return () => {
-      unregisterZone();
+      unregisterHitBox(id);
     };
   }, []);
-
   return (
     <RadialContext
       value={{
         radii,
-        fPathFunction: fMakePetalPath,
         mColorModifier,
         mTransformModifier,
+        totalArcLength: arcLength,
+        mainRotationR: wheelCenter,
+        totalRings: ring,
+        totalChords: chord,
       }}
     >
-      <RadialGraphic
-        arcLength={arcLength}
-        rotationR={wheelCenter}
-        fSectorGroupModifier={fSectorGroupModifier}
-      />
+      <RadialGraphic />
     </RadialContext>
   );
 }

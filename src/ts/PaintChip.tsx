@@ -47,7 +47,6 @@ export type tPaintChip = {
   chipID: [number, number];
   relativeZ?: number;
   sideA?: boolean;
-  direction?: 1 | -1;
 };
 
 export const fLerp = (a: number, b: number, t: number): number => {
@@ -65,7 +64,6 @@ export const PaintChip = ({
   radialOffset = 0,
   chipID,
   sideA = true,
-  direction = 1,
 }: tPaintChip) => {
   /// O N  M O U N T ///
 
@@ -85,12 +83,12 @@ export const PaintChip = ({
   const rotateZ =
     Math.abs(startRotation) > 11 / 7 ? -22 / 7 + startRotation : startRotation;
   const startPosition = {
-    x: origin.x + Math.cos(-direction * startRotation) * radialOffset,
-    y: origin.y + Math.sin(-direction * startRotation) * radialOffset,
+    x: origin.x + Math.cos(startRotation) * radialOffset,
+    y: origin.y + Math.sin(startRotation) * radialOffset,
   };
   const initialAttributes = useMemo(
     () => ({
-      rotateZ: rotateZ * -direction,
+      rotateZ: rotateZ,
       translateX: startPosition.x,
       translateY: startPosition.y,
       id,
@@ -270,7 +268,7 @@ export const PaintChip = ({
   });
   const highlightAngle =
     Math.atan2(startPosition.y, -startPosition.x) -
-    (grabbed ? 22 / 7 : startRotation);
+    (grabbed ? 22 / 7 : 44 / 7 - rotateZ);
   /// R E N D E R ///
   flag = "#00f";
   return (

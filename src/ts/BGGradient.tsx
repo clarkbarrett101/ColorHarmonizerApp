@@ -8,11 +8,6 @@ import { eLayers } from "./UserContext";
 export function BGGradient() {
   const { dAR, dC, dL } = useRadialContext();
   const color = useDerivedValue(() => {
-    console.log("BGGradient color updated", {
-      c: dC.value,
-      l: dL.value,
-      ar: dAR.value,
-    });
     return fCLARColorToString({
       c: dC.value * 0.25,
       l: dL.value * 0.5 + 0.5,

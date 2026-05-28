@@ -26,11 +26,11 @@ export type tChipHand = tRadialObject & {
 
 export const ChipHand = ({
   radii = [80, 80],
-  rotationR = 6 / 7,
+  rotationR = -6 / 7,
   arcLength = 12 / 7,
   holdRadius = 200,
 }: tChipHand) => {
-  const startAngle = rotationR - arcLength / 2;
+  const startAngle = rotationR + arcLength / 2;
   const selectVerse = useVerse(-1);
   const {
     vPanX,
@@ -64,14 +64,9 @@ export const ChipHand = ({
         event.absoluteY - origin[1],
         event.absoluteX - origin[0],
       );
-      const distance = Math.sqrt(
-        (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
+      const index = Math.round(
+        (1 - (startAngle - angle) / arcLength) * userPallete.length - 0.5,
       );
-      const index =
-        (Math.round(((startAngle - angle) / arcLength) * userPallete.length) -
-          0.5) /
-        userPallete.length;
-
       selectVerse.shared.value = index;
       holdChip(eLayers.chipHand + index);
       touching.shared.value = true;
@@ -89,7 +84,7 @@ export const ChipHand = ({
       );
 
       const index = Math.round(
-        ((startAngle - angle) / arcLength) * userPallete.length,
+        (1 - (startAngle - angle) / arcLength) * userPallete.length - 0.5,
       );
       const distance = Math.sqrt(
         (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
@@ -224,27 +219,27 @@ export const ChipHand = ({
     registerBucket({
       origin: [origin[0] + radii[0], origin[1] - radii[0]],
       radii: [holdRadius, holdRadius * 2],
-      rotationR: -rotationR,
+      rotationR: rotationR,
       callback: (paint) => {
         addPaintCallback(paint);
       },
       targetLayerRange: [eLayers.chipFan - 50, eLayers.chipFan + 50],
-      id: `hand-bucket`,
+      id: 21,
       zIndex: eLayers.buckets + 100,
     });
     registerBucket({
       origin: [Dimensions.get("window").width / 2, eChipSizes.outline[1] / 2],
       radii: [holdRadius, holdRadius * 2],
       targetLayerRange: [eLayers.chipHand - 50, eLayers.chipHand + 50],
-      id: `discard-bucket`,
+      id: 22,
       zIndex: eLayers.buckets + 100,
       callback: (paint) => {
         removePaintCallback(paint);
       },
     });
     return () => {
-      unregisterBucket(`hand-bucket`);
-      unregisterBucket(`discard-bucket`);
+      unregisterBucket("" + 21);
+      unregisterBucket("" + 22);
     };
   }, []);
   return (
@@ -254,7 +249,6 @@ export const ChipHand = ({
         paintsA={userPallete}
         size={"default"}
         radius={radii[0]}
-        direction={1}
         origin={origin}
         rotationR={rotationR}
         arcLength={arcLength}

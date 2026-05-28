@@ -9,7 +9,6 @@ import { useEffect, useState } from "react";
 import { tSectorGroup } from "./sectorTypes";
 import { useRadialContext } from "./RadialContext";
 import { tAttributeMap, useActor } from "./Actor";
-import { scheduleOnUI } from "react-native-worklets";
 
 export const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 export const SectorGroup = ({
@@ -38,22 +37,20 @@ export const SectorGroup = ({
       actor.removeModifier(mTransformModifier.modID);
     };
   }, []);
-  const mapper = (attributes: tAttributeMap) => {
-    "worklet";
-    return {
-      transform: [
-        { rotateZ: `${attributes.rotateZ || 0}rad` },
-        { translateX: attributes.translateX || 0 },
-        { translateY: attributes.translateY || 0 },
-        { scaleX: attributes.scaleX || 1 },
-        { scaleY: attributes.scaleY || 1 },
-      ],
-    };
-  };
 
   const animatedProps = useAnimatedProps(() => {
     "worklet";
-    return actor.get(mapper);
+    return actor.get((attributes) => {
+      return {
+        transform: [
+          { rotateZ: `${attributes.rotateZ || 0}rad` },
+          { translateX: attributes.translateX || 0 },
+          { translateY: attributes.translateY || 0 },
+          { scaleX: attributes.scaleX || 1 },
+          { scaleY: attributes.scaleY || 1 },
+        ],
+      };
+    });
   });
   const containerStyle = useAnimatedStyle(() => {
     "worklet";

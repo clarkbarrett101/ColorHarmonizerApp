@@ -62,8 +62,13 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const allChipActors = useRef<Record<number, tActor>>({}).current;
   const registerModifier = useCallback(
     (attributeModifier: tAttributeModifier) => {
-      const id = Object.keys(allModifiers).length + 1;
+      const id = attributeModifier.modID;
+      if (allModifiers[id]) {
+        console.warn(`Modifier with ID ${id} already exists. Overwriting.`);
+        return id;
+      }
       allModifiers[id] = attributeModifier;
+      console.log("Registering modifier", Object.keys(allModifiers));
       for (let chipID in allChipActors) {
         allChipActors[chipID].addModifier(attributeModifier);
       }

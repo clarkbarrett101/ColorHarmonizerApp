@@ -7,7 +7,7 @@ export function fGetRandomPaint(): tPaint {
   console.log("Generated random paint:", paint.name, paint.clar);
   return paint;
 }
-export type tBrand = "Behr" | "Benjamin Moore" | "Sherwin-Williams" | "PPG" | "Valspar"| "All Brands";
+export type tBrand = "Behr" | "Benjamin Moore" | "Sherwin Williams" | "PPG" | "Valspar"| "All Brands";
 export type tCLARColor = {
   c: number;
   l: number;
@@ -16,7 +16,7 @@ export type tCLARColor = {
 
  const CLArRed: tCLARColor = {ar: 1.81, c: 1, l: 0.3} ;
  const CLArYellow: tCLARColor = {ar: 2.9, c: 0.9, l: 0.9};
- const CLArBlue: tCLARColor = {ar: -0.23, c: 0.9, l: 0.1};
+ const CLArBlue: tCLARColor = {ar: -0.23, c: 0.8, l: 0.1};
  const CLArWhite: tCLARColor = { c: 0, l: 1, ar: 0 };
  const CLArGrey: tCLARColor = { c: 0, l: 0.5, ar: 0 };
  const CLArBlack: tCLARColor = { c: 0, l: 0, ar: 0 };
@@ -107,7 +107,7 @@ type tPaintRank = {
   distance: number;
 };
 
-function findColors(
+export function findColors(
   { c = 0.5, l = 0.5, ar = 0 }: tCLARColor,
   targetNumber = 3,
   brand?: tBrand,
@@ -118,15 +118,14 @@ function findColors(
   let paintRanks: tPaintRank[] = [];
   for (let i = 0; i < clarColorsList.length; i++) {
     const paintColor = clarColorsList[i];
-      if (brand !== "All Brands" && paintColor.brand !== brand) {
+        if (brand !== "All Brands" && paintColor.brand !== brand) {
         continue;
       }
     const dy = paintColor.yuv[0] - y;
     const du = paintColor.yuv[1] - u;
     const dv = paintColor.yuv[2] - v;
     const distance =
-      Math.sqrt(dy * dy + du * du + dv * dv) +
-      (paintColor.brand === "Behr" ? 0.02 : 0);
+      Math.sqrt(dy * dy + du * du + dv * dv) ;
     paintRanks.push({
       index: i,
       distance,
@@ -158,8 +157,11 @@ function calculateRYBScore(
 function fDistanceBetween(colorA: tCLARColor, colorB: tCLARColor) {
   const dc = colorA.c - colorB.c;
   const dl = colorA.l - colorB.l;
-  const dar = colorA.ar - colorB.ar;
-  return Math.sqrt(dc * dc + dl * dl + dar * dar);
+    const diff = 2 * Math.atan2(
+      Math.sin(colorB.ar - colorA.ar),
+      Math.cos(colorB.ar - colorA.ar),
+    );
+  return Math.sqrt(dc * dc + dl * dl + diff * diff);
 }
 function fDistances(testColor: tCLARColor): tColorMap<number> {
   return {
@@ -174,7 +176,15 @@ function fDistances(testColor: tCLARColor): tColorMap<number> {
 
 export function fClosestColors(targetColor: tPaint, brand?: tBrand): tColorMap<tPaint> {
   let rankedColors = findColors(targetColor.clar, -1, brand);
-  let colorMap: tColorMap<tPaint> = {};
+  console.log("Ranked colors:", rankedColors.length);
+  let colorMap: tColorMap<tPaint> = {
+    red: undefined,
+    yellow: undefined,
+    blue: undefined,
+    white: undefined,
+    grey: undefined,
+    black: undefined,
+  };
 
   const targetScores = fDistances(targetColor.clar);
 
@@ -218,10 +228,11 @@ export function fClosestColors(targetColor: tPaint, brand?: tBrand): tColorMap<t
       continue;
     }
   }
-  for (let color in colorMap) {
-    if (!colorMap[color]) {
-      console.log("Could not find a close match for", color);
-      colorMap[color] = targetColor;
+  
+  for (let i in colorMap) {
+    if (colorMap[i] === undefined) {
+      console.log(rankedColors[0]);
+      colorMap[i] = clarColorsList[rankedColors[0].index];
     }
   }
   return colorMap;

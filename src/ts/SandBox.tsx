@@ -6,12 +6,13 @@ import DropScreen from "./DropScreen";
 import BucketContext from "./BucketContext";
 import { ColorMixer } from "./ColorMixer";
 import { ColorCamera } from "./ColorCamera";
+import { WallPaintCam } from "./WallPaintCam";
 export default function SandBox() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserContext>
         <BucketContext>
-          <ColorCamera />
+          <WallPaintCam />
           <DropScreen />
           <ChipHand />
         </BucketContext>

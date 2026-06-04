@@ -36,6 +36,14 @@ export const refColors: tColorMap<tCLARColor> = {
   grey: CLArGrey,
   black: CLArBlack,
 };
+export function fCLARColorToYUV(color: tCLARColor): [number, number, number] {
+  'worklet';
+  const {c, l, ar} = color;
+  const u = Math.cos(ar)*.5 * c;
+  const v = Math.sin(ar)*.5 * c;
+  const y = l;
+  return [y, u, v];
+}
 export function fRGBToCLARColor(rgb: [number, number, number]): tCLARColor {
   'worklet';
   const [r, g, b] = rgb.map((c) => c / 255);
@@ -51,9 +59,7 @@ export function fRGBToCLARColor(rgb: [number, number, number]): tCLARColor {
   export function fCLARColorToRGB(color: tCLARColor): [number, number, number] {
         'worklet';
     const {c, l, ar} = color;
-    const u = Math.cos(ar)*.5 * c;
-    const v = Math.sin(ar)*.5 * c;
-    const y = l;
+    const [y, u, v] = fCLARColorToYUV(color);
     const r =Math.round(Math.max(0, y + 1.13983 * v)*255);
     const g = Math.round(Math.max(0, y - 0.39465 * u - 0.58060 * v)*255);
     const b = Math.round(Math.max(0, y + 2.03211 * u)*255);

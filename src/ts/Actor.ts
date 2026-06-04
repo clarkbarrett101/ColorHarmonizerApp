@@ -1,17 +1,10 @@
-import { add } from "@shopify/react-native-skia";
 import { useEffect, useRef } from "react";
-
 import {
   DerivedValue,
-  makeMutable,
   SharedValue,
-  useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
 import {
-  isWorkletFunction,
-  runOnUI,
-  RuntimeKind,
   scheduleOnUI,
 } from "react-native-worklets";
 export type tAttribute =
@@ -74,18 +67,16 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
   useEffect(() => {
     attributes.value = { ...defaultAttributes, ...initialAttributes };
   }, [initialAttributes]);
-  const modifiers = useSharedValue<{ [key: number]: SharedValue<wModifier> }>(
+  const modifiers = useSharedValue<{ [key: number]: wModifier }>(
     {},
   );
   const deps = useRef<SharedValue<any>[]>([]).current;
-  const depsMap = useSharedValue<{ [key: string]: SharedValue<any>[] }>({});
   function addModifier(attributeModifier: tAttributeModifier) {
-    const mod = makeMutable(attributeModifier.modifier);
     scheduleOnUI(() => {
       "worklet";
       const mods = modifiers.value;
       let idx = attributeModifier.modID;
-      modifiers.value = { ...mods, [idx]: mod };
+      modifiers.value = { ...mods, [idx]: attributeModifier.modifier };
       if (attributeModifier.deps) {
         for (const dep of attributeModifier.deps) {
             if (!deps.includes(dep)) {
@@ -93,8 +84,6 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
             }
         }
       }
-      console.log("Added modifier", idx, Object.keys(modifiers.value));
-   
     });
   }
 
@@ -114,7 +103,7 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
     const depsValues = deps.map((dep) => dep.value);
     let modifiedAttributes = { ...attributes.value };
     for (let id in modifiers.value) {
-      const modifier = modifiers.value[id].value;
+      const modifier = modifiers.value[id];
       modifiedAttributes = modifier(modifiedAttributes);
     }
     return callback(modifiedAttributes);

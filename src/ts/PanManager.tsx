@@ -70,7 +70,10 @@ const Ctx = React.createContext<tPanManager | null>(null);
 export function usePanManager() {
   const context = React.useContext(Ctx);
   if (!context) {
-    throw new Error("usePanManager must be used within a PanManager");
+    return {
+      registerHitBox: () => {},
+      unregisterHitBox: () => {},
+    };
   }
   return context;
 }

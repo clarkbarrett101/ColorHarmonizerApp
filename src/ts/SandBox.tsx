@@ -5,12 +5,13 @@ import { ChipHand } from "./ChipHand";
 import DropScreen from "./DropScreen";
 import BucketContext from "./BucketContext";
 import { ColorMixer } from "./ColorMixer";
+import { ColorCamera } from "./ColorCamera";
 export default function SandBox() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserContext>
         <BucketContext>
-          <ColorMixer />
+          <ColorCamera />
           <DropScreen />
           <ChipHand />
         </BucketContext>

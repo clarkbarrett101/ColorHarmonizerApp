@@ -2,15 +2,77 @@ import { GlassView } from "expo-glass-effect";
 import { Dimensions, View } from "react-native";
 import {
   Camera,
+  Frame,
   useCameraDevice,
+  useCameraFormat,
   useCameraPermission,
+  useFrameProcessor,
   useSkiaFrameProcessor,
 } from "react-native-vision-camera";
-import { ImageFilter, Paint, Skia } from "@shopify/react-native-skia";
-import { useEffect, useState } from "react";
-import { useSharedValue } from "react-native-reanimated";
+import {
+  Canvas,
+  Image,
+  Paint,
+  Skia,
+  SkImage,
+  SkSurface,
+  useAnimatedImage,
+  useCanvasRef,
+} from "@shopify/react-native-skia";
+import { useEffect, useRef, useState } from "react";
+import { useFrameCallback, useSharedValue } from "react-native-reanimated";
 import { fCLARColorToYUV } from "./CLAcolor";
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+export function useMinimalDrawingFrameProcessor() {
+  const skiaTexture = useSharedValue<SkImage | null>(null);
+  const pendingTexture = useSharedValue<SkSurface>(
+    Skia.Surface.MakeOffscreen(SCREEN_WIDTH, SCREEN_HEIGHT)!,
+  );
+  const frameCount = useSharedValue(0);
+
+  const frameProcessor = useFrameProcessor((frame: Frame) => {
+    "worklet";
+
+    try {
+      frameCount.value++;
+      if (frameCount.value % 3 !== 0) return;
+
+      const nativeBuffer = frame.getNativeBuffer();
+      if (!nativeBuffer?.pointer) return;
+
+      // Create image from frame buffer first
+      const frameImage = Skia.Image.MakeImageFromNativeBuffer(
+        nativeBuffer.pointer,
+      );
+      nativeBuffer.delete(); // Important: delete the native buffer after creating the image
+      if (!frameImage) return;
+
+      const copy = frameImage.makeNonTextureImage();
+      pendingTexture.value.getCanvas().drawImage(copy, 0, 0);
+      frameImage.dispose(); // Important: dispose the copy too
+    } catch (error) {
+      // Ignore
+    }
+  }, []);
+
+  useFrameCallback(() => {
+    "worklet";
+
+    const pending = pendingTexture.value;
+    if (!pending) return;
+
+    pendingTexture.value = null;
+
+    if (skiaTexture.value) {
+      skiaTexture.value.dispose();
+    }
+
+    skiaTexture.value = pending.makeImageSnapshot();
+  });
+
+  return { frameProcessor, skiaTexture };
+}
 export function WallPaintCam() {
   const { hasPermission, requestPermission } = useCameraPermission();
   if (!hasPermission) {
@@ -19,76 +81,34 @@ export function WallPaintCam() {
   }
   const device = useCameraDevice("back");
   if (device == null) return null;
+  const format = useCameraFormat(device, [
+    {
+      photoResolution: {
+        width: 1280,
+        height: 720,
+      },
+    },
+  ]);
 
   const [targetColor, setTargetColor] = useState({ ar: 0, c: 0.5, l: 0.5 });
+  const { frameProcessor, skiaTexture } = useMinimalDrawingFrameProcessor();
 
-  const paint = useSharedValue(Skia.Paint());
-  const shaderEffect = Skia.RuntimeEffect.Make(shader);
-  const [threshold, setThreshold] = useState(0.05);
-  const sharedCenter = useSharedValue([960, 540]);
-  useEffect(() => {
-    resetShader();
-  }, [targetColor, threshold, sharedCenter]);
-
-  const skiaFrameProcessor = useSkiaFrameProcessor((frame) => {
+  const skfp = useSkiaFrameProcessor((frame) => {
     "worklet";
-    console.log("Processing frame");
-    frame.render(paint.value);
-    const centerX = frame.width / 2;
-    const centerY = frame.height / 2;
-    sharedCenter.value = [centerX, centerY];
+    // Here you can process the frame and update skiaTexture with a new SkImage
+    // For example, you could apply a shader that replaces colors close to targetColor
   }, []);
-  function resetShader() {
-    const replacementYUV = fCLARColorToYUV(targetColor);
-    const shaderBuilder = Skia.RuntimeShaderBuilder(shaderEffect);
-    shaderBuilder.setUniform("replacementYUV", [...replacementYUV]);
-    shaderBuilder.setUniform("center", [...sharedCenter.value]);
-    shaderBuilder.setUniform("threshold", [threshold]);
-    const imageFilter = Skia.ImageFilter.MakeRuntimeShader(
-      shaderBuilder,
-      null,
-      null,
-    );
-    const newPaint = Skia.Paint();
-    newPaint.setImageFilter(imageFilter);
-    paint.value = newPaint;
-  }
+
+  if (!device) return <View />;
 
   return (
     <View style={{ flex: 1 }}>
-      <View
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: Dimensions.get("window").width,
-          height: Dimensions.get("window").height,
-        }}
-      >
-        <Camera
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: Dimensions.get("window").width,
-            height: Dimensions.get("window").height,
-          }}
-          device={device}
-          isActive={true}
-          frameProcessor={skiaFrameProcessor}
-        />
-      </View>
-      <GlassView
-        style={{
-          flex: 1,
-          position: "absolute",
-          top: Dimensions.get("window").height / 2 - 20,
-          left: Dimensions.get("window").width / 2 - 20,
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-        }}
-        glassEffectStyle={"clear"}
+      <Camera
+        style={{ flex: 1 }}
+        device={device}
+        isActive={true}
+        frameProcessor={skfp}
+        preview={false} // Hide camera preview since we're drawing with Skia
       />
     </View>
   );

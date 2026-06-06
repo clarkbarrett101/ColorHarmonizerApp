@@ -19,6 +19,7 @@ import { eChipSizes } from "./PaintChip";
 import { useVerse, useVerseRelay } from "./Verse";
 import { tAttributeMap, tAttributeModifier } from "./Actor";
 import { tRadialObject } from "./sectorTypes";
+import { tPaint } from "./CLAcolor";
 
 const fLerp = (a, b, t) => {
   "worklet";
@@ -26,7 +27,7 @@ const fLerp = (a, b, t) => {
 };
 export type tChipBucket = tRadialObject & {
   id?: number;
-  callback?: (paint: any) => void;
+  callback?: (paint: tPaint) => void;
   targetLayerRange?: [number, number];
   outlineOffset?: [number, number];
   zIndex?: number;

@@ -8,6 +8,7 @@ import {
   useCameraPermission,
   useFrameProcessor,
   useSkiaFrameProcessor,
+  runAsync,
 } from "react-native-vision-camera";
 import {
   Canvas,
@@ -15,64 +16,19 @@ import {
   Paint,
   Skia,
   SkImage,
+  SkPaint,
   SkSurface,
   useAnimatedImage,
   useCanvasRef,
 } from "@shopify/react-native-skia";
-import { useEffect, useRef, useState } from "react";
-import { useFrameCallback, useSharedValue } from "react-native-reanimated";
+import { use, useEffect, useRef, useState } from "react";
+
 import { fCLARColorToYUV } from "./CLAcolor";
+import { useRunOnJS, useSharedValue } from "react-native-worklets-core";
+import { useBucketContext } from "./BucketContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-export function useMinimalDrawingFrameProcessor() {
-  const skiaTexture = useSharedValue<SkImage | null>(null);
-  const pendingTexture = useSharedValue<SkSurface>(
-    Skia.Surface.MakeOffscreen(SCREEN_WIDTH, SCREEN_HEIGHT)!,
-  );
-  const frameCount = useSharedValue(0);
 
-  const frameProcessor = useFrameProcessor((frame: Frame) => {
-    "worklet";
-
-    try {
-      frameCount.value++;
-      if (frameCount.value % 3 !== 0) return;
-
-      const nativeBuffer = frame.getNativeBuffer();
-      if (!nativeBuffer?.pointer) return;
-
-      // Create image from frame buffer first
-      const frameImage = Skia.Image.MakeImageFromNativeBuffer(
-        nativeBuffer.pointer,
-      );
-      nativeBuffer.delete(); // Important: delete the native buffer after creating the image
-      if (!frameImage) return;
-
-      const copy = frameImage.makeNonTextureImage();
-      pendingTexture.value.getCanvas().drawImage(copy, 0, 0);
-      frameImage.dispose(); // Important: dispose the copy too
-    } catch (error) {
-      // Ignore
-    }
-  }, []);
-
-  useFrameCallback(() => {
-    "worklet";
-
-    const pending = pendingTexture.value;
-    if (!pending) return;
-
-    pendingTexture.value = null;
-
-    if (skiaTexture.value) {
-      skiaTexture.value.dispose();
-    }
-
-    skiaTexture.value = pending.makeImageSnapshot();
-  });
-
-  return { frameProcessor, skiaTexture };
-}
 export function WallPaintCam() {
   const { hasPermission, requestPermission } = useCameraPermission();
   if (!hasPermission) {
@@ -90,33 +46,81 @@ export function WallPaintCam() {
     },
   ]);
 
-  const [targetColor, setTargetColor] = useState({ ar: 0, c: 0.5, l: 0.5 });
-  const { frameProcessor, skiaTexture } = useMinimalDrawingFrameProcessor();
+  const [targetColor, setTargetColor] = useState({
+    ar: 22 / 7,
+    c: 0.5,
+    l: 0.5,
+  });
+  const vPaint = useSharedValue<SkPaint>(Skia.Paint());
 
+  const frameSize = useSharedValue([0, 0]);
+  function resetShader(dimensions?: [number, number]) {
+    frameSize.value = dimensions ?? frameSize.value;
+    const replacementYUV = fCLARColorToYUV(targetColor);
+    const filter = Skia.RuntimeEffect.Make(shaderCode);
+    const builder = Skia.RuntimeShaderBuilder(filter);
+    builder.setUniform("replacementYUV", replacementYUV);
+    builder.setUniform("center", [
+      frameSize.value[0] / 2,
+      frameSize.value[1] / 2,
+    ]);
+    builder.setUniform("threshold", [0.025]);
+    const rtShader = Skia.ImageFilter.MakeRuntimeShader(builder, null, null);
+    vPaint.value.setImageFilter(rtShader);
+  }
+  const runResetShader = useRunOnJS(resetShader, []);
+  useEffect(() => {
+    resetShader();
+  }, [targetColor]);
   const skfp = useSkiaFrameProcessor((frame) => {
     "worklet";
-    // Here you can process the frame and update skiaTexture with a new SkImage
-    // For example, you could apply a shader that replaces colors close to targetColor
+    if (frameSize.value[0] === 0) {
+      runResetShader([frame.width, frame.height]);
+    }
+    frame.render(vPaint.value);
   }, []);
 
   if (!device) return <View />;
-
+  const { registerBucket, unregisterBucket } = useBucketContext();
+  useEffect(() => {
+    registerBucket({
+      origin: [SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2],
+      radii: [150, 400],
+      rotationR: 0,
+      callback: (paint) => {
+        setTargetColor(paint.clar);
+      },
+      targetLayerRange: [0, 1000],
+      id: 20,
+    });
+    return () => unregisterBucket("" + 20);
+  }, []);
   return (
     <View style={{ flex: 1 }}>
       <Camera
-        style={{ flex: 1 }}
         device={device}
         isActive={true}
+        style={{ flex: 1, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
         frameProcessor={skfp}
-        preview={false} // Hide camera preview since we're drawing with Skia
+      />
+      <GlassView
+        style={{
+          position: "absolute",
+          top: SCREEN_HEIGHT / 2 - 20,
+          left: SCREEN_WIDTH / 2 - 20,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+        }}
+        glassEffectStyle={"clear"}
       />
     </View>
   );
 }
-const shader = `
+const shaderCode = `
    uniform shader image;
     uniform vec3 replacementYUV;
-    uniform vec2 center;
+   uniform vec2 center;
     uniform half threshold;
   vec3 rgb2yuv(vec3 rgb) {
     float y = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
@@ -139,7 +143,7 @@ const shader = `
 
     half4 main(vec2 pos) {
     if(replacementYUV[0] > 100) {
-    return image.eval(pos);
+      return image.eval(pos);
     }
         vec4 color = image.eval(pos);
         vec3 yuv = rgb2yuv(color.rgb);

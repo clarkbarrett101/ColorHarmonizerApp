@@ -7,17 +7,25 @@ import BucketContext from "./BucketContext";
 import { ColorMixer } from "./ColorMixer";
 import { ColorCamera } from "./ColorCamera";
 import { WallPaintCam } from "./WallPaintCam";
+import { LightThermo } from "./LightThermo";
+import { PaletteLibrary } from "./PaletteLibrary";
+import SoundContext from "./SoundContext";
+import { Waveform } from "./Waveform";
 export default function SandBox() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserContext>
         <BucketContext>
-          <WallPaintCam />
-          <DropScreen />
-          <ChipHand />
+          <SoundContext>
+            <DropScreen />
+            <PaletteLibrary />
+            <ChipHand />
+          </SoundContext>
         </BucketContext>
       </UserContext>
     </GestureHandlerRootView>
   );
 }
-//
+/*
+    
+*/

@@ -1,6 +1,7 @@
 import React, {
   createContext,
   ReactNode,
+  use,
   useCallback,
   useContext,
   useEffect,
@@ -8,10 +9,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { tPaint } from "./CLAcolor";
+import { fGetRandomPalette, tPaint } from "./CLAcolor";
 import { tVerse, useVerse } from "./Verse";
-import { tChipStatus } from "./PaintChip";
-import { tActor, tAttributeModifier } from "./Actor";
+import { fLerp, tChipStatus } from "./PaintChip";
+import { tActor, tAttributeMap, tAttributeModifier } from "./Actor";
+import { tChordProps } from "./Sounds";
+
+const loopTimes = [0.205, 0.3637, 0.35];
+
 const clarColorsList: tPaint[] = require("./clarColors.json");
 
 export const eLayers = {
@@ -27,7 +32,7 @@ export const eLayers = {
 };
 
 export type tUserContext = {
-  userPallete: tPaint[];
+  userPalette: tPaint[];
   addPaint: (paint: tPaint, index?: number) => void;
   removePaint: (paint: tPaint) => void;
   holdChip: (chipID?: number, status?: tChipStatus) => void;
@@ -42,10 +47,13 @@ export type tUserContext = {
   allChipActors?: Record<number, tActor>;
   registerModifier?: (attributeModifier: tAttributeModifier) => number;
   unregisterModifier?: (id: number) => void;
+  fStartChord?: () => void;
+  fSetChord?: () => void;
+  fStopChord?: () => void;
 };
 
 export const Context = createContext<tUserContext>({
-  userPallete: [],
+  userPalette: [],
   addPaint: (paint: tPaint, index?: number) => {},
   removePaint: (paint: tPaint) => {},
   holdChip: (chipID?: number, status?: tChipStatus) => {},
@@ -101,22 +109,21 @@ export default function UserContext({ children }: { children: ReactNode }) {
     }
     return Array.from(indexes);
   }
-  const [userPallete, setUserPallete] = useState<tPaint[]>(() => {
-    const indexes = randomIndexes(5, clarColorsList.length);
-    return indexes.map((i) => clarColorsList[i]);
-  });
+  const [userPalette, setUserPalette] = useState<tPaint[]>(
+    fGetRandomPalette(4).paints,
+  );
   const addPaint = useCallback((paint: tPaint, index?: number) => {
-    setUserPallete((prev) => {
+    setUserPalette((prev) => {
       if (index !== undefined) {
-        const newPallete = [...prev];
-        newPallete.splice(index, 0, paint);
-        return newPallete;
+        const newPalette = [...prev];
+        newPalette.splice(index, 0, paint);
+        return newPalette;
       }
       return [...prev, paint];
     });
   }, []);
   const removePaint = useCallback((paint: tPaint) => {
-    setUserPallete((prev) => prev.filter((p) => p !== paint));
+    setUserPalette((prev) => prev.filter((p) => p !== paint));
   }, []);
   const _vPanX = useVerse(0);
   const _vPanY = useVerse(0);
@@ -127,6 +134,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const vVelocityX = useRef(_vVelocityX).current;
   const vHeldChipID = useRef(_vHeldChipID).current;
   const [heldChipPaint, setHeldChipPaint] = useState<tPaint | null>(null);
+
   const holdChip = useCallback((chipID?: number) => {
     "worklet";
     if (!chipID) {
@@ -138,13 +146,9 @@ export default function UserContext({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => {
-    console.log("Held Chip ID:", _vHeldChipID.state);
-  }, [_vHeldChipID.state]);
-
   const contextValue = useMemo(
     () => ({
-      userPallete,
+      userPalette,
       addPaint,
       vPanX,
       vPanY,
@@ -160,7 +164,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
       unregisterModifier,
       removePaint,
     }),
-    [userPallete, heldChipPaint],
+    [userPalette, heldChipPaint],
   );
 
   return <Context.Provider value={contextValue}>{children}</Context.Provider>;

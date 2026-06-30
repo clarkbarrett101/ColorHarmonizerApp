@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+import { ISharedValue, useSharedValue as useISharedValue } from "react-native-worklets-core";
 
 export type tVerse<type> = {
     state: type;
     dispatch: (value?: type) => void;
-    shared: SharedValue<type>;
+    shared: SharedValue<type> ;
     subscribe?: (callback: (value: type) => void) => () => void;
     unSubscribe?: (callback: (value: type) => void) => void;
 };

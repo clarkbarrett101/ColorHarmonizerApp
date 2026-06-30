@@ -2,7 +2,7 @@
   "expo": {
     "name": "ColorHarmonizer",
     "slug": "ColorHarmonizer",
-    "version": "2.2.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/AppIcon.png",
     "userInterfaceStyle": "light",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.clarkbarrett101.ColorHarmonizer",
-      "buildNumber": "2.2.0"
+      "buildNumber": "3.0.0"
     },
     "android": {
       "adaptiveIcon": {
@@ -38,7 +38,6 @@
         "expo-font",
         {
           "fonts": [
-            "./assets/Outfit-VariableFont_wght.ttf",
             "./assets/Outfit-VariableFont_wght.ttf"
           ]
         }

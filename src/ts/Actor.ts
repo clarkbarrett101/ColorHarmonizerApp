@@ -23,7 +23,7 @@ export type tAttribute =
   | "shadowRadius"
   | "red"
   | "green"
-  | "blue";
+  | "blue"  | 'held';
 export type wModifier = (
   input: tAttributeMap,
   last?: tAttributeMap,

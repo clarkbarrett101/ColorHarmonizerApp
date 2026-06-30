@@ -1,11 +1,26 @@
-import { useState } from "react";
-import { DerivedValue, SharedValue, useDerivedValue, useSharedValue } from "react-native-reanimated";
+import React from "react";
+import { Dimensions } from "react-native";
+
 const clarColorsList: tPaint[] = require("./clarColors.json");
 export function fGetRandomPaint(): tPaint {
   const randomIndex = Math.floor(Math.random() * clarColorsList.length);
   const paint = clarColorsList[randomIndex];
   console.log("Generated random paint:", paint.name, paint.clar);
   return paint;
+}
+
+export type tPalette = {
+  name: string;
+  paints: tPaint[];
+};
+
+export function fGetRandomPalette(size: number): tPalette {
+  const paints = [];
+  for (let i = 0; i < size; i++) {
+    paints.push(fGetRandomPaint());
+  }
+  paints.sort((a, b) => a.clar.l - b.clar.l);
+  return { name: `Random Palette ${Math.floor(Math.random() * 1000)}`, paints };
 }
 export type tBrand = "Behr" | "Benjamin Moore" | "Sherwin Williams" | "PPG" | "Valspar"| "All Brands";
 export type tCLARColor = {
@@ -36,9 +51,44 @@ export const refColors: tColorMap<tCLARColor> = {
   grey: CLArGrey,
   black: CLArBlack,
 };
+export function fRGBToYUV(rgb: [number, number, number]): [number, number, number] {
+  'worklet';
+  const [r, g, b] = rgb.map((c) => c / 255);
+  const y = Math.round((0.299 * r + 0.587 * g + 0.114 * b) * 10000) / 10000;
+  const u = Math.round((-0.14713 * r - 0.28886 * g + 0.436 * b) * 10000) / 10000;
+  const v = Math.round((0.615 * r - 0.51499 * g - 0.10001 * b) * 10000) / 10000;
+  return [y, u, v];
+}
+function descaleAR(ar: number): number {
+  'worklet';
+  const originalAR = ar;
+  ar = ar / (Math.PI * 2);
+  if (ar < 0) ar += 1;
+ ar -= 2/7;
+  if (ar < 0) ar += 1;
+  ar = (Math.log2(ar +1));
+  ar = ar * (Math.PI * 2);
+  ar = Math.round(ar * 100) / 100;
+ // console.log("Descaled AR:", originalAR.toFixed(2), "to", ar);
+  return ar;
+}
+function scaleAR(ar: number): number {
+  'worklet'; 
+  const originalAR = ar; 
+  ar = ar / (Math.PI * 2); 
+  if (ar < 0) ar += 1;
+  ar = Math.pow(2, ar)-1;
+  ar += 2/7;
+  if (ar > 1) ar -= 1;
+  ar = ar * Math.PI * 2;
+  ar = Math.round(ar * 100) / 100;
+ // console.log("Scaled AR:", originalAR.toFixed(2), "to", ar);
+  return ar;
+}
 export function fCLARColorToYUV(color: tCLARColor): [number, number, number] {
   'worklet';
-  const {c, l, ar} = color;
+  let {c, l, ar} = color;
+  ar = scaleAR(ar);
   const u = Math.cos(ar)*.5 * c;
   const v = Math.sin(ar)*.5 * c;
   const y = l;
@@ -46,19 +96,17 @@ export function fCLARColorToYUV(color: tCLARColor): [number, number, number] {
 }
 export function fRGBToCLARColor(rgb: [number, number, number]): tCLARColor {
   'worklet';
-  const [r, g, b] = rgb.map((c) => c / 255);
-  const y = 0.299 * r + 0.587 * g + 0.114 * b;
-  const u = -0.14713 * r - 0.28886 * g + 0.436 * b;
-  const v = 0.615 * r - 0.51499 * g - 0.10001 * b;
-  const c = Math.sqrt(u * u + v * v) * 2;
+  const [y, u, v] = fRGBToYUV(rgb);
+  const c = Math.round(Math.sqrt(u * u + v * v)*2*100) / 100;
+
   const l = y;
-  const ar = Math.atan2(v, u);
+  let ar = Math.atan2(v, u);
+  ar = descaleAR(ar);
   return { c, l, ar };
 }
 
   export function fCLARColorToRGB(color: tCLARColor): [number, number, number] {
         'worklet';
-    const {c, l, ar} = color;
     const [y, u, v] = fCLARColorToYUV(color);
     const r =Math.round(Math.max(0, y + 1.13983 * v)*255);
     const g = Math.round(Math.max(0, y - 0.39465 * u - 0.58060 * v)*255);
@@ -118,9 +166,7 @@ export function findColors(
   targetNumber = 3,
   brand?: tBrand,
 ) {
-  let y = l;
-  let u = Math.cos(ar) * 0.5 * c;
-  let v = Math.sin(ar) * 0.5 * c;
+  const [y, u, v] = fCLARColorToYUV({ c, l, ar });
   let paintRanks: tPaintRank[] = [];
   for (let i = 0; i < clarColorsList.length; i++) {
     const paintColor = clarColorsList[i];
@@ -142,24 +188,7 @@ export function findColors(
   return paintRanks;
 }
 
-function calculateRYBScore(
-  color: { r: number; g: number; b: number } | number[],
-  test: "r" | "y" | "b",
-) {
-  let r, g, b;
-  if (Array.isArray(color)) {
-    [r, g, b] = color;
-  } else {
-    ({ r, g, b } = color);
-  }
-  if (test === "r") {
-    return r - g - 2 * b;
-  } else if (test === "y") {
-    return r + g - b - Math.abs(r - g) / 2;
-  } else {
-    return -2 * r - g / 2 + b;
-  }
-}
+
 function fDistanceBetween(colorA: tCLARColor, colorB: tCLARColor) {
   const dc = colorA.c - colorB.c;
   const dl = colorA.l - colorB.l;
@@ -243,3 +272,36 @@ export function fClosestColors(targetColor: tPaint, brand?: tBrand): tColorMap<t
   }
   return colorMap;
 }
+
+export type tSeasons = {
+  spring: number;
+  summer: number;
+  autumn: number;
+  winter: number;
+};
+
+export function fGetSeasons(testColor: tCLARColor): tSeasons {
+  const { c, l, ar } = testColor;
+    let by = Math.abs(ar / (2 * Math.PI) - 0.75);
+  if (by > 0.5) {
+    by = 1 - by;
+  }
+  by /= 0.5;
+  by = Math.round(by * 100) / 100;
+  let depth = c ** 0.5;
+  depth = Math.round(depth * 100) / 100;
+  let winterScore = depth * (1 - l);
+  winterScore = Math.round(winterScore * 100) / 100;
+  let summerScore = ((1 - depth) * l);
+  summerScore = Math.round(summerScore * 100) / 100;
+  let autumnScore = ((1 - depth) * (1 - l));
+  autumnScore = Math.round(autumnScore * 100) / 100;
+  let springScore = (depth * l);
+  springScore = Math.round(springScore * 100) / 100;
+  return {
+    spring: springScore,
+    summer: summerScore,
+    autumn: autumnScore,
+    winter: winterScore,
+  };
+};

@@ -166,6 +166,7 @@ export default function ColorSelector({
       const c = pc !== undefined ? pc : dC.value;
       const l = pl !== undefined ? pl : dL.value;
       const ar = par !== undefined ? par : dAR.value;
+      console.log("Updating state with", { c, l, ar });
       vTargetColor.dispatch({
         c,
         l,
@@ -241,7 +242,6 @@ export default function ColorSelector({
             }}
           >
             <BGGradient />
-
             <TintSelector
               key={`Lightness Selector`}
               arcLength={lightnessArcRotation[0]}
@@ -292,7 +292,7 @@ export default function ColorSelector({
         brand={brand}
         origin={origin}
         size={"default"}
-        rotationR={22 / 7}
+        rotationR={21.5 / 7}
         arcLength={13 / 7}
         radius={radii[1] * 1.6}
         sideA={vSideA.state}

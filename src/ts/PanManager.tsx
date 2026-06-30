@@ -63,6 +63,7 @@ const RadialHitbox = ({
 type tPanManager = {
   registerHitBox: (hitbox: tRadialHitBox) => void;
   unregisterHitBox: (id: string) => void;
+  calculateBounds: () => void;
 };
 
 const Ctx = React.createContext<tPanManager | null>(null);
@@ -73,6 +74,7 @@ export function usePanManager() {
     return {
       registerHitBox: () => {},
       unregisterHitBox: () => {},
+      calculateBounds: () => {},
     };
   }
   return context;
@@ -102,6 +104,92 @@ export default function PanManager({
     maxX: 0,
     maxY: 0,
   });
+  function calculateBounds() {
+    "worklet";
+    if (Object.keys(vHitBoxes.shared.value).length === 0) {
+      return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+    }
+
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+
+    Object.values(vHitBoxes.shared.value).forEach((zone) => {
+      if (zone.shape === "capsule") {
+        const capRadius = zone.radii[0];
+        const bodyLength =
+          zone.radii[1] * zone.capsuleMod.value + zone.radii[0];
+
+        // Capsule endpoints (centers of the semicircular caps)
+        const startX = zone.origin[0];
+        const startY = zone.origin[1] - capRadius;
+        const endX = zone.origin[0] + bodyLength * Math.cos(zone.rotationR);
+        const endY =
+          zone.origin[1] + bodyLength * Math.sin(zone.rotationR) - capRadius;
+
+        // Account for the radius extending in all directions from endpoints
+        const points = [
+          { x: startX - capRadius, y: startY - capRadius },
+          { x: startX + capRadius, y: startY - capRadius },
+          { x: startX - capRadius, y: startY + capRadius },
+          { x: startX + capRadius, y: startY + capRadius },
+          { x: endX - capRadius, y: endY - capRadius },
+          { x: endX + capRadius, y: endY - capRadius },
+          { x: endX - capRadius, y: endY + capRadius },
+          { x: endX + capRadius, y: endY + capRadius },
+        ];
+
+        points.forEach((p) => {
+          minX = Math.min(minX, p.x);
+          minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x);
+          maxY = Math.max(maxY, p.y);
+        });
+      } else {
+        const maxRadius = zone.radii[1];
+        const angles = [
+          zone.rotationR - zone.arcLength / 2,
+          zone.rotationR + zone.arcLength / 2,
+          zone.rotationR,
+        ];
+
+        angles.forEach((angle) => {
+          const x = zone.origin[0] + maxRadius * Math.cos(angle);
+          const y = zone.origin[1] + maxRadius * Math.sin(angle);
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        });
+        const minRadius = Math.max(0, zone.radii[0]);
+        angles.forEach((angle) => {
+          const x = zone.origin[0] + minRadius * Math.cos(angle);
+          const y = zone.origin[1] + minRadius * Math.sin(angle);
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        });
+      }
+      minX = Math.min(minX, zone.origin[0]);
+      minY = Math.min(minY, zone.origin[1]);
+      maxX = Math.max(maxX, zone.origin[0]);
+      maxY = Math.max(maxY, zone.origin[1]);
+    });
+
+    vBounds.dispatch({ minX, minY, maxX, maxY });
+    console.log(
+      "Calculated bounds:",
+      minX,
+      minY,
+      maxX,
+      maxY,
+      "from",
+      Object.keys(vHitBoxes.shared.value).length,
+      "hitboxes.",
+    );
+  }
   const registerHitBox = (hitBox: tRadialHitBox) => {
     scheduleOnUI(() => {
       "worklet";
@@ -151,7 +239,11 @@ export default function PanManager({
         vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanPos.value =
           vPanPos.value;
       }
-      if (vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState) {
+      if (
+        vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState &&
+        vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState.value !==
+          "tap"
+      ) {
         vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState.value =
           "leave";
       }
@@ -184,12 +276,10 @@ export default function PanManager({
           dx * Math.cos(-zone.rotationR) - dy * Math.sin(-zone.rotationR);
         const localY =
           dx * Math.sin(-zone.rotationR) + dy * Math.cos(-zone.rotationR);
+        const mod = zone.capsuleMod ? zone.capsuleMod.value : 1;
         const clampedX = Math.max(
           0,
-          Math.min(
-            zone.capsuleMod.value * (zone.radii[1] - zone.radii[0]),
-            localX,
-          ),
+          Math.min(mod * (zone.radii[1] - zone.radii[0]), localX),
         );
         const distX = localX - clampedX;
         const distY = localY;
@@ -227,86 +317,6 @@ export default function PanManager({
       releaseZone();
     }
   };
-  function calculateBounds() {
-    "worklet";
-    if (Object.keys(vHitBoxes.shared.value).length === 0) {
-      return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
-    }
-
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity;
-
-    Object.values(vHitBoxes.shared.value).forEach((zone) => {
-      if (zone.shape === "capsule") {
-        const capRadius = zone.radii[0];
-        const bodyLength = zone.radii[1] + zone.radii[0];
-
-        // Capsule endpoints (centers of the semicircular caps)
-        const startX = zone.origin[0];
-        const startY = zone.origin[1] - capRadius;
-        const endX = zone.origin[0] + bodyLength * Math.cos(zone.rotationR);
-        const endY =
-          zone.origin[1] + bodyLength * Math.sin(zone.rotationR) - capRadius;
-
-        // Account for the radius extending in all directions from endpoints
-        const points = [
-          { x: startX - capRadius, y: startY - capRadius },
-          { x: startX + capRadius, y: startY - capRadius },
-          { x: startX - capRadius, y: startY + capRadius },
-          { x: startX + capRadius, y: startY + capRadius },
-          { x: endX - capRadius, y: endY - capRadius },
-          { x: endX + capRadius, y: endY - capRadius },
-          { x: endX - capRadius, y: endY + capRadius },
-          { x: endX + capRadius, y: endY + capRadius },
-        ];
-
-        points.forEach((p) => {
-          minX = Math.min(minX, p.x);
-          minY = Math.min(minY, p.y);
-          maxX = Math.max(maxX, p.x);
-          maxY = Math.max(maxY, p.y);
-        });
-      } else {
-        // Sector (original logic)
-        const maxRadius = zone.radii[1];
-        const angles = [
-          zone.rotationR - zone.arcLength / 2,
-          zone.rotationR + zone.arcLength / 2,
-          zone.rotationR,
-        ];
-
-        angles.forEach((angle) => {
-          const x = zone.origin[0] + maxRadius * Math.cos(angle);
-          const y = zone.origin[1] + maxRadius * Math.sin(angle);
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-        });
-
-        // Include inner radius points too
-        const minRadius = Math.max(0, zone.radii[0]);
-        angles.forEach((angle) => {
-          const x = zone.origin[0] + minRadius * Math.cos(angle);
-          const y = zone.origin[1] + minRadius * Math.sin(angle);
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-        });
-      }
-
-      // Always include origin
-      minX = Math.min(minX, zone.origin[0]);
-      minY = Math.min(minY, zone.origin[1]);
-      maxX = Math.max(maxX, zone.origin[0]);
-      maxY = Math.max(maxY, zone.origin[1]);
-    });
-
-    vBounds.dispatch({ minX, minY, maxX, maxY });
-  }
 
   const tapUpdate = (e: { absoluteX: number; absoluteY: number }) => {
     "worklet";
@@ -331,7 +341,6 @@ export default function PanManager({
     },
   });
   const compGesture = useSimultaneousGestures(tap, pan);
-  const radiusMod = 3;
   const sectors = () => {
     if (!drawSectors) {
       return null;
@@ -353,6 +362,7 @@ export default function PanManager({
       value={{
         registerHitBox,
         unregisterHitBox,
+        calculateBounds,
       }}
     >
       {children}

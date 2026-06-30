@@ -9,12 +9,6 @@ import {
 } from "./CLAcolor";
 import React, { useEffect, useState } from "react";
 const clarColorsList: tPaint[] = require("./clarColors.json");
-const refList: {
-  c: number;
-  l: number;
-  ar: number;
-  paintIndexes: number[];
-}[] = require("./refList.json");
 
 export type tChipFan = {
   arcLength: number;
@@ -52,12 +46,9 @@ export const ChipFan = React.memo(
           paintA: paintsA[i],
           paintB: paintsB ? paintsB[i] : undefined,
           radialOffset: radius,
-          origin: {
-            x: origin[0] - eChipSizes[size][0] / 2,
-            y: origin[1] - eChipSizes[size][1] / 2,
-          },
+          origin: [origin[0], origin[1]],
           size,
-          startRotation: rotationR + arcLength * (z - 0.5),
+          rotationR: rotationR + arcLength * (z - 0.5),
           relativeZ: z,
           chipID: [groupLayer, i],
           sideA,
@@ -91,17 +82,7 @@ export const ColorChipFan = ({
   arSteps = 18,
   ...rest
 }: tChipWheel) => {
-  const [paintsA, setPaintsA] = useState<tPaint[]>(
-    refList
-      .find((entry) => {
-        return (
-          Math.abs(entry.c - targetColor.c) < 1 / cSteps &&
-          Math.abs(entry.l - targetColor.l) < 1 / lSteps &&
-          Math.abs(entry.ar - targetColor.ar) < 44 / 7 / arSteps
-        );
-      })
-      ?.paintIndexes.map((index) => clarColorsList[index]) ?? [],
-  );
+  const [paintsA, setPaintsA] = useState<tPaint[]>([]);
   const [paintsB, setPaintsB] = useState<tPaint[]>([]);
   const [sideABuffer, setSideABuffer] = useState(sideA);
   useEffect(() => {

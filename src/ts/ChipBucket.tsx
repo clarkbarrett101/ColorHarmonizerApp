@@ -127,12 +127,12 @@ export const ChipBucket = ({
         ...input,
         translateX: fLerp(
           input.translateX || 0,
-          origin[0] - eChipSizes["default"][0] / 2,
+          origin[0] + outlineOffset[0],
           bucketAnim.value,
         ),
         translateY: fLerp(
           input.translateY || 0,
-          origin[1] - eChipSizes["default"][1] / 2,
+          origin[1] + outlineOffset[1],
           bucketAnim.value,
         ),
         rotateZ: fLerp(
@@ -194,7 +194,7 @@ export const ChipBucket = ({
       <Svg
         width={eChipSizes.outline[0]}
         height={eChipSizes.outline[1]}
-        viewBox={`0 0 32 20`}
+        viewBox={`-1 0 34 24`}
         style={{
           position: "absolute",
           top: radii[0] - eChipSizes.outline[1] / 2,
@@ -211,7 +211,7 @@ export const ChipBucket = ({
         }}
       >
         <Path
-          d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
+          d="M 0 4 C 8 0 24 0 32 4 V 20 C 24 24 8 24 0 20 Z"
           strokeWidth={1}
           stroke={paintColor}
           strokeDasharray={[2, 1]}

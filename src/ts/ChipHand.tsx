@@ -1,5 +1,5 @@
 import { View, Dimensions } from "react-native";
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
 import { eLayers, useUserContext } from "./UserContext";
@@ -19,6 +19,7 @@ import {
 } from "./Actor";
 import { tPaint } from "./CLAcolor";
 import { tRadialObject } from "./sectorTypes";
+import { tChordReturn, useSoundContext } from "./SoundContext";
 
 export type tChipHand = tRadialObject & {
   holdRadius?: number;
@@ -36,15 +37,17 @@ export const ChipHand = ({
     vPanX,
     vPanY,
     vVelocityX,
-    userPallete,
+    userPalette: userPallete,
     addPaint,
     removePaint,
     holdChip,
     vHeldChipID,
     registerModifier,
     unregisterModifier,
+    setHeldChipPaint,
   } = useUserContext();
   const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
+  const { fStartChord } = useSoundContext();
   const origin = useMemo<[number, number]>(
     () => [30, Dimensions.get("window").height * 0.95],
     [],
@@ -67,10 +70,10 @@ export const ChipHand = ({
       const index = Math.round(
         (1 - (startAngle - angle) / arcLength) * userPallete.length - 0.5,
       );
-      selectVerse.shared.value = index;
       holdChip(eLayers.chipHand + index);
-      touching.shared.value = true;
       vDropScreen.shared.value = true;
+      selectVerse.dispatch(index);
+      touching.dispatch(true);
     },
     onUpdate: (event) => {
       "worklet";
@@ -97,7 +100,7 @@ export const ChipHand = ({
         holdChip();
         slowAngle.value = withSpring(angle, { stiffness: 1000, damping: 1000 });
         panWeight.value = withTiming(0, { duration: 200 });
-        selectVerse.shared.value = index;
+        selectVerse.dispatch(index);
       }
     },
     onFinalize: (event) => {
@@ -105,16 +108,16 @@ export const ChipHand = ({
       console.log("Hand Deactivate");
       panWeight.value = withTiming(0, { duration: 200 });
       holdChip();
-      touching.shared.value = false;
       vDropScreen.shared.value = false;
+      touching.dispatch(false);
     },
   });
 
   const dPanx = useDerivedValue(() => {
-    return vPanX.shared.value - eChipSizes["grabbed"][0] / 2;
+    return vPanX.shared.value;
   });
   const dPany = useDerivedValue(() => {
-    return vPanY.shared.value - eChipSizes["grabbed"][1] / 2;
+    return vPanY.shared.value;
   });
   const dRotation = useDerivedValue(() => {
     return vVelocityX.shared.value * 0.0005;
@@ -149,7 +152,7 @@ export const ChipHand = ({
   handPanModifier.modifier = (input) => {
     "worklet";
     return (() => {
-      if (input.id === vHeldChipID.shared.value && panWeight.value > 0) {
+      if (input.held > 0 && panWeight.value > 0) {
         return panMod(input);
       } else {
         return input;
@@ -214,6 +217,22 @@ export const ChipHand = ({
     },
     [removePaint],
   );
+  const chord = useRef<tChordReturn | null>(null);
+  useEffect(() => {
+    if (selectVerse.state > -1 && selectVerse.state < userPallete.length) {
+      chord.current?.();
+      chord.current = fStartChord?.(userPallete[selectVerse.state].clar);
+    }
+  }, [selectVerse.state]);
+  useEffect(() => {
+    if (touching.state) {
+      console.log("Start Chord");
+    } else {
+      chord.current?.();
+      chord.current = null;
+      console.log("Stop Chord");
+    }
+  }, [touching.state]);
 
   useEffect(() => {
     registerBucket({

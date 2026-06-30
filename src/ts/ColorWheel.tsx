@@ -1,4 +1,4 @@
-import { fCLARColorToRGB } from "./CLAcolor";
+import { fCLARColorToRGB, fRGBToCLARColor } from "./CLAcolor";
 import { RadialGraphic } from "./RadialGraphic";
 import { use, useCallback, useEffect, useState } from "react";
 import { tRadialObject } from "./sectorTypes";
@@ -47,7 +47,10 @@ function ColorWheel({
       let c = Math.pow(rdc, ring - 1 - input.ring) * dC.value;
       let l = Math.pow(rdl, ring - 1 - input.ring) * dL.value;
       let ar = wChordToAngle(input.chord, arcLength, chord, 0);
-      const [r, g, b] = fCLARColorToRGB({ c, l, ar });
+      let [r, g, b] = fCLARColorToRGB({ c, l, ar });
+      if (input.ring > 1) {
+        [r, g, b] = fCLARColorToRGB(fRGBToCLARColor([r, g, b]));
+      }
       return {
         ...input,
         red: r,
@@ -109,6 +112,7 @@ function ColorWheel({
     fUpdateState();
   };
   const fOnTap = useCallback(() => {
+    "worklet";
     const offsetAngle = vPanPos.value.angle - 22 / 7;
 
     if (Math.abs(offsetAngle) > 0.4) {

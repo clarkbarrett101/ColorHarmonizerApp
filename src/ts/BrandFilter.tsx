@@ -62,6 +62,11 @@ export const BrandFilter = (props: tBrandFilter) => {
     );
     return ring;
   }, []);
+  const {
+    registerHitBox: registerZone,
+    unregisterHitBox: unregisterZone,
+    calculateBounds,
+  } = usePanManager();
 
   const fToggle = () => {
     "worklet";
@@ -74,6 +79,8 @@ export const BrandFilter = (props: tBrandFilter) => {
   useAnimatedReaction(
     () => collapseAnim.value > 0.5,
     (v) => {
+      if (collapseAnim.value !== 0 && collapseAnim.value !== 1)
+        calculateBounds();
       vDropScreen.dispatch(v);
     },
   );
@@ -97,13 +104,12 @@ export const BrandFilter = (props: tBrandFilter) => {
     },
     [],
   );
-  const { registerHitBox: registerZone, unregisterHitBox: unregisterZone } =
-    usePanManager();
+
   useEffect(() => {
     registerZone({
       id: "brandFilter",
       shape: "capsule",
-      priority: 10,
+      priority: 12,
       origin: origin || [0, 0],
       arcLength: totalArcLength,
       radii: [radius, radius * brands.length],

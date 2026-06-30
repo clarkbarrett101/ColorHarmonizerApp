@@ -6,6 +6,8 @@ import Svg, {
   Stop,
   Text,
   TSpan,
+  Circle,
+  Rect,
 } from "react-native-svg";
 import { tPaint } from "./CLAcolor";
 import Animated, {
@@ -15,8 +17,14 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
-import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import { use, useEffect, useMemo, useState } from "react";
+import {
+  GestureDetector,
+  useLongPressGesture,
+  usePanGesture,
+  useSimultaneousGestures,
+  useTapGesture,
+} from "react-native-gesture-handler";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { Dimensions } from "react-native";
 import { eLayers, useUserContext } from "./UserContext";
 import { useVerse } from "./Verse";
@@ -27,26 +35,32 @@ import {
   useActor,
 } from "./Actor";
 import { useBucketContext } from "./BucketContext";
+import { tRadialObject } from "./sectorTypes";
+import { AudioContext, OscillatorNode } from "react-native-audio-api";
+import { tChord, tChordProps, useChord } from "./Sounds";
+import { tChordReturn, useSoundContext } from "./SoundContext";
+import { AnyGesture } from "react-native-gesture-handler/lib/typescript/v3/types";
+import { translate } from "@shopify/react-native-skia";
+
 export type tChipStatus =
   | ["idle", "ready" | "choosing" | "returning" | "flippingUp" | "flippingDown"]
   | ["grabbed", "pulled" | "pushed" | "inBucket"];
 
 export const eChipSizes = {
-  default: [150, 90],
-  grabbed: [180, 108],
-  outline: [210, 126],
+  default: [150, 100],
+  grabbed: [180, 120],
+  outline: [210, 140],
 };
 
-export type tPaintChip = {
+export type tPaintChip = tRadialObject & {
   paintA: tPaint;
   paintB?: tPaint;
-  origin: { x: number; y: number };
   size?: keyof typeof eChipSizes;
-  startRotation?: number;
   radialOffset?: number;
   chipID: [number, number];
   relativeZ?: number;
   sideA?: boolean;
+  rotationOffset?: number;
 };
 
 export const fLerp = (a: number, b: number, t: number): number => {
@@ -57,13 +71,14 @@ export const fLerp = (a: number, b: number, t: number): number => {
 export const PaintChip = ({
   paintA,
   paintB = paintA,
-  origin = { x: 0, y: 0 },
+  origin = [0, 0],
   size = "default",
-  startRotation = 0,
+  rotationR = 0,
   relativeZ = 0,
   radialOffset = 0,
   chipID,
   sideA = true,
+  rotationOffset = 0,
 }: tPaintChip) => {
   /// O N  M O U N T ///
 
@@ -80,11 +95,14 @@ export const PaintChip = ({
     vVelocityX,
   } = useUserContext();
   const { vDropScreen } = useBucketContext();
+  const { fStartChord } = useSoundContext();
   const rotateZ =
-    Math.abs(startRotation) > 11 / 7 ? -22 / 7 + startRotation : startRotation;
+    Math.abs(rotationR) > 11 / 7
+      ? -22 / 7 + rotationR + rotationOffset
+      : rotationR + rotationOffset;
   const startPosition = {
-    x: origin.x + Math.cos(startRotation) * radialOffset,
-    y: origin.y + Math.sin(startRotation) * radialOffset,
+    x: origin[0] + Math.cos(rotationR) * radialOffset,
+    y: origin[1] + Math.sin(rotationR) * radialOffset,
   };
   const initialAttributes = useMemo(
     () => ({
@@ -97,13 +115,12 @@ export const PaintChip = ({
       shadowX: -2,
       shadowY: 2,
     }),
-    [],
+    [startPosition.x, startPosition.y, rotateZ, id],
   );
   const actor = useActor(initialAttributes);
   const vPaintA = useVerse(false);
   const paint = vPaintA.state ? paintA : paintB;
-  // Only this chip re-renders on grab/release — not all chips
-  const [grabbed, setGrabbed] = useState(false);
+  const vGrabbed = useVerse(false);
   const panWeight = useSharedValue(0);
   const flipAnim = useSharedValue(0);
   /// S T A T E  M A C H I N E ///
@@ -112,13 +129,20 @@ export const PaintChip = ({
   useEffect(() => {
     return vHeldChipID.subscribe?.((newID) => {
       const isGrabbed = newID === id;
-      setGrabbed(isGrabbed);
+      vGrabbed.dispatch(isGrabbed);
     });
   }, []);
-
+  const chord = useRef<tChordReturn | null>(null);
   useEffect(() => {
-    if (grabbed) setHeldChipPaint?.(paint);
-  }, [grabbed]);
+    if (vGrabbed.state) {
+      setHeldChipPaint?.(paint);
+      chord.current?.();
+      chord.current = fStartChord?.(paint.clar);
+    } else {
+      chord.current?.();
+      chord.current = null;
+    }
+  }, [vGrabbed.state]);
 
   function flipDown(isSideA) {
     "worklet";
@@ -149,7 +173,7 @@ export const PaintChip = ({
 
   const flipModifier: tAttributeModifier = {
     modID: 0,
-    deps: [flipAnim],
+    deps: [flipAnim, vGrabbed.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
       const rx = fLerp(0.5 / 7, 21.5 / 7, flipAnim.value);
@@ -158,6 +182,7 @@ export const PaintChip = ({
         rotateX: rx,
         zIndex:
           flipAnim.value > 0.5 ? chipID[0] + chipID[1] : chipID[0] - chipID[1],
+        held: vGrabbed.shared.value ? 1 : 0,
       };
     },
   };
@@ -165,10 +190,10 @@ export const PaintChip = ({
   /// P A N  G E S T U R E///
   flag = "#f00";
   const dPanx = useDerivedValue(() => {
-    return vPanX.shared.value - eChipSizes[size][0] / 2;
+    return vPanX.shared.value;
   });
   const dPany = useDerivedValue(() => {
-    return vPanY.shared.value - eChipSizes[size][1] / 2;
+    return vPanY.shared.value;
   });
   const dRotation = useDerivedValue(() => {
     return vVelocityX.shared.value * 0.0005;
@@ -195,7 +220,6 @@ export const PaintChip = ({
     deps: [panWeight, vPanX.shared, vPanY.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
-
       const x = -0.25 + input.translateX / dimensions.width;
       const y = -0.5 + input.translateY / dimensions.height;
       return {
@@ -219,8 +243,11 @@ export const PaintChip = ({
     };
   }, []);
   const panGesture = usePanGesture({
+    minDistance: 0,
     onActivate: (event) => {
       panWeight.value = withTiming(1, { duration: 300 });
+      vPanX.shared.value = event.absoluteX;
+      vPanY.shared.value = event.absoluteY;
       holdChip(id);
       vDropScreen.shared.value = true;
     },
@@ -235,6 +262,22 @@ export const PaintChip = ({
       vDropScreen.shared.value = false;
     },
   });
+  const touchGesture = useLongPressGesture({
+    minDuration: 100,
+    onActivate: (event) => {
+      panWeight.value = withTiming(1, { duration: 200 });
+      vPanX.shared.value = event.absoluteX;
+      vPanY.shared.value = event.absoluteY;
+      holdChip(id);
+      vDropScreen.shared.value = true;
+    },
+    onTouchesUp: (event) => {
+      panWeight.value = withTiming(0, { duration: 200 });
+      holdChip();
+      vDropScreen.shared.value = false;
+    },
+  });
+  const compGesture = useSimultaneousGestures(panGesture, touchGesture);
 
   /// T R A N S F O R M ///
   flag = "#f0f";
@@ -243,21 +286,24 @@ export const PaintChip = ({
       return {
         transform: [
           { perspective: 1000 },
-          { translateX: attributes.translateX || 0 },
           { translateY: attributes.translateY || 0 },
-          { rotateZ: `${attributes.rotateZ || 0}rad` },
-          { scaleX: attributes.scaleX || 1 },
+          { translateX: attributes.translateX || 0 },
+          { translateX: -eChipSizes[size][0] / 2 },
+          { translateY: -eChipSizes[size][1] / 2 },
           { scaleY: attributes.scaleY || 1 },
+          { scaleX: attributes.scaleX || 1 },
+          { rotateZ: `${attributes.rotateZ || 0}rad` },
           { rotateX: `${attributes.rotateX || 0}rad` },
         ],
       };
     });
   });
   const zStyle = useAnimatedStyle(() => {
-    return actor.get((attributes) => {
+    const style = actor.get((attributes) => {
       return {
-        zIndex:
-          panWeight.value > 0 ? eLayers.grabbedChip : attributes.zIndex || 0,
+        zIndex: vGrabbed.shared.value
+          ? eLayers.grabbedChip
+          : attributes.zIndex || 0,
         shadowOffset: {
           width: attributes.shadowX || 0,
           height: attributes.shadowY || 0,
@@ -265,10 +311,12 @@ export const PaintChip = ({
         shadowRadius: attributes.shadowRadius || 0,
       };
     });
+    console.log("zStyle", style);
+    return style;
   });
   const highlightAngle =
     Math.atan2(startPosition.y, -startPosition.x) -
-    (grabbed ? 22 / 7 : 44 / 7 - rotateZ);
+    (vGrabbed.state ? 22 / 7 : 44 / 7 - rotateZ);
   /// R E N D E R ///
   flag = "#00f";
   return (
@@ -278,8 +326,8 @@ export const PaintChip = ({
           position: "absolute",
           left: 0,
           top: 0,
-          width: eChipSizes.grabbed[0],
-          height: eChipSizes.grabbed[1],
+          width: eChipSizes[size][0],
+          height: eChipSizes[size][1],
           shadowColor: "#000",
           shadowOpacity: 0.7,
         },
@@ -290,22 +338,21 @@ export const PaintChip = ({
         style={[
           {
             position: "absolute",
-            left: 0,
-            top: 0,
-            width: eChipSizes.grabbed[0],
-            height: eChipSizes.grabbed[1],
+            width: eChipSizes[size][0],
+            height: eChipSizes[size][1],
           },
           animatedStyle,
-          zStyle,
         ]}
       >
-        <GestureDetector gesture={panGesture}>
+        <GestureDetector gesture={compGesture}>
           <Svg
-            viewBox={`0 0 32 20`}
+            viewBox={`3 0 26 24`}
             style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
               width: eChipSizes[size][0],
               height: eChipSizes[size][1],
-
               transform: [{ scaleY: vPaintA.state ? 1 : -1 }],
             }}
           >
@@ -328,22 +375,22 @@ export const PaintChip = ({
             </Defs>
             <G>
               <Path
-                d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
+                d="M 0 4 C 8 0 24 0 32 4 V 20 C 24 24 8 24 0 20 Z"
                 fill={paint?.hex || "transparent"}
               />
               <Path
-                d="M0 4C8 0 24 0 32 4V16C24 20 8 20 0 16Z"
+                d="M 0 4 C 8 0 24 0 32 4 V 20 C 24 24 8 24 0 20 Z"
                 fill="url(#grad)"
               />
               <Path
-                d="M1 5C12 1 20 1 31 5V15C20 19 12 19 1 15Z"
+                d="M 1 5 C 12 1 20 1 31 5 V 19 C 20 23 12 23 1 19 Z"
                 fill={paint?.hex || "transparent"}
               />
             </G>
             <Text
               x="16"
-              y="8"
-              fontSize={`${paint?.name.length > 13 ? 55 / paint.name.length : 4}px`}
+              dy="9"
+              fontSize={`${paint?.name.length > 13 ? 55 / paint.name.length : 3.5}px`}
               fontFamily="Outfit"
               fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
               textAnchor="middle"
@@ -353,12 +400,23 @@ export const PaintChip = ({
               {paint?.name}
               <TSpan
                 x="16"
-                dy="5"
+                dy="3.5"
                 fontSize="3"
                 fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
-                fontWeight={100}
+                fontWeight={200}
+                textAnchor="middle"
               >
                 {paint?.brand}
+              </TSpan>
+              <TSpan
+                x="16"
+                dy="3"
+                fontSize="2.5"
+                fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
+                fontWeight={100}
+                textAnchor="middle"
+              >
+                {"( " + paint?.label + " )"}
               </TSpan>
             </Text>
           </Svg>

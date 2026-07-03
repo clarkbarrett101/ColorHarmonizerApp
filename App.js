@@ -1,4 +1,4 @@
-import Driver from "./src/ts/Driver";
+import Driver from "./src/Driver";
 import { Dimensions, Platform } from "react-native";
 import React from "react";
 import { View } from "react-native";

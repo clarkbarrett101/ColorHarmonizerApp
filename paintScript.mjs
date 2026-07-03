@@ -197,7 +197,7 @@ fs.writeFile(
 */
 
 import masterList from "./src/masterList.mjs";
-import { fRGBToYUV, fRGBToCLARColor } from "./src/ts/CLAcolor.ts";
+import { fRGBToYUV, fRGBToCLARColor } from "./src/utils/CLAcolor.js";
 import fs from "fs";
 const clarColors = [];
 masterList.map((item) => {

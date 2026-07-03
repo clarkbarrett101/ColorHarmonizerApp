@@ -229,49 +229,47 @@ export default function ColorSelector({
   /// R E N D E R ///
   return (
     <>
-      <PanManager>
-        <View>
-          <RadialContext
-            value={{
-              radii,
-              origin,
-              dC,
-              dL,
-              dAR,
-              wUpdateState,
-            }}
-          >
-            <BGGradient />
-            <TintSelector
-              key={`Lightness Selector`}
-              arcLength={lightnessArcRotation[0]}
-              rotationR={lightnessArcRotation[1]}
-              ring={litDimensions[0]}
-              chord={litDimensions[1]}
-              radii={[radii[1] - 50, radii[1] + 75]}
-              vPanPos={vLightnessPanPos}
-              colorModifier={lightnessModifier}
-            />
-            <TintSelector
-              key={`Chroma Selector`}
-              arcLength={chromaArcRotation[0]}
-              rotationR={chromaArcRotation[1]}
-              ring={chromaDimensions[0]}
-              chord={chromaDimensions[1]}
-              radii={[radii[1] - 50, radii[1] + 75]}
-              vPanPos={vChromaPanPos}
-              colorModifier={chromaModifier}
-            />
-            <ColorWheel
-              radii={radii}
-              ring={5}
-              chord={24}
-              vRotationROffset={vWheelRotation}
-              wheelCenter={wheelCenter}
-            />
-          </RadialContext>
-        </View>
-      </PanManager>
+      <View>
+        <RadialContext
+          value={{
+            radii,
+            origin,
+            dC,
+            dL,
+            dAR,
+            wUpdateState,
+          }}
+        >
+          <BGGradient />
+          <TintSelector
+            key={`Lightness Selector`}
+            arcLength={lightnessArcRotation[0]}
+            rotationR={lightnessArcRotation[1]}
+            ring={litDimensions[0]}
+            chord={litDimensions[1]}
+            radii={[radii[1] - 50, radii[1] + 75]}
+            vPanPos={vLightnessPanPos}
+            colorModifier={lightnessModifier}
+          />
+          <TintSelector
+            key={`Chroma Selector`}
+            arcLength={chromaArcRotation[0]}
+            rotationR={chromaArcRotation[1]}
+            ring={chromaDimensions[0]}
+            chord={chromaDimensions[1]}
+            radii={[radii[1] - 50, radii[1] + 75]}
+            vPanPos={vChromaPanPos}
+            colorModifier={chromaModifier}
+          />
+          <ColorWheel
+            radii={radii}
+            ring={5}
+            chord={24}
+            vRotationROffset={vWheelRotation}
+            wheelCenter={wheelCenter}
+          />
+        </RadialContext>
+      </View>
       <PanManager zIndex={eLayers.chipHand}>
         <BrandFilter
           brand={brand}

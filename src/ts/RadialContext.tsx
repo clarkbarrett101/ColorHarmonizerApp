@@ -11,7 +11,9 @@ export const wDefaultAngleToChord = (
 ) => {
   "worklet";
   const adjustedAngle = angle - rotationOffset + arcLength / 2;
+
   const chord = Math.floor(adjustedAngle / (arcLength / chords));
+
   return chord;
 };
 

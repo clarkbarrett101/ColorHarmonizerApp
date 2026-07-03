@@ -29,9 +29,9 @@ export type tCLARColor = {
   ar: number;
 };
 
- const CLArRed: tCLARColor = {ar: 1.81, c: 1, l: 0.3} ;
- const CLArYellow: tCLARColor = {ar: 2.9, c: 0.9, l: 0.9};
- const CLArBlue: tCLARColor = {ar: -0.23, c: 0.8, l: 0.1};
+ const CLArRed: tCLARColor = {ar: 0, c: 1, l: 0.3} ;
+ const CLArYellow: tCLARColor = {ar: 11/7, c: 0.9, l: 0.9};
+ const CLArBlue: tCLARColor = {ar: 33/7, c: 0.7, l: 0.1};
  const CLArWhite: tCLARColor = { c: 0, l: 1, ar: 0 };
  const CLArGrey: tCLARColor = { c: 0, l: 0.5, ar: 0 };
  const CLArBlack: tCLARColor = { c: 0, l: 0, ar: 0 };
@@ -43,6 +43,7 @@ export type tCLARColor = {
    grey?: type;
    black?: type;
 };
+
 export const refColors: tColorMap<tCLARColor> = {
   red: CLArRed,
   yellow: CLArYellow,
@@ -118,6 +119,24 @@ export function fRGBToCLARColor(rgb: [number, number, number]): tCLARColor {
     const [r, g, b] = fCLARColorToRGB(color);
     return `rgb(${r}, ${g}, ${b})`;
   }
+
+  export function fColorLerp(colorA: tCLARColor, colorB: tCLARColor, t: number): tCLARColor {
+  'worklet';
+  const c = Math.min(colorA.c + (colorB.c - colorA.c) * t, 0.7);
+  const l = Math.max(
+    Math.min(colorA.l + (colorB.l - colorA.l) * t, 0.9),
+    0.1,
+  );
+  const arA = descaleAR(colorA.ar);
+  const arB = descaleAR(colorB.ar);
+  const diff = Math.atan2(
+    Math.sin(arB - arA),
+    Math.cos(arB - arA),
+  );
+  const ar = scaleAR(arA + diff * t);
+  return { c, l, ar };
+}
+
 export type tPaint = {
   name: string;
   brand: tBrand;
@@ -189,13 +208,13 @@ export function findColors(
 }
 
 
-function fDistanceBetween(colorA: tCLARColor, colorB: tCLARColor) {
-  const dc = colorA.c - colorB.c;
-  const dl = colorA.l - colorB.l;
-    const diff = 2 * Math.atan2(
+function fDistanceBetween(colorA: tCLARColor, colorB: tCLARColor, ar = true): number {
+  const dc = (colorA.c - colorB.c);
+  const dl = (colorA.l - colorB.l);
+  const diff = ar ? (1+colorA.c+colorB.c) * Math.atan2(
       Math.sin(colorB.ar - colorA.ar),
       Math.cos(colorB.ar - colorA.ar),
-    );
+    ) : 0;
   return Math.sqrt(dc * dc + dl * dl + diff * diff);
 }
 function fDistances(testColor: tCLARColor): tColorMap<number> {
@@ -203,9 +222,9 @@ function fDistances(testColor: tCLARColor): tColorMap<number> {
     red: fDistanceBetween(testColor, refColors.red),
     yellow: fDistanceBetween(testColor, refColors.yellow),
     blue: fDistanceBetween(testColor, refColors.blue),
-    white: fDistanceBetween(testColor, { ...refColors.white, ar: testColor.ar }),
-    black: fDistanceBetween(testColor, { ...refColors.black, ar: testColor.ar }),
-    grey: fDistanceBetween(testColor, { ...refColors.grey, ar: testColor.ar }),
+    white: fDistanceBetween(testColor, refColors.white, false),
+    black: fDistanceBetween(testColor, refColors.black, false),
+    grey: fDistanceBetween(testColor, refColors.grey, false),
   };
 }
 
@@ -225,33 +244,34 @@ export function fClosestColors(targetColor: tPaint, brand?: tBrand): tColorMap<t
 
   for (let rank of rankedColors) {
     const paint = clarColorsList[rank.index];
+    const dis = fDistanceBetween(paint.clar, targetColor.clar) ; 
     const paintScores = fDistances(paint.clar);
-    if (!colorMap.grey && paintScores.grey < targetScores.grey) {
+    if (!colorMap.grey && paintScores.grey < targetScores.grey ) {
       colorMap.grey = paint;
-      console.log("Found more grey:", paint.name, paint.clar);
+      console.log("Found more grey:", paint.name, paint.clar, paintScores.grey, dis);
       continue;
     }
-    if (!colorMap.yellow && paintScores.yellow < targetScores.yellow) {
+    if (!colorMap.yellow && paintScores.yellow < targetScores.yellow ) {
       colorMap.yellow = paint;
-      console.log("Found more yellow:", paint.name, paintScores.yellow);
+      console.log("Found more yellow:", paint.name, paintScores.yellow, dis);
       continue;
     }
-    if (!colorMap.red && paintScores.red < targetScores.red) {
-      colorMap.red = paint;
-      console.log("Found more red:", paint.name, paintScores.red);
+      if (!colorMap.red && paintScores.red < targetScores.red) {
+        colorMap.red = paint;
+      console.log("Found more red:", paint.name, paintScores.red, dis);
       continue;
     }
 
-    if (!colorMap.blue && paintScores.blue < targetScores.blue) {
+    if (!colorMap.blue && paintScores.blue < targetScores.blue ) {
       colorMap.blue = paint;
-      console.log("Found more blue:", paint.name, paintScores.blue);
+      console.log("Found more blue:", paint.name, paintScores.blue, dis);
       continue;
     }
     if (
       !colorMap.white && paintScores.white < targetScores.white
     ) {
       colorMap.white = paint;
-      console.log("Found more white:", paint.name, paint.clar);
+      console.log("Found more white:", paint.name, paint.clar, paintScores.white, dis);
       continue;
     }
 
@@ -259,7 +279,7 @@ export function fClosestColors(targetColor: tPaint, brand?: tBrand): tColorMap<t
       !colorMap.black && paintScores.black < targetScores.black
     ) {
       colorMap.black = paint;
-      console.log("Found more black:", paint.name, paint.clar);
+      console.log("Found more black:", paint.name, paint.clar, paintScores.black, dis);
       continue;
     }
   }

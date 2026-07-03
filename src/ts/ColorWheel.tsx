@@ -48,9 +48,6 @@ function ColorWheel({
       let l = Math.pow(rdl, ring - 1 - input.ring) * dL.value;
       let ar = wChordToAngle(input.chord, arcLength, chord, 0);
       let [r, g, b] = fCLARColorToRGB({ c, l, ar });
-      if (input.ring > 1) {
-        [r, g, b] = fCLARColorToRGB(fRGBToCLARColor([r, g, b]));
-      }
       return {
         ...input,
         red: r,

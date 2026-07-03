@@ -43,18 +43,19 @@ export const SectorGroup = ({
     return actor.get((attributes) => {
       return {
         transform: [
+          { translateY: attributes.translateY || 0 },
           { rotateZ: `${attributes.rotateZ || 0}rad` },
           { translateX: attributes.translateX || 0 },
-          { translateY: attributes.translateY || 0 },
           { scaleX: attributes.scaleX || 1 },
           { scaleY: attributes.scaleY || 1 },
         ],
       };
     });
   });
+  const shadowColors = ["#000", "#888", "#fff", "#00f", "#ff0", "#f00"];
   const containerStyle = useAnimatedStyle(() => {
     "worklet";
-    return actor.get((attributes) => {
+    const style = actor.get((attributes) => {
       return {
         zIndex: attributes.zIndex || 3,
         shadowOffset: {
@@ -62,8 +63,10 @@ export const SectorGroup = ({
           height: attributes.shadowY || 0,
         },
         shadowRadius: attributes.shadowRadius || 0,
+        shadowColor: shadowColors[attributes.shadowColor || 0],
       };
     });
+    return style;
   });
 
   const radii = sectors.reduce(
@@ -81,7 +84,6 @@ export const SectorGroup = ({
           position: "absolute",
           left: origin[0] || 0,
           top: origin[1] || 0,
-          shadowColor: "black",
           shadowOpacity: 0.8,
         },
         containerStyle,

@@ -29,6 +29,7 @@ export type tBrandFilter = {
   dC?: SharedValue<number>;
   dL?: SharedValue<number>;
   dAR?: SharedValue<number>;
+  layer?: number;
 };
 
 export const BrandFilter = (props: tBrandFilter) => {
@@ -117,6 +118,7 @@ export const BrandFilter = (props: tBrandFilter) => {
       rotationR: mainRotationR,
       vPanState,
       vPanPos,
+      layer: props.layer || eLayers.chipHand,
     });
     return () => {
       unregisterZone("brandFilter");

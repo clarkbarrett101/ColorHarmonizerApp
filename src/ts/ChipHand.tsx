@@ -28,7 +28,7 @@ export type tChipHand = tRadialObject & {
 export const ChipHand = ({
   radii = [80, 80],
   rotationR = -6 / 7,
-  arcLength = 12 / 7,
+  arcLength = 11 / 7,
   holdRadius = 200,
 }: tChipHand) => {
   const startAngle = rotationR + arcLength / 2;
@@ -47,7 +47,7 @@ export const ChipHand = ({
     setHeldChipPaint,
   } = useUserContext();
   const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
-  const { fStartChord } = useSoundContext();
+  const { fStartChord, fPlaySFX } = useSoundContext();
   const origin = useMemo<[number, number]>(
     () => [30, Dimensions.get("window").height * 0.95],
     [],
@@ -220,7 +220,7 @@ export const ChipHand = ({
   const chord = useRef<tChordReturn | null>(null);
   useEffect(() => {
     if (selectVerse.state > -1 && selectVerse.state < userPallete.length) {
-      chord.current?.();
+      chord.current?.(0);
       chord.current = fStartChord?.(userPallete[selectVerse.state].clar);
     }
   }, [selectVerse.state]);
@@ -228,7 +228,7 @@ export const ChipHand = ({
     if (touching.state) {
       console.log("Start Chord");
     } else {
-      chord.current?.();
+      chord.current?.(0);
       chord.current = null;
       console.log("Stop Chord");
     }
@@ -254,6 +254,7 @@ export const ChipHand = ({
       zIndex: eLayers.buckets + 100,
       callback: (paint) => {
         removePaintCallback(paint);
+        fPlaySFX?.("drop");
       },
     });
     return () => {
@@ -289,9 +290,6 @@ export const ChipHand = ({
               top: 0,
               width: holdRadius * 2,
               height: holdRadius * 2,
-              borderColor: "rgba(255,255,255,1)",
-              borderRadius: holdRadius,
-              borderWidth: 2,
             }}
           />
         </GestureDetector>

@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/AppIcon.png",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.clarkbarrett101.ColorHarmonizer",
@@ -41,7 +43,21 @@
             "./assets/Outfit-VariableFont_wght.ttf"
           ]
         }
-      ]
-    ]
+      ],
+      ["react-native-audio-api",
+      {
+        "iosBackgroundMode": true,
+        "iosMicrophonePermission": "This app requires access to the microphone to record audio.",
+        "androidPermissions" : [
+          "android.permission.MODIFY_AUDIO_SETTINGS",
+          "android.permission.FOREGROUND_SERVICE",
+          "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        ],
+        "androidForegroundService": true,
+        "androidFSTypes": [
+          "mediaPlayback"
+        ]
+      }
+    ]]
   }
 }

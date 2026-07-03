@@ -1,4 +1,4 @@
-import Driver from "./src/Driver";
+import Driver from "./src/ts/Driver";
 import { Dimensions, Platform } from "react-native";
 import React from "react";
 import { View } from "react-native";
@@ -9,9 +9,11 @@ import PayWall from "./src/pages/PayWall";
 import SandBox from "./src/ts/SandBox";
 
 const App = () => {
-  // In your app entry point (App.tsx/index.js)
-
-  return <SandBox />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Driver />
+    </GestureHandlerRootView>
+  );
 };
 
 export default App;

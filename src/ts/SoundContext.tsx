@@ -16,6 +16,7 @@ import {
   AudioManager,
   AnalyserNode,
 } from "react-native-audio-api";
+import * as Haptics from "expo-haptics";
 import { Canvas, Circle } from "@shopify/react-native-skia";
 import { Dimensions } from "react-native";
 const noteFiles = {
@@ -31,30 +32,19 @@ const noteFiles = {
   78: require("../../assets/78.wav"),
   80: require("../../assets/80.wav"),
 };
-const interval = [
-  1,
-  256 / 243,
-  9 / 8,
-  32 / 27,
-  81 / 64,
-  4 / 3,
-  1024 / 729,
-  729 / 512,
-  3 / 2,
-  128 / 81,
-  27 / 16,
-  16 / 9,
-  243 / 128,
-  2,
-] as const;
-const harmonicScale = [-6, -4, -2, -1, 1, 3, 5, 6] as const;
-export type tChordReturn = () => void;
-
-export type tSoundContext = {
-  fStartChord?: (color: tCLARColor) => tChordReturn;
-  analyzer?: RefObject<AnalyserNode>;
+const harpFiles = {
+  50: require("../../assets/harp-50.wav"),
+  55: require("../../assets/harp-55.wav"),
+  60: require("../../assets/harp-60.wav"),
+  62: require("../../assets/harp-62.wav"),
+  69: require("../../assets/harp-69.wav"),
+  74: require("../../assets/harp-74.wav"),
+  77: require("../../assets/harp-77.wav"),
+  84: require("../../assets/harp-84.wav"),
+  86: require("../../assets/harp-86.wav"),
 };
 
+const harmonicScale = [-6, -4, -2, -1, 1, 3, 5, 6] as const;
 type triads = "dim" | "sus2" | "min" | "maj" | "sus4" | "aug";
 const triadNames = ["dim", "sus2", "min", "maj", "sus4", "aug"] as const;
 const triadIntervals: Record<triads, number[]> = {
@@ -71,7 +61,6 @@ const seasonIntervals: Record<keyof tSeasons, number[]> = {
   autumn: [0, 4, 7, -5, -8, -12],
   spring: [0, 4, 7, 12, 16, 19],
 };
-
 export type tChord = {
   color: tCLARColor;
   seasons: tSeasons;
@@ -79,6 +68,20 @@ export type tChord = {
   triad: triads;
   root: number;
   intervals: number[];
+};
+export type tChordReturn = (delay: number) => void;
+export type eSFX = "fan" | "grab" | "drop";
+const sfxFiles: Record<eSFX, any> = {
+  fan: require("../../assets/fanCards.wav"),
+  grab: require("../../assets/PickupCard.wav"),
+  drop: require("../../assets/dropCard.wav"),
+};
+export type tSoundContext = {
+  fStartChord?: (color: tCLARColor, harp?: boolean) => tChordReturn;
+  fPlaySFX?: (sfx: eSFX) => void;
+  analyzer?: RefObject<AnalyserNode>;
+  fPlayNote?: (midiNote: number, harp?: boolean) => void;
+  fShepardNotes?: () => void;
 };
 
 const ctx = createContext<tSoundContext>({});
@@ -88,11 +91,57 @@ export default function SoundContext({ children }: { children: ReactNode }) {
   const decayTime = 1;
   const audioContext = useRef<AudioContext>(new AudioContext()).current;
   const buffers = useRef<Record<number, AudioBuffer | null>>({}).current;
+  const harpBuffers = useRef<Record<number, AudioBuffer | null>>({}).current;
   const lastChords = useRef<tChord[]>([]).current;
   const analyzer = useRef<AnalyserNode | null>(null);
+  const sfxBuffers = useRef<Record<eSFX, AudioBuffer | null>>({
+    fan: null,
+    grab: null,
+    drop: null,
+  }).current;
+  const lastNote = useRef<number>(0);
+  const ready = useRef<boolean>(false);
+  function fShepardNotes() {
+    if (!ready.current) return;
+    lastNote.current = (lastNote.current + 1) % 24;
+    const midNote = (lastNote.current + 7) % 24;
+    const lowNote = lastNote.current;
+    const highNote = (lastNote.current + 12) % 24;
+    const midGain = audioContext.createGain();
+    midGain.gain.value = 0.0001;
+    midGain.gain.value = 0.3 * (0.5 - Math.abs(0.5 - midNote / 24));
+    midGain.connect(analyzer.current!);
+    const lowGain = audioContext.createGain();
+    lowGain.gain.value = 0.0001;
+    lowGain.gain.value = 0.3 * (0.5 - Math.abs(0.5 - lowNote / 24));
+    lowGain.connect(analyzer.current!);
+    const highGain = audioContext.createGain();
+    highGain.gain.value = 0.0001;
+    highGain.gain.value = 0.3 * (0.5 - Math.abs(0.5 - highNote / 24));
+    highGain.connect(analyzer.current!);
+    const lowNode = fSetupNode(lowNote + 60, lowGain, true);
+    const midNode = fSetupNode(midNote + 60, midGain, true);
+    const highNode = fSetupNode(highNote + 60, highGain, true);
+    lowNode.start(audioContext.currentTime);
+    midNode.start(audioContext.currentTime + 0.05);
+    highNode.start(audioContext.currentTime + 0.1);
+    console.log(
+      "Shepard Notes:",
+      lowNote,
+      Math.abs(lowNote / 24 - 0.5),
+      midNote,
+      Math.abs(midNote / 24 - 0.5),
+      highNote,
+      Math.abs(highNote / 24 - 0.5),
+    );
 
-  function fStartChord(color: tCLARColor) {
-    if (!color) return;
+    lowNode.stop(audioContext.currentTime + 0.5);
+    midNode.stop(audioContext.currentTime + 0.55);
+    highNode.stop(audioContext.currentTime + 0.6);
+  }
+
+  function fStartChord(color: tCLARColor, harp: boolean = false): tChordReturn {
+    if (!color || !ready.current) return () => {};
     const gainNode = audioContext.createGain();
     const convolver = audioContext.createConvolver();
     const sampleRate = audioContext.sampleRate;
@@ -111,47 +160,77 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     convolver.connect(analyzer.current!);
     const chord = fChooseChord(color);
     console.log(
-      "Chords:",
-      lastChords.map((c) => c.intervals.map((i) => i + c.root)),
+      chord.root + " " + chord.triad,
+      " Chords:",
+      lastChords.map((c) => c.root + " " + c.triad),
     );
 
     const chordNodes: AudioBufferSourceNode[] = [];
     for (let i = 0; i < chord.intervals.length; i++) {
-      const node = fSetupNode(chord.intervals[i] + chord.root, gainNode);
+      const node = fSetupNode(chord.intervals[i] + chord.root, gainNode, harp);
       chordNodes.push(node);
       node.start(audioContext.currentTime + (0.5 / chord.intervals.length) * i);
     }
     gainNode.gain.linearRampToValueAtTime(
-      1 / chord.intervals.length,
+      0.5 / chord.intervals.length,
       audioContext.currentTime + 0.3,
     );
-    return () => {
+    return (delay: number = 0) => {
       gainNode.gain.linearRampToValueAtTime(
         0.001,
-        audioContext.currentTime + 0.1,
+        audioContext.currentTime + 0.1 + delay,
       );
       chordNodes.forEach((node) => {
-        node.stop(audioContext.currentTime + 0.1);
+        node.stop(audioContext.currentTime + 0.1 + delay);
       });
     };
+  }
+
+  function fPlayNote(midiNote: number) {
+    if (!ready.current) return;
+    const gainNode = audioContext.createGain();
+    const convolver = audioContext.createConvolver();
+    const sampleRate = audioContext.sampleRate;
+    const length = sampleRate * decayTime * 0.5;
+    const impulse = audioContext.createBuffer(2, length, sampleRate);
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        const decay = Math.pow(1 - i / length, 2);
+        channelData[i] = (Math.random() * 2 - 1) * decay * roomSize * 0.5;
+      }
+    }
+    convolver.buffer = impulse;
+    gainNode.gain.value = 0.01;
+    gainNode.connect(convolver);
+    convolver.connect(analyzer.current!);
+    const node = fSetupNode(midiNote, gainNode, true);
+    node.start(audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.3);
+    gainNode.gain.linearRampToValueAtTime(0.0001, audioContext.currentTime + 1);
+    node.stop(audioContext.currentTime + 1);
   }
 
   function fSetupNode(
     midiNote: number,
     output: GainNode,
+    harp: boolean = false,
   ): AudioBufferSourceNode {
     const node: AudioBufferSourceNode = audioContext.createBufferSource({
       pitchCorrection: false,
     });
-    let closeMatch = Object.keys(buffers).reduce((prev, curr) => {
-      return Math.abs(Number(curr) - midiNote) <
-        Math.abs(Number(prev) - midiNote)
-        ? curr
-        : prev;
-    });
+    if (!ready.current) return node;
+    let closeMatch = Object.keys(harp ? harpBuffers : buffers).reduce(
+      (prev, curr) => {
+        return Math.abs(Number(curr) - midiNote) <
+          Math.abs(Number(prev) - midiNote)
+          ? curr
+          : prev;
+      },
+    );
     let detune = midiNote - Number(closeMatch);
 
-    node.buffer = buffers[Number(closeMatch)];
+    node.buffer = (harp ? harpBuffers : buffers)[Number(closeMatch)];
     node.detune.value = detune * 100;
     node.connect(output);
     return node;
@@ -256,6 +335,21 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     }
     return true;
   }
+  function fPlaySFX(sfx: eSFX, delay: number = 0) {
+    if (!analyzer.current) return;
+    const buffer = sfxBuffers[sfx];
+    if (buffer) {
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.detune.value = 600 * (Math.random() - 0.5);
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0.05;
+
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      source.start(audioContext.currentTime + delay / 1000);
+    }
+  }
 
   useEffect(() => {
     Object.keys(noteFiles).forEach((key) => {
@@ -264,18 +358,33 @@ export default function SoundContext({ children }: { children: ReactNode }) {
         buffers[index] = decodedBuffer;
       });
     });
+    Object.keys(harpFiles).forEach((key) => {
+      const index = Number(key);
+      audioContext.decodeAudioData(harpFiles[index]).then((decodedBuffer) => {
+        harpBuffers[index] = decodedBuffer;
+      });
+    });
+    Object.keys(sfxFiles).forEach((key) => {
+      const sfx = key as eSFX;
+      audioContext.decodeAudioData(sfxFiles[sfx]).then((decodedBuffer) => {
+        sfxBuffers[sfx] = decodedBuffer;
+      });
+    });
     analyzer.current = audioContext.createAnalyser();
     analyzer.current.fftSize = 64;
-
     analyzer.current.smoothingTimeConstant = 0.8;
     analyzer.current.connect(audioContext.destination);
+    ready.current = true;
   }, []);
 
   return (
     <ctx.Provider
       value={{
         fStartChord,
-        analyzer: analyzer,
+        fPlaySFX,
+        fPlayNote,
+        analyzer,
+        fShepardNotes,
       }}
     >
       {children}

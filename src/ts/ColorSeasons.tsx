@@ -2,7 +2,6 @@ import { Dimensions, View } from "react-native";
 import {
   fCLARColorToRGB,
   fClosestColors,
-  fColorLerp,
   fGetRandomPaint,
   refColors,
   tBrand,
@@ -31,9 +30,8 @@ import {
 } from "react-native-reanimated";
 import { BrandFilter } from "./BrandFilter";
 import PanManager from "./PanManager";
-import { BGGradient } from "./BGGradient";
 
-export function ColorMixer({
+export function ColorSeasons({
   radii = [0, 400],
   ring = 5,
   chord = 6,
@@ -52,7 +50,7 @@ export function ColorMixer({
     4: "grey",
     5: "black",
   };
-  const colors = { ...refColors };
+  const colors = { ...refColors, blue: { ar: -0.23, c: 0.7, l: 0.3 } };
   const [brand, setBrand] = useState<tBrand>("All Brands");
   const randomPaint = useMemo(() => fGetRandomPaint(), []);
   const vTargetColor = useVerse<tPaint>(randomPaint);
@@ -61,19 +59,14 @@ export function ColorMixer({
     for (let i = 0; i < 6; i++) {
       const colorKey = colorIndexes[i];
       arg[i] = colorMap[colorKey];
-      console.log("Color map to array", colorMap[colorKey].name, colorKey);
     }
-    arg.reverse();
     console.log(
       "Color map to array",
       arg.map((c) => c.name),
     );
     return arg;
   }
-  const paintsA = useRef<tPaint[]>(
-    colorMaptoArray(fClosestColors(vTargetColor.state, brand)),
-  );
-  const paintsB = useRef<tPaint[]>(
+  const paints = useRef<tPaint[]>(
     colorMaptoArray(fClosestColors(vTargetColor.state, brand)),
   );
   const [sideA, setSideA] = useState(true);
@@ -82,17 +75,9 @@ export function ColorMixer({
     rotationAnim.value = withTiming(1, { duration: 500 });
   }, []);
   useEffect(() => {
-    if (sideA) {
-      paintsB.current = colorMaptoArray(
-        fClosestColors(vTargetColor.state, brand),
-      );
-      setSideA(false);
-    } else {
-      paintsA.current = colorMaptoArray(
-        fClosestColors(vTargetColor.state, brand),
-      );
-      setSideA(true);
-    }
+    paints.current = colorMaptoArray(fClosestColors(vTargetColor.state, brand));
+
+    sideA ? setSideA(false) : setSideA(true);
     rotationAnim.value = 0;
     rotationAnim.value = withTiming(1, { duration: 500 });
   }, [vTargetColor.state, brand]);
@@ -103,6 +88,25 @@ export function ColorMixer({
     };
   };
 
+  function colorLerp(
+    colorA: tCLARColor,
+    colorB: tCLARColor,
+    t: number,
+  ): tCLARColor {
+    "worklet";
+
+    const c = Math.min(colorA.c + (colorB.c - colorA.c) * t, 0.7);
+    const l = Math.max(
+      Math.min(colorA.l + (colorB.l - colorA.l) * t, 0.9),
+      0.1,
+    );
+    const diff = Math.atan2(
+      Math.sin(colorB.ar - colorA.ar),
+      Math.cos(colorB.ar - colorA.ar),
+    );
+    const ar = colorA.ar + diff * t;
+    return { c, l, ar };
+  }
   function fLerp(a: number, b: number, t: number): number {
     "worklet";
     return a * (1 - t) + b * t;
@@ -116,8 +120,6 @@ export function ColorMixer({
         ...input,
         rotateZ: fLerp(22 / 7, input.rotateZ, rotationAnim.value),
         translateX: input.translateX + 50,
-        shadowColor: input.chord,
-        shadowRadius: 10,
       };
     },
   };
@@ -127,10 +129,10 @@ export function ColorMixer({
     modifier: (input: tAttributeMap) => {
       "worklet";
       let color = colors[colorIndexes[chord - input.chord - 1]];
-      color = fColorLerp(
+      color = colorLerp(
         vTargetColor.shared.value.clar,
         color,
-        input.ring / ring,
+        (input.ring + 0.5) / ring,
       );
       const [r, g, b] = fCLARColorToRGB(color);
       return {
@@ -193,38 +195,15 @@ export function ColorMixer({
           radii,
           mColorModifier,
           mTransformModifier,
-          dAR,
-          dC,
-          dL,
         }}
       >
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            zIndex: 0,
-          }}
-        >
-          <BGGradient />
-        </View>
-        <View
-          style={{
-            position: "absolute",
-            shadowColor: "black",
-            shadowOffset: { width: 0, height: -5 },
-            shadowOpacity: 0.5,
-            shadowRadius: 10,
-          }}
-        >
-          <RadialGraphic
-            ring={ring}
-            chord={chord}
-            arcLength={arcLength}
-            rotationR={rotationR}
-            fSectorGroupModifier={fSectorGroupModifier}
-          />
-        </View>
+        <RadialGraphic
+          ring={ring}
+          chord={chord}
+          arcLength={arcLength}
+          rotationR={rotationR}
+          fSectorGroupModifier={fSectorGroupModifier}
+        />
       </RadialContext>
       <PaintChip
         paintA={vTargetColor.state}
@@ -234,12 +213,12 @@ export function ColorMixer({
         rotationR={11 / 7}
       />
       <ChipFan
-        paintsA={paintsA.current}
-        paintsB={paintsB.current}
+        paintsA={paints.current.reverse()}
+        paintsB={paints.current.reverse()}
         origin={origin}
         sideA={sideA}
         arcLength={arcLength}
-        rotationR={rotationR}
+        rotationR={rotationR + 0.02}
         radius={radii[1] * 0.75}
         groupLayer={eLayers.chipFan}
       />
@@ -254,11 +233,7 @@ export function ColorMixer({
         origin={[origin[0] - radii[1] * 0.1, origin[1] + 200]}
         mainRotationR={11 / 7}
         totalArcLength={3 / 7}
-        layer={eLayers.chipHand}
       />
     </>
   );
 }
-/*
-   
-      */

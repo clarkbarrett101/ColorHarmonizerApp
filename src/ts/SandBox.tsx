@@ -11,20 +11,10 @@ import { LightThermo } from "./LightThermo";
 import { PaletteLibrary } from "./PaletteLibrary";
 import SoundContext from "./SoundContext";
 import { Waveform } from "./Waveform";
+import { Menu } from "./Menu";
+import PanManager from "./PanManager";
 export default function SandBox() {
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <UserContext>
-        <BucketContext>
-          <SoundContext>
-            <DropScreen />
-            <PaletteLibrary />
-            <ChipHand />
-          </SoundContext>
-        </BucketContext>
-      </UserContext>
-    </GestureHandlerRootView>
-  );
+  return;
 }
 /*
     

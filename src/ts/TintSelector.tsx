@@ -92,13 +92,10 @@ export function TintSelector({
     modifier: (input: tAttributeMap) => {
       "worklet";
       let angle = wChordToAngle(input.chord, arcLength, chord, rotationR);
-      let diff = Math.min(
-        Math.abs(angle - vPanPos.value.angle) / (arcLength / chord),
-        1,
-      );
+      let diff = Math.abs(angle - vPanPos.value.angle) / (arcLength / 2);
       diff = 1 - diff;
       const z = Math.round(diff * chord) + eLayers.colorMixer;
-      const vs = 1 + (diff > 0.5 ? (diff - 0.5) * 0.1 : 0);
+      const vs = 1 + (diff > 1 / chord ? (diff - 1 / chord) * 0.1 : 0);
       return {
         ...input,
         rotateZ: angle,

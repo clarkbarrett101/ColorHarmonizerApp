@@ -41,6 +41,7 @@ import { tChord, tChordProps, useChord } from "./Sounds";
 import { tChordReturn, useSoundContext } from "./SoundContext";
 import { AnyGesture } from "react-native-gesture-handler/lib/typescript/v3/types";
 import { translate } from "@shopify/react-native-skia";
+import { scheduleOnRN } from "react-native-worklets";
 
 export type tChipStatus =
   | ["idle", "ready" | "choosing" | "returning" | "flippingUp" | "flippingDown"]
@@ -95,7 +96,7 @@ export const PaintChip = ({
     vVelocityX,
   } = useUserContext();
   const { vDropScreen } = useBucketContext();
-  const { fStartChord } = useSoundContext();
+  const { fStartChord, fPlaySFX } = useSoundContext();
   const rotateZ =
     Math.abs(rotationR) > 11 / 7
       ? -22 / 7 + rotationR + rotationOffset
@@ -136,11 +137,13 @@ export const PaintChip = ({
   useEffect(() => {
     if (vGrabbed.state) {
       setHeldChipPaint?.(paint);
-      chord.current?.();
+      chord.current?.(0);
       chord.current = fStartChord?.(paint.clar);
+      fPlaySFX?.("grab");
     } else {
-      chord.current?.();
+      chord.current?.(0);
       chord.current = null;
+      fPlaySFX?.("drop");
     }
   }, [vGrabbed.state]);
 
@@ -158,6 +161,7 @@ export const PaintChip = ({
       isSideA ? 500 * relativeZ : (1 - relativeZ) * 500,
       withTiming(0.5, { duration: 200 }, (finished) => {
         if (finished) {
+          scheduleOnRN(fPlaySFX, "grab");
           flipDown(isSideA);
         }
       }),
@@ -311,7 +315,6 @@ export const PaintChip = ({
         shadowRadius: attributes.shadowRadius || 0,
       };
     });
-    console.log("zStyle", style);
     return style;
   });
   const highlightAngle =

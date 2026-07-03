@@ -27,6 +27,7 @@ type tRadialHitBox = {
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
   highlight?: boolean;
   priority?: number;
+  layer?: number;
 };
 
 //M 0 11 A 11 11 90 0 1 0 -11 H 13 A 11 11 90 0 1 13 11 Z
@@ -92,6 +93,7 @@ export default function PanManager({
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const vHitBoxes = useVerse<Record<string, tRadialHitBox>>({});
   const vCurrentHitBox = useVerse<string | null>(null);
+  const [layer, setLayer] = useState<number>(zIndex);
 
   const vBounds = useVerse<{
     minX: number;
@@ -114,8 +116,10 @@ export default function PanManager({
       minY = Infinity,
       maxX = -Infinity,
       maxY = -Infinity;
-
     Object.values(vHitBoxes.shared.value).forEach((zone) => {
+      if (zone.layer !== undefined && zone.layer > layer) {
+        scheduleOnRN(setLayer, zone.layer);
+      }
       if (zone.shape === "capsule") {
         const capRadius = zone.radii[0];
         const bodyLength =
@@ -369,7 +373,7 @@ export default function PanManager({
       <View
         style={{
           position: "absolute",
-          zIndex: zIndex,
+          zIndex: layer,
           left: 0,
           top: 0,
         }}

@@ -1,11 +1,12 @@
 import {
   fCLARColorToRGB,
+  fCLARColorToString,
   fRGBToCLARColor,
   tCLARColor,
 } from "../utils/CLAcolor";
 import { RadialGraphic } from "../Radials/RadialGraphic";
 import { use, useCallback, useEffect, useState } from "react";
-import { tRadialObject } from "../Radials/SectorTypes";
+import { tRadialObject, tSector, tSectorGroup } from "../Radials/SectorTypes";
 import {
   useSharedValue,
   SharedValue,
@@ -16,42 +17,34 @@ import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { RadialContext, useRadialContext } from "../Radials/RadialContext";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { eLayers } from "../Contexts/UserContext";
-import { scheduleOnRN } from "react-native-worklets";
+import { tVerse } from "../utils/Verse";
 
 type tColorWheel = tRadialObject & {
   vRotationROffset?: SharedValue<number>;
   wheelCenter?: number;
-  vSecondColor?: SharedValue<tCLARColor>;
+  vSecondColor?: tVerse<number | null>;
+  draggable?: boolean;
 };
 
 function ColorWheel({
-  radii = [20, 200],
+  radii = [0, 200],
   ring = 5,
   chord = 18,
   vRotationROffset,
-  arcLength = 43.9 / 7,
+  arcLength = 44 / 7,
   wheelCenter = 11 / 7,
-  vSecondColor,
+  draggable,
 }: tColorWheel) {
-  const {
-    origin,
-    wAngleToChord,
-    wChordToAngle,
-    dC,
-    dL,
-    dAR,
-    wUpdateState: fUpdateState,
-  } = useRadialContext();
+  const { origin, wAngleToChord, wChordToAngle, dC, dL, dAR, wUpdateState } =
+    useRadialContext();
 
   const mColorModifier: tAttributeModifier = {
     modID: 0,
     deps: [dC, dL, dAR],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const rdc = Math.pow(0.5, 1 / Math.max(ring - 1, 1));
-      const rdl = Math.pow(0.5, 1 / Math.max(ring - 1, 1));
-      let c = Math.pow(rdc, ring - 1 - input.ring) * dC.value;
-      let l = Math.pow(rdl, ring - 1 - input.ring) * dL.value;
+      let c = ((input.ring / ring) * 0.5 + 0.5) * dC.value;
+      let l = ((input.ring / ring) * 0.5 + 0.5) * dL.value;
       let ar = wChordToAngle(input.chord, arcLength, chord, 0);
       let [r, g, b] = fCLARColorToRGB({ c, l, ar });
       return {
@@ -67,32 +60,36 @@ function ColorWheel({
   const vPanState = useSharedValue<ePanEvent>("leave");
   const vStartAngle = useSharedValue(0);
   const dragStartAngle = useSharedValue(0);
+
   const mTransformModifier: tAttributeModifier = {
     modID: 0,
     deps: [dAR, dL, dC, vRotationROffset, vPanPos, vStartAngle, dragStartAngle],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const rotation = wChordToAngle(input.chord, arcLength, chord, 0);
-      let diff = Math.abs(rotation - dAR.value) % (44 / 7);
-      if (diff > 22 / 7) {
-        diff = 44 / 7 - diff;
-      }
-      const chordLength = (2 * arcLength) / chord;
+      let chords = chord;
+      const chordLength = (2 * arcLength) / chords;
+      let startRotation = wChordToAngle(input.chord, arcLength, chords, 0);
+      let rotation = input.rotateZ + -vRotationROffset.value;
+      const selectedSector = wAngleToChord(dAR.value, arcLength, chords, 0);
+      let diff = Math.abs(startRotation - dAR.value) % (44 / 7);
+      if (diff > 22 / 7) diff = 44 / 7 - diff;
+      let zDiff = Math.abs(input.chord - selectedSector) % chords;
+      if (zDiff > chords / 2) zDiff = chords - zDiff;
       diff = Math.max(0, chordLength - diff) / chordLength;
-      const selectedSector = wAngleToChord(dAR.value, arcLength, chord, 0);
-      let zDiff = Math.abs(input.chord - selectedSector) % chord;
-      if (zDiff > chord / 2) {
-        zDiff = chord - zDiff;
+      if (diff > 0.9) {
+        diff = 1;
       }
-      const zIndex = Math.round(chord / 2 - zDiff) + eLayers.colorMixer;
-      const vS = 1 + Math.max(0, diff - 0.8);
+      let tx = input.translateX + diff * 50;
+      let zIndex = 2 * Math.round(chords / 2 - zDiff) + eLayers.colorMixer;
+      let vS = 1 + Math.max(0, diff - 0.8);
+
       return {
         ...input,
         zIndex,
-        rotateZ: input.rotateZ + -vRotationROffset.value,
+        rotateZ: rotation,
         scaleX: vS,
         scaleY: vS,
-        translateX: diff * 25,
+        translateX: tx,
         shadowRadius: input.shadowRadius * vS,
         shadowX: input.shadowX * vS,
         shadowY: input.shadowY * vS,
@@ -110,7 +107,9 @@ function ColorWheel({
     );
     let nearestSectorAngle = wChordToAngle(nearestSector, arcLength, chord, 0);
     vRotationROffset.value = withTiming(nearestSectorAngle);
-    fUpdateState();
+    if (wUpdateState) {
+      wUpdateState();
+    }
   };
   const fOnTap = useCallback(() => {
     "worklet";
@@ -156,13 +155,14 @@ function ColorWheel({
   );
 
   useEffect(() => {
+    if (!draggable) return;
     const id = `${ring}-${chord}`;
     registerZone({
       origin,
       id,
       radii,
       rotationR: wheelCenter,
-      arcLength: arcLength / 2,
+      arcLength: 22 / 7,
       vPanPos,
       vPanState,
       priority: 5,
@@ -182,6 +182,7 @@ function ColorWheel({
         mainRotationR: wheelCenter,
         totalRings: ring,
         totalChords: chord,
+        origin,
       }}
     >
       <RadialGraphic />

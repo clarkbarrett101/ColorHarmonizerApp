@@ -38,7 +38,7 @@ export function ColorSeasons({
   radii = [0, 375],
   ring = 5,
   chord = 4,
-  arcLength = 9 / 7,
+  arcLength = 11 / 7,
   rotationR = 22 / 7,
 }: tRadialObject) {
   const origin: [number, number] = [
@@ -62,6 +62,7 @@ export function ColorSeasons({
       const colorKey = colorIndexes[i];
       arg[i] = colorMap[colorKey];
     }
+    arg.reverse();
     console.log(
       "Color map to array",
       arg.map((c) => c.name),
@@ -104,7 +105,8 @@ export function ColorSeasons({
       return {
         ...input,
         rotateZ: fLerp(22 / 7, input.rotateZ, rotationAnim.value),
-        translateY: input.translateY + (0.5 - input.chord / (chord - 1)) * 100,
+        translateY:
+          input.translateY + (0.5 - (input.chord + 0.5) / (chord - 1)) * 50,
         translateX: input.translateX + 50,
       };
     },
@@ -143,7 +145,7 @@ export function ColorSeasons({
 
       return {
         ...input,
-        translateY: input.translateY + (0.5 - index / (chord - 1)) * 100,
+        translateY: input.translateY + (0.5 - (index + 0.5) / (chord - 1)) * 50,
       };
     },
   };
@@ -221,8 +223,8 @@ export function ColorSeasons({
         rotationR={11 / 7}
       />
       <ChipFan
-        paintsA={paints.current.reverse()}
-        paintsB={paints.current.reverse()}
+        paintsA={paints.current}
+        paintsB={paints.current}
         origin={origin}
         sideA={sideA}
         arcLength={arcLength}

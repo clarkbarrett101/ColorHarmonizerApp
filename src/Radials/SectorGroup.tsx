@@ -29,14 +29,14 @@ export const SectorGroup = ({
     shadowY: 2,
   });
 
-  const { mTransformModifier, origin } = useRadialContext();
+  const { mTransformModifier, origin, radii } = useRadialContext();
   useEffect(() => {
     if (!mTransformModifier) return;
     actor.addModifier(mTransformModifier);
     return () => {
       actor.removeModifier(mTransformModifier.modID);
     };
-  }, []);
+  }, [mTransformModifier]);
 
   const animatedProps = useAnimatedProps(() => {
     "worklet";
@@ -69,14 +69,6 @@ export const SectorGroup = ({
     return style;
   });
 
-  const radii = sectors.reduce(
-    (acc, sector) => {
-      if (!acc[0] || sector.radii?.[0] < acc[0]) acc[0] = sector.radii?.[0];
-      if (!acc[1] || sector.radii?.[1] > acc[1]) acc[1] = sector.radii?.[1];
-      return acc;
-    },
-    [undefined, undefined] as [number | undefined, number | undefined],
-  );
   return (
     <Animated.View
       style={[
@@ -88,12 +80,13 @@ export const SectorGroup = ({
         },
         containerStyle,
       ]}
+      pointerEvents={"none"}
     >
       <AnimatedSvg
         animatedProps={animatedProps}
         width={radii?.[1] * 2}
         height={radii?.[1] * 2}
-        viewBox={`-${radii?.[1] * 1.1} -${radii?.[1] * 1.1} ${radii?.[1] * 2.2} ${radii?.[1] * 2.2}`}
+        viewBox={`-${radii[1] * 1.1} -${radii[1] * 1.1} ${radii[1] * 2.2} ${radii[1] * 2.2}`}
         style={{
           margin: -radii?.[1],
           zIndex: 5,

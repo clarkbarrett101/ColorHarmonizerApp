@@ -191,12 +191,14 @@ export const BrandFilter = (props: tBrandFilter) => {
             { rotate: `${adjustedRotation}rad` },
             { translateY: radius * 0.6 },
           ]}
+          pointerEvents="none"
         >
           {brandString.map((line, index) => (
             <TSpan
               key={index}
               x={0}
               dy={brandString.length > 1 ? (index === 0 ? -8 : 16) : 0}
+              pointerEvents="none"
             >
               {line}
             </TSpan>

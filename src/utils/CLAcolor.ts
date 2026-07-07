@@ -1,11 +1,10 @@
 import React from "react";
 import { Dimensions } from "react-native";
 
-const clarColorsList: tPaint[] = require("./clarColors.json");
+const clarColorsList: tPaint[] = require("../clarColors.json");
 export function fGetRandomPaint(): tPaint {
   const randomIndex = Math.floor(Math.random() * clarColorsList.length);
   const paint = clarColorsList[randomIndex];
-  console.log("Generated random paint:", paint.name, paint.clar);
   return paint;
 }
 
@@ -64,6 +63,7 @@ function descaleAR(ar: number): number {
   'worklet';
   const originalAR = ar;
   ar = ar / (Math.PI * 2);
+  ar = ar % 1;
   if (ar < 0) ar += 1;
  ar -= 2/7;
   if (ar < 0) ar += 1;
@@ -77,6 +77,7 @@ function scaleAR(ar: number): number {
   'worklet'; 
   const originalAR = ar; 
   ar = ar / (Math.PI * 2); 
+  ar = ar % 1;
   if (ar < 0) ar += 1;
   ar = Math.pow(2, ar)-1;
   ar += 2/7;
@@ -89,6 +90,8 @@ function scaleAR(ar: number): number {
 export function fCLARColorToYUV(color: tCLARColor): [number, number, number] {
   'worklet';
   let {c, l, ar} = color;
+  c = 2**c - 1;
+  l = 2**l - 1;
   ar = scaleAR(ar);
   const u = Math.cos(ar)*.5 * c;
   const v = Math.sin(ar)*.5 * c;
@@ -99,8 +102,9 @@ export function fCLARColorToYUV(color: tCLARColor): [number, number, number] {
 export function fYUVToCLARColor(yuv: [number, number, number]): tCLARColor {
   'worklet';
   const [y, u, v] = yuv;
-  const c = Math.round(Math.sqrt(u * u + v * v)*2*100) / 100;
-  const l = y;
+  let c = (Math.sqrt(u * u + v * v)*2);
+  c = Math.log2(c + 1);
+  const l = Math.log2(y + 1);
   let ar = Math.atan2(v, u);
   ar = descaleAR(ar);
   return { c, l, ar };
@@ -305,7 +309,7 @@ export type tSeasonMap<type> = {
 };
 
 export function fGetSeasons(testColor: tCLARColor): tSeasonMap<number> {
-  const { c, l, ar } = testColor;
+  let { c, l, ar } = testColor;
     let by = Math.abs(ar / (2 * Math.PI) - 0.75);
   if (by > 0.5) {
     by = 1 - by;
@@ -313,6 +317,7 @@ export function fGetSeasons(testColor: tCLARColor): tSeasonMap<number> {
   by /= 0.5;
   by = Math.round(by * 100) / 100;
   let depth = c ** 0.5;
+  l = l**2;
   depth = Math.round(depth * 100) / 100;
   let winterScore = depth * (1 - l);
   winterScore = Math.round(winterScore * 100) / 100;
@@ -344,18 +349,22 @@ export function fGetSeasonColors(testColor: tCLARColor, brand?: tBrand): tSeason
     const paintSeasons = fGetSeasons(paint.clar);
     if (!seasonColors.spring && paintSeasons.spring > seasons.spring) {
       seasonColors.spring = paint;
+      console.log("Found more spring:", paint.name, paintSeasons.spring, seasons.spring);
       continue;
     }
     if (!seasonColors.summer && paintSeasons.summer > seasons.summer) {
       seasonColors.summer = paint;
+      console.log("Found more summer:", paint.name, paintSeasons.summer, seasons.summer);
       continue;
     }
     if (!seasonColors.autumn && paintSeasons.autumn > seasons.autumn) {
       seasonColors.autumn = paint;
+      console.log("Found more autumn:", paint.name, paintSeasons.autumn, seasons.autumn);
       continue;
     }
     if (!seasonColors.winter && paintSeasons.winter > seasons.winter) {
       seasonColors.winter = paint;
+      console.log("Found more winter:", paint.name, paintSeasons.winter, seasons.winter);
       continue;
     }
   }

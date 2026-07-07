@@ -199,11 +199,15 @@ fs.writeFile(
 import masterList from "./src/masterList.mjs";
 import { fRGBToYUV, fRGBToCLARColor } from "./src/utils/CLAcolor.js";
 import fs from "fs";
-const clarColors = [];
+const clarColors = new Array(44).fill([0, 0]);
 masterList.map((item) => {
   let [r, g, b] = item.rgb;
   let [y, u, v] = fRGBToYUV([r, g, b]);
   let { c, l, ar } = fRGBToCLARColor([r, g, b]);
+  let index = Math.round((ar / (2 * Math.PI)) * 44);
+  if (clarColors[index][0] < c) {
+    clarColors[index] = [c, l];
+  }
   item.yuv = [y, u, v];
   item.clar = { c, l, ar };
   let by = Math.abs(ar / (2 * Math.PI) - 0.75);

@@ -14,8 +14,12 @@ export const Sector = (props: tSector) => {
   const arcLength = props.arcLength || 0.1;
   const fPathFunction = context.fPathFunction || fMakePetalPath;
   const mColorModifier = context.mColorModifier;
-
   const path = fPathFunction(props.radii, arcLength, context.radii[1]);
+  if (path.includes("NaN")) {
+    throw new Error(
+      `Path contains NaN for props ${JSON.stringify(props)} and context ${JSON.stringify(context)}`,
+    );
+  }
   const actor = useActor({
     ring: props.ring,
     chord: props.chord,

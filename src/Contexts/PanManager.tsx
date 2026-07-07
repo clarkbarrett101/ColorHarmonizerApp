@@ -7,22 +7,18 @@ import {
 } from "react-native-gesture-handler";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
-import { fMakeSectorPath } from "../Radials/SectorTypes.js";
+import { fMakeSectorPath, tRadialObject } from "../Radials/SectorTypes";
 import { Dimensions, Share, View } from "react-native";
 import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 import { eLayers } from "./UserContext";
-import { tVerse, useVerse, useVerseRelay } from "../utils/Verse.js";
+import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
 
 export type ePanEvent = "enter" | "leave" | "drag" | "tap";
 
-type tRadialHitBox = {
+export type tRadialHitBox = tRadialObject & {
   shape?: "sector" | "capsule";
   id: string;
-  origin: [number, number];
-  radii: [number, number];
   capsuleMod?: SharedValue<number>;
-  arcLength: number;
-  rotationR: number;
   vPanState?: SharedValue<ePanEvent>;
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
   highlight?: boolean;
@@ -44,8 +40,6 @@ const RadialHitbox = ({
     shape === "capsule"
       ? capsulePath
       : fMakeSectorPath(radii, arcLength, radii[1]);
-  ``;
-
   return (
     <G
       x={origin?.[0]}
@@ -183,16 +177,6 @@ export default function PanManager({
     });
 
     vBounds.dispatch({ minX, minY, maxX, maxY });
-    console.log(
-      "Calculated bounds:",
-      minX,
-      minY,
-      maxX,
-      maxY,
-      "from",
-      Object.keys(vHitBoxes.shared.value).length,
-      "hitboxes.",
-    );
   }
   const registerHitBox = (hitBox: tRadialHitBox) => {
     scheduleOnUI(() => {
@@ -329,6 +313,7 @@ export default function PanManager({
       const zone = vHitBoxes.shared.value[vCurrentHitBox.shared.value];
       if (zone.vPanState) {
         zone.vPanState.value = "tap";
+        console.log("Tapped zone:", zone.id);
       }
       releaseZone();
     }

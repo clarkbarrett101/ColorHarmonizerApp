@@ -9,15 +9,13 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { fGetRandomPalette, tPaint } from "../utils/CLAcolor";
+import { fGetRandomPalette, tCLARColor, tPaint } from "../utils/CLAcolor";
 import { tVerse, useVerse } from "../utils/Verse";
 import { fLerp, tChipStatus } from "../Chips/PaintChip";
 import { tActor, tAttributeMap, tAttributeModifier } from "../utils/Actor";
-import { tChordProps } from "./Sounds";
-
 const loopTimes = [0.205, 0.3637, 0.35];
 
-const clarColorsList: tPaint[] = require("./clarColors.json");
+const clarColorsList: tPaint[] = require("../clarColors.json");
 
 export const eLayers = {
   superMax: 2000,
@@ -42,14 +40,17 @@ export type tUserContext = {
   vHeldChipID: tVerse<number | null>;
   heldChipPaint: tPaint | null;
   setHeldChipPaint?: (paint: tPaint | null) => void;
-  registerChipActor?: (chipID: number, entry: tActor) => void;
+  registerChipActor?: (
+    chipID: number,
+    entry: tActor,
+    paints: [tPaint, tPaint?],
+  ) => void;
   unregisterChipActor?: (chipID: number) => void;
   allChipActors?: Record<number, tActor>;
   registerModifier?: (attributeModifier: tAttributeModifier) => number;
   unregisterModifier?: (id: number) => void;
-  fStartChord?: () => void;
-  fSetChord?: () => void;
-  fStopChord?: () => void;
+  paintsPresent?: tPaint[];
+  vSelectedColors?: tVerse<tCLARColor[]>;
 };
 
 export const Context = createContext<tUserContext>({
@@ -68,6 +69,9 @@ export const useUserContext = () => useContext(Context);
 export default function UserContext({ children }: { children: ReactNode }) {
   const allModifiers = useRef<Record<number, tAttributeModifier>>({}).current;
   const allChipActors = useRef<Record<number, tActor>>({}).current;
+  const paintsPresent = useRef<Record<number, [tPaint, tPaint?]>>({}).current;
+  const vSelectedColors = useVerse<tCLARColor[]>([]);
+  const [paintsList, setPaintsList] = useState<tPaint[]>([]);
   const registerModifier = useCallback(
     (attributeModifier: tAttributeModifier) => {
       const id = attributeModifier.modID;
@@ -90,28 +94,29 @@ export default function UserContext({ children }: { children: ReactNode }) {
       allChipActors[chipID].removeModifier(id);
     }
   }, []);
-  const registerChipActor = useCallback((chipID: number, entry: tActor) => {
-    allChipActors[chipID] = entry;
 
-    for (let key in allModifiers) {
-      const entry = allModifiers[key];
-
-      allChipActors[chipID].addModifier(entry);
-    }
-  }, []);
+  const registerChipActor = useCallback(
+    (chipID: number, entry: tActor, paints: [tPaint, tPaint?]) => {
+      allChipActors[chipID] = entry;
+      paintsPresent[chipID] = paints;
+      setPaintsList(Object.values(paintsPresent).flatMap((pair) => pair));
+      for (let key in allModifiers) {
+        const entry = allModifiers[key];
+        allChipActors[chipID].addModifier(entry);
+      }
+    },
+    [],
+  );
   const unregisterChipActor = useCallback((chipID: number) => {
     delete allChipActors[chipID];
+    delete paintsPresent[chipID];
+    setPaintsList(Object.values(paintsPresent).flatMap((pair) => pair));
   }, []);
-  function randomIndexes(count: number, max: number) {
-    const indexes = new Set<number>();
-    while (indexes.size < count) {
-      indexes.add(Math.floor(Math.random() * max));
-    }
-    return Array.from(indexes);
-  }
+
   const [userPalette, setUserPalette] = useState<tPaint[]>(
     fGetRandomPalette(4).paints,
   );
+
   const addPaint = useCallback((paint: tPaint, index?: number) => {
     setUserPalette((prev) => {
       if (index !== undefined) {
@@ -125,6 +130,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const removePaint = useCallback((paint: tPaint) => {
     setUserPalette((prev) => prev.filter((p) => p !== paint));
   }, []);
+
   const _vPanX = useVerse(0);
   const _vPanY = useVerse(0);
   const _vVelocityX = useVerse(0);
@@ -163,6 +169,8 @@ export default function UserContext({ children }: { children: ReactNode }) {
       registerModifier,
       unregisterModifier,
       removePaint,
+      paintsPresent: paintsList,
+      vSelectedColors,
     }),
     [userPalette, heldChipPaint],
   );

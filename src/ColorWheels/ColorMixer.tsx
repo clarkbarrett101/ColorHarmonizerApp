@@ -53,20 +53,14 @@ export function ColorMixer({
   };
   const colors = { ...refColors };
   const [brand, setBrand] = useState<tBrand>("All Brands");
-  const randomPaint = useMemo(() => fGetRandomPaint(), []);
-  const vTargetColor = useVerse<tPaint>(randomPaint);
+  const vTargetColor = useVerse<tPaint>(fGetRandomPaint());
   function colorMaptoArray(colorMap: tColorMap<tPaint>): tPaint[] {
     const arg = Array(6);
     for (let i = 0; i < 6; i++) {
       const colorKey = colorIndexes[i];
       arg[i] = colorMap[colorKey];
-      console.log("Color map to array", colorMap[colorKey].name, colorKey);
     }
     arg.reverse();
-    console.log(
-      "Color map to array",
-      arg.map((c) => c.name),
-    );
     return arg;
   }
   const paintsA = useRef<tPaint[]>(

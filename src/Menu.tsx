@@ -94,10 +94,8 @@ export function Menu({
     deps: [],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const rdc = Math.pow(0.5, 1 / Math.max(ring - 1, 1));
-      const rdl = Math.pow(0.5, 1 / Math.max(ring - 1, 1));
-      let c = Math.pow(rdc, ring - 1 - input.ring) * 0.8;
-      let l = Math.pow(rdl, ring - 1 - input.ring) * 0.8;
+      const c = 0.5 + (1 - input.chord / (chord - 1)) * 0.5;
+      const l = 0.5 + (input.ring / (ring - 1)) * 0.4;
       let ar = 22 / 7 + (input.chord / (chord - 1)) * (22 / 7);
       let [r, g, b] = fCLARColorToRGB({ c, l, ar });
       return {
@@ -137,6 +135,7 @@ export function Menu({
         <Text
           fill="white"
           x={-(radii[1] * 0.7 - options[sectorGroup.sectorGroupID].length * 5)}
+          y={7}
           fontSize={30}
           fontFamily="Outfit"
           textAnchor="end"

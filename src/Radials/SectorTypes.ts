@@ -50,6 +50,9 @@ export const fMakePetalPath = (
 ): string => {
   const endRad = arcLength / 2;
   const x1 = 0.99 * maxRadius * Math.cos(endRad) - (maxRadius - radii[1]);
+  if(isNaN(x1)){
+    throw new Error(`x1 is NaN for radii ${radii} and arcLength ${arcLength} and maxRadius ${maxRadius}`);
+  }
   const x2 = 0.99 * maxRadius * Math.cos(-endRad) - (maxRadius - radii[1]);
   const y1 = 0.99 * maxRadius * Math.sin(endRad);
   const y2 = 0.99 * maxRadius * Math.sin(-endRad);

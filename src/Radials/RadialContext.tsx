@@ -51,9 +51,9 @@ export type tRadialContext = {
     chords: number,
     rotationOffset: number,
   ) => number;
-  dC?: DerivedValue<number>;
-  dL?: DerivedValue<number>;
-  dAR?: DerivedValue<number>;
+  dC?: SharedValue<number>;
+  dL?: SharedValue<number>;
+  dAR?: SharedValue<number>;
   vRotationROffset?: SharedValue<number> | { value: number };
   mTransformModifier?: tAttributeModifier;
   vPanPos?: SharedValue<{ angle: number; radius: number }>;
@@ -78,7 +78,9 @@ const Ctx = React.createContext<tRadialContext>({
   mTransformModifier: null,
   vPanPos: undefined,
   mColorModifier: null,
-  wUpdateState: () => {},
+  wUpdateState: () => {
+    "worklet";
+  },
 });
 export const useRadialContext = () => React.useContext(Ctx);
 export const RadialContext = ({

@@ -267,10 +267,11 @@ export default function ColorSelector({
             chord={24}
             vRotationROffset={vWheelRotation}
             wheelCenter={wheelCenter}
+            draggable={true}
           />
         </RadialContext>
       </View>
-      <PanManager zIndex={eLayers.chipHand}>
+      <PanManager drawSectors zIndex={eLayers.chipHand}>
         <BrandFilter
           brand={brand}
           setBrand={dispatchBrand}

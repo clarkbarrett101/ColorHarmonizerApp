@@ -237,7 +237,7 @@ export const PaintChip = ({
     actor.addModifier(flipModifier);
     actor.addModifier(panMod);
     actor.addModifier(shadowModifier);
-    registerChipActor(id, actor);
+    registerChipActor(id, actor, [paintA, paintB]);
     return () => {
       actor.removeModifier(flipModifier.modID);
       actor.removeModifier(panMod.modID);

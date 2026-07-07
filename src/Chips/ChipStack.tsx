@@ -8,7 +8,7 @@ import {
   tBrand,
 } from "../utils/CLAcolor";
 import React, { useEffect, useState } from "react";
-const clarColorsList: tPaint[] = require("./clarColors.json");
+const clarColorsList: tPaint[] = require("../clarColors.json");
 
 export type tChipFan = {
   arcLength: number;

@@ -18,7 +18,8 @@ import ColorSelector from "./ColorWheels/ColorSelector";
 import { useVerse } from "./utils/Verse";
 import { PaletteLibrary } from "./Chips/PaletteLibrary";
 import { ColorSeasons } from "./ColorWheels/ColorSeasons";
-import { Harmonizer } from "./ColorWheels/Harmonizer";
+import { HarmonizerWheel } from "./ColorWheels/HarmonizerWheel";
+import { ColorHarmonizer } from "./ColorWheels/ColorHarmonizer";
 
 export type ePages =
   | "Menu"
@@ -50,7 +51,7 @@ const Driver = () => {
     ColorMixer: <ColorMixer />,
     ColorSeasons: <ColorSeasons />,
     ColorCamera: <ColorCamera />,
-    ColorHarmony: <Harmonizer />,
+    ColorHarmony: <ColorHarmonizer />,
     PaletteLibrary: <PaletteLibrary />,
   };
   return (

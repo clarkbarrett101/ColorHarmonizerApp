@@ -6,7 +6,7 @@ import { RadialGraphic } from "../Radials/RadialGraphic";
 import { tSectorGroup } from "../Radials/SectorTypes";
 import { Text } from "react-native-svg";
 import { fCLARColorToRGB } from "../utils/CLAcolor";
-import { eLayers } from "../Contexts/UserContext";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
 export type tPetalButton = tRadialHitBox & {
   zIndex?: number;
   fontSize?: number;
@@ -41,16 +41,20 @@ export function PetalButton(props: tPetalButton) {
       sectorGroupID: zIndex,
     };
   }
+  const { vColorModel } = useUserContext();
   const mColorModifier = {
     modID: 0,
     deps: [dC, dL, dAR],
     modifier: (input) => {
       "worklet";
-      let [r, g, b] = fCLARColorToRGB({
-        c: dC.value,
-        l: dL.value,
-        ar: dAR.value,
-      });
+      let [r, g, b] = fCLARColorToRGB(
+        {
+          c: dC.value,
+          l: dL.value,
+          ar: dAR.value,
+        },
+        vColorModel.shared.value,
+      );
       return {
         ...input,
         red: r,

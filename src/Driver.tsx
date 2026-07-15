@@ -1,9 +1,6 @@
-import { View, Text, Dimensions } from "react-native";
-import React, { ReactNode, useState } from "react";
-import { useSharedValue } from "react-native-reanimated";
-import PanManager, { usePanManager } from "./Contexts/PanManager";
-import { tRadialObject } from "./Radials/SectorTypes";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { View } from "react-native";
+import React, { ReactNode, useEffect } from "react";
+import PanManager from "./Contexts/PanManager";
 import UserContext, { eLayers } from "./Contexts/UserContext";
 import BucketContext from "./Buckets/BucketContext";
 import SoundContext from "./Contexts/SoundContext";
@@ -12,14 +9,12 @@ import { Menu } from "./Menu";
 import DropScreen from "./Buckets/DropScreen";
 import { ColorCamera } from "./Cameras/ColorCamera";
 import { WallPaintCam } from "./Cameras/WallPaintCam";
-import { ColorWheel } from "./ColorWheels/ColorWheel";
 import { ColorMixer } from "./ColorWheels/ColorMixer";
 import ColorSelector from "./ColorWheels/ColorSelector";
 import { useVerse } from "./utils/Verse";
 import { PaletteLibrary } from "./Chips/PaletteLibrary";
 import { ColorSeasons } from "./ColorWheels/ColorSeasons";
-import { HarmonizerWheel } from "./ColorWheels/HarmonizerWheel";
-import { ColorHarmonizer } from "./ColorWheels/ColorHarmonizer";
+import { ColorHarmonizer } from "./Harmonizer/ColorHarmonizer";
 
 export type ePages =
   | "Menu"
@@ -54,6 +49,7 @@ const Driver = () => {
     ColorHarmony: <ColorHarmonizer />,
     PaletteLibrary: <PaletteLibrary />,
   };
+
   return (
     <UserContext>
       <BucketContext>
@@ -72,7 +68,7 @@ const Driver = () => {
             }}
             onTouchEnd={() => vPage.dispatch("Menu")}
           />
-          <PanManager drawSectors>{pageMap[vPage.state]}</PanManager>
+          <PanManager>{pageMap[vPage.state]}</PanManager>
           <ChipHand />
         </SoundContext>
       </BucketContext>

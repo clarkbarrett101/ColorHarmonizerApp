@@ -16,7 +16,7 @@ import {
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { RadialContext, useRadialContext } from "../Radials/RadialContext";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
-import { eLayers } from "../Contexts/UserContext";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tVerse } from "../utils/Verse";
 
 type tColorWheel = tRadialObject & {
@@ -37,7 +37,7 @@ function ColorWheel({
 }: tColorWheel) {
   const { origin, wAngleToChord, wChordToAngle, dC, dL, dAR, wUpdateState } =
     useRadialContext();
-
+  const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 0,
     deps: [dC, dL, dAR],
@@ -46,7 +46,7 @@ function ColorWheel({
       let c = ((input.ring / ring) * 0.5 + 0.5) * dC.value;
       let l = ((input.ring / ring) * 0.5 + 0.5) * dL.value;
       let ar = wChordToAngle(input.chord, arcLength, chord, 0);
-      let [r, g, b] = fCLARColorToRGB({ c, l, ar });
+      let [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return {
         ...input,
         red: r,
@@ -107,6 +107,11 @@ function ColorWheel({
     );
     let nearestSectorAngle = wChordToAngle(nearestSector, arcLength, chord, 0);
     vRotationROffset.value = withTiming(nearestSectorAngle);
+    console.log(
+      "Wheel leaving, rotating to nearest sector",
+      nearestSector,
+      nearestSectorAngle,
+    );
     if (wUpdateState) {
       wUpdateState();
     }
@@ -142,6 +147,9 @@ function ColorWheel({
           dragStartAngle.value = vRotationROffset.value;
           break;
         case "leave":
+          fOnLeave();
+          break;
+        case "release":
           fOnLeave();
           break;
         case "drag":

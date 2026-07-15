@@ -15,7 +15,7 @@ import { tSector, tSectorGroup } from "../Radials/SectorTypes";
 import { SectorGroup } from "../Radials/SectorGroup";
 import { SharedValue } from "react-native-gesture-handler/lib/typescript/v3/types";
 import { scheduleOnRN } from "react-native-worklets";
-import { eLayers } from "../Contexts/UserContext";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { useBucketContext } from "../Buckets/BucketContext";
 import DropScreen from "../Buckets/DropScreen";
 
@@ -126,9 +126,10 @@ export const BrandFilter = (props: tBrandFilter) => {
       vDropScreen.dispatch(false);
     };
   }, []);
+  const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 0,
-    deps: [dAR, dC],
+    deps: [dAR, dC, vColorModel.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
       const rdc = Math.pow(0.1, 1 / Math.max(brands.length - 1, 1));
@@ -136,7 +137,7 @@ export const BrandFilter = (props: tBrandFilter) => {
       let l = Math.pow(rdl, input.ring);
       let c = Math.pow(rdc, input.ring) * dC.value;
       let ar = dAR.value - 2 / 7 + (input.chord / 12) * (4 / 7);
-      const [r, g, b] = fCLARColorToRGB({ c, l, ar });
+      const [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return {
         ...input,
         red: r,
@@ -213,6 +214,7 @@ export const BrandFilter = (props: tBrandFilter) => {
         ring: i,
         children: [text],
         sectors: [sector],
+        origin,
       };
       group.push(<SectorGroup key={i} {...sectorGroup} />);
     }

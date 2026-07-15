@@ -1,5 +1,6 @@
 import { View, Text, Dimensions } from "react-native";
 import React, { use, useEffect } from "react";
+import type { tHarmonizerPhase } from "./ColorHarmonizer";
 import {
   useAnimatedReaction,
   useDerivedValue,
@@ -11,19 +12,20 @@ import {
   wDefaultAngleToChord,
   wDefaultChordToAngle,
 } from "../Radials/RadialContext";
-import { BGGradient } from "./BGGradient";
-import { ColorWheel } from "./ColorWheel";
+import { BGGradient } from "../ColorWheels/BGGradient";
+import { ColorWheel } from "../ColorWheels/ColorWheel";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { tVerse, useVerse } from "../utils/Verse";
 import { RadialGraphic } from "../Radials/RadialGraphic";
-import { PetalButton } from "../Chips/PetalButton";
+import { PetalButton } from "../Buttons/PetalButton";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { ePanEvent } from "../Contexts/PanManager";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { fCLARColorToRGB, tCLARColor } from "../utils/CLAcolor";
 export type tHarmonizerWheel = tRadialObject & {
   draggable?: boolean;
-  vSelectedColors?: tVerse<tCLARColor[]>;
+  vSelectedAngles?: tVerse<number[]>;
+  vPhase?: tVerse<tHarmonizerPhase>;
 };
 export function HarmonizerWheel({
   radii = [0, 250],
@@ -36,16 +38,10 @@ export function HarmonizerWheel({
   ring = 5,
   chord = 24,
   draggable = true,
-  vSelectedColors,
+  vSelectedAngles,
+  vPhase,
 }: tHarmonizerWheel) {
-  useEffect(() => {
-    if (vSelectedColors.state.length > 2) {
-      vSelectedColors.dispatch(vSelectedColors.state.slice(0, 2));
-    }
-  }, [vSelectedColors.state]);
   const vWheelRotation = useSharedValue(22 / 7);
-  const dC = useDerivedValue(() => 1);
-  const dL = useDerivedValue(() => 1);
   const vSecondColor = useVerse<number | null>(null);
   const vPanState = useSharedValue<ePanEvent>("leave");
   const vSecondPanState = useSharedValue<ePanEvent>("leave");
@@ -67,6 +63,18 @@ export function HarmonizerWheel({
     vWheelRotation.value = withTiming(nearestSectorAngle);
   };
   useAnimatedReaction(
+    () => vWheelRotation.value,
+    (wheelRotation, prevWheelRotation) => {
+      "worklet";
+      const secondColor = vSecondColor.shared.value;
+      if (secondColor !== null) {
+        vSelectedAngles.shared.value = [wheelRotation, secondColor];
+      } else {
+        vSelectedAngles.shared.value = [wheelRotation];
+      }
+    },
+  );
+  useAnimatedReaction(
     () => vPanState.value,
     (panState, prevPanState) => {
       "worklet";
@@ -76,10 +84,11 @@ export function HarmonizerWheel({
           fOnLeave(chordLength);
           vPanState.value = "leave";
         } else {
-          vSelectedColors.dispatch([
-            { c: 1, l: 1, ar: vWheelRotation.value },
-            { c: 1, l: 1, ar: vSecondColor.shared.value },
+          vSelectedAngles.dispatch([
+            Math.round(vWheelRotation.value * 100) / 100,
+            Math.round(vSecondColor.shared.value * 100) / 100,
           ]);
+          vPhase?.dispatch("scheme");
         }
       }
     },
@@ -126,15 +135,18 @@ export function HarmonizerWheel({
       };
     },
   };
-
+  const { vColorModel } = useUserContext();
   const secondColorModifier: tAttributeModifier = {
     modID: 1,
-    deps: [vSecondColor.shared],
+    deps: [vSecondColor.shared, vColorModel.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      let c = ((input.ring / ring) * 0.5 + 0.5) * dC.value;
-      let l = ((input.ring / ring) * 0.5 + 0.5) * dL.value;
-      let [r, g, b] = fCLARColorToRGB({ c, l, ar: vSecondColor.shared.value });
+      let c = (input.ring / ring) * 0.5 + 0.5;
+      let l = (input.ring / ring) * 0.5 + 0.5;
+      let [r, g, b] = fCLARColorToRGB(
+        { c, l, ar: vSecondColor.shared.value },
+        vColorModel.shared.value,
+      );
       return {
         ...input,
         red: r,
@@ -143,26 +155,20 @@ export function HarmonizerWheel({
       };
     },
   };
+  const dC = useDerivedValue(() => 1);
+  const dL = useDerivedValue(() => 1);
+  const dAR = useDerivedValue(() => vWheelRotation.value);
   return (
     <RadialContext
       value={{
         radii,
         origin,
+        mainRotationR: rotationR,
+        dAR,
         dC,
         dL,
-        dAR: vWheelRotation,
-        mainRotationR: rotationR,
       }}
     >
-      <View
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-        }}
-      >
-        <BGGradient />
-      </View>
       <ColorWheel
         radii={radii}
         ring={ring}

@@ -95,7 +95,14 @@ export function ColorMixer({
       zIndex: eLayers.colorMixer,
     };
   };
-
+  const colorHex = [
+    "#000000",
+    "#888888",
+    "#ffffff",
+    "#0000ff",
+    "#ffff00",
+    "#ff0000",
+  ];
   function fLerp(a: number, b: number, t: number): number {
     "worklet";
     return a * (1 - t) + b * t;
@@ -109,14 +116,15 @@ export function ColorMixer({
         ...input,
         rotateZ: fLerp(22 / 7, input.rotateZ, rotationAnim.value),
         translateX: input.translateX + 50,
-        shadowColor: input.chord,
+        shadowColor: parseInt(colorHex[input.chord].replace("#", ""), 16),
         shadowRadius: 10,
       };
     },
   };
+  const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 1,
-    deps: [vTargetColor.shared],
+    deps: [vTargetColor.shared, vColorModel.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
       let color = colors[colorIndexes[chord - input.chord - 1]];
@@ -125,7 +133,7 @@ export function ColorMixer({
         color,
         input.ring / ring,
       );
-      const [r, g, b] = fCLARColorToRGB(color);
+      const [r, g, b] = fCLARColorToRGB(color, vColorModel.shared.value);
       return {
         ...input,
         red: r,

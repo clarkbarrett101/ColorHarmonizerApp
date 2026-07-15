@@ -1,25 +1,67 @@
-import { Canvas, Rect, Shadow } from "@shopify/react-native-skia";
+import {
+  Canvas,
+  Rect,
+  Shadow,
+  SweepGradient,
+} from "@shopify/react-native-skia";
 import { Dimensions, Share, View } from "react-native";
-import { useDerivedValue } from "react-native-reanimated";
+import {
+  SharedValue,
+  useAnimatedReaction,
+  useDerivedValue,
+} from "react-native-reanimated";
 import { useRadialContext } from "../Radials/RadialContext";
-import { fCLARColorToString } from "../utils/CLAcolor";
-import { eLayers } from "../Contexts/UserContext";
+import { fCLARColorToString, tCLARColor } from "../utils/CLAcolor";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
+import { tVerse } from "../utils/Verse";
 
-export function BGGradient() {
+export type tBGGradient = {
+  dARs?: SharedValue<number[]>;
+  dCs?: SharedValue<number[]>;
+  dLs?: SharedValue<number[]>;
+};
+export function BGGradient({ dARs, dCs, dLs }: tBGGradient) {
   const { dAR, dC, dL } = useRadialContext();
-  const color = useDerivedValue(() => {
-    return fCLARColorToString({
-      c: dC.value * 0.25,
-      l: dL.value * 0.5 + 0.5,
-      ar: dAR.value,
+  const { vColorModel } = useUserContext();
+  const colors = useDerivedValue(() => {
+    if (dAR) {
+      return [
+        fCLARColorToString(
+          {
+            c: dC.value * 0.5,
+            l: dL.value * 0.5 + 0.5,
+            ar: dAR.value,
+          },
+          vColorModel.shared.value,
+        ),
+      ];
+    }
+    const cs = dARs.value.map((ar, index) => {
+      const c = dCs.value[index];
+      const l = dLs.value[index];
+      return fCLARColorToString({ c, l, ar }, vColorModel.shared.value);
     });
+    return cs;
   });
   const shadow = useDerivedValue(() => {
-    return fCLARColorToString({
-      c: dC.value * 0.1,
-      l: dL.value * 0.75,
-      ar: dAR.value,
-    });
+    if (dAR) {
+      return fCLARColorToString(
+        {
+          c: dC.value * 0.1,
+          l: dL.value * 0.75,
+          ar: dAR.value,
+        },
+        vColorModel.shared.value,
+      );
+    }
+    return fCLARColorToString(
+      {
+        c: dCs.value[0] * 0.1,
+        l: dLs.value[0] * 0.75,
+        ar: dARs.value[0],
+      },
+      vColorModel.shared.value,
+    );
   });
 
   return (
@@ -46,10 +88,18 @@ export function BGGradient() {
         <Rect
           x={0}
           y={0}
-          width={Dimensions.get("window").width}
+          width={Dimensions.get("window").width * 2}
           height={Dimensions.get("window").height}
-          color={color}
         >
+          <SweepGradient
+            colors={colors}
+            c={{
+              x: Dimensions.get("window").width,
+              y: Dimensions.get("window").height / 2,
+            }}
+            start={90}
+            end={270}
+          />
           <Shadow dx={5} dy={12} blur={25} color={shadow} inner />
           <Shadow dx={-12} dy={-5} blur={25} color={shadow} inner />
         </Rect>

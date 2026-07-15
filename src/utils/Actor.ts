@@ -4,9 +4,10 @@ import {
   SharedValue,
   useSharedValue,
 } from "react-native-reanimated";
-import {
-  scheduleOnUI,
-} from "react-native-worklets";
+import { scheduleOnUI } from "react-native-worklets";
+
+/// The objective of the actor is to allow animations from multiple sources across different components. For example, a component that pulls a dragged component towards it if within a radius
+
 export type tAttribute =
   | "ring"
   | "chord"
@@ -23,17 +24,29 @@ export type tAttribute =
   | "shadowRadius"
   | "red"
   | "green"
-  | "blue"  | 'held' | 'shadowColor';
+  | "blue"
+  | "held"
+  | "shadowColor"
+  | "shadowOpacity";
+
+export type tAttributeMap = { [key in tAttribute]?: number };
+
 export type wModifier = (
   input: tAttributeMap,
   last?: tAttributeMap,
 ) => tAttributeMap;
+/**
+ * Ideally the modifier should be assigned through a context provider or memo, because its constantly updating
+ * @param modID - a specifc ID that determines the order of operations and will be overwritten if a modifier with the same ID is added.
+ * @param deps - an array of any shared values that are referenced by the modifier and thus depends on
+ * @param modifier - a worklet function that takes in the current attribute map and returns a new attribute map. Most modifiers will return {...input, attribute: newValue} so any attributes not modified will be passed through.
+ */
 export type tAttributeModifier = {
   modID: number;
   deps?: SharedValue<any>[];
   modifier: wModifier;
 };
-export type tAttributeMap = { [key in tAttribute]?: number };
+
 export type tActor = {
   attributes: SharedValue<tAttributeMap>;
   addModifier: (attributeModifier: tAttributeModifier) => void;
@@ -59,6 +72,10 @@ const defaultAttributes: tAttributeMap = {
   blue: 0,
   green: 0,
 };
+/**
+ *
+ * @param initialAttributes is the starting values for each attribute before each modifier is applied, every attribute will be zeroed and even when it's not relevant to the component
+ */
 export function useActor(initialAttributes: tAttributeMap): tActor {
   const attributes: SharedValue<tAttributeMap> = useSharedValue<tAttributeMap>({
     ...defaultAttributes,
@@ -67,21 +84,21 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
   useEffect(() => {
     attributes.value = { ...defaultAttributes, ...initialAttributes };
   }, [initialAttributes]);
-  const modifiers = useSharedValue<{ [key: number]: wModifier }>(
-    {},
-  );
+  const modifiers = useSharedValue<{ [key: number]: wModifier }>({});
   const deps = useRef<SharedValue<any>[]>([]).current;
+
   function addModifier(attributeModifier: tAttributeModifier) {
     scheduleOnUI(() => {
+      //Must be on the UI thread
       "worklet";
       const mods = modifiers.value;
       let idx = attributeModifier.modID;
       modifiers.value = { ...mods, [idx]: attributeModifier.modifier };
       if (attributeModifier.deps) {
         for (const dep of attributeModifier.deps) {
-            if (!deps.includes(dep)) {
-                deps.push(dep);
-            }
+          if (!deps.includes(dep)) {
+            deps.push(dep);
+          }
         }
       }
     });
@@ -97,10 +114,23 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
       }
     });
   }
-
+  /**
+   * The get uses an intermediary callback so that animatedStyle will recognize the dependencies
+   * @param callback the function that is finally takes the modified attributes and decides how they are implemented
+   * @returns usually returns the object for an animatedStyle or animatedProps,
+   * @example
+   * const actor = useActor({ translateX: 0 });
+   * const animatedStyle = useAnimatedStyle(() => {
+   *   return actor.get((attributes) => {
+   *     return {
+   *       transform: [{ translateX: attributes.translateX }],
+   *     };
+   *   });
+   * });
+   */
   const get = (callback: (attributes: tAttributeMap) => any) => {
     "worklet";
-    const depsValues = deps.map((dep) => dep.value);
+    const depsValues = deps.map((dep) => dep.value); // This line is necessary so that the depedencies are all reference in the closure
     let modifiedAttributes = { ...attributes.value };
     for (let id in modifiers.value) {
       const modifier = modifiers.value[id];

@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { tSectorGroup } from "./SectorTypes";
 import { useRadialContext } from "./RadialContext";
 import { tAttributeMap, useActor } from "../utils/Actor";
+import { eLayers } from "../Contexts/UserContext";
 
 export const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 export const SectorGroup = ({
@@ -18,6 +19,8 @@ export const SectorGroup = ({
   rotationR = 0,
   sectorGroupID = 0,
   children,
+  origin = [0, 0],
+  radii = [20, 200],
 }: tSectorGroup) => {
   const actor = useActor({
     ring,
@@ -25,11 +28,13 @@ export const SectorGroup = ({
     id: sectorGroupID,
     rotateZ: rotationR,
     shadowRadius: 3,
-    shadowX: -2,
-    shadowY: 2,
+    shadowX: Math.sin(-rotationR) * 2,
+    shadowY: Math.cos(-rotationR) * 2,
+    shadowOpacity: 0.8,
+    zIndex: eLayers.colorMixer + sectorGroupID,
   });
 
-  const { mTransformModifier, origin, radii } = useRadialContext();
+  const { mTransformModifier } = useRadialContext();
   useEffect(() => {
     if (!mTransformModifier) return;
     actor.addModifier(mTransformModifier);
@@ -52,7 +57,7 @@ export const SectorGroup = ({
       };
     });
   });
-  const shadowColors = ["#000", "#888", "#fff", "#00f", "#ff0", "#f00"];
+
   const containerStyle = useAnimatedStyle(() => {
     "worklet";
     const style = actor.get((attributes) => {
@@ -63,7 +68,10 @@ export const SectorGroup = ({
           height: attributes.shadowY || 0,
         },
         shadowRadius: attributes.shadowRadius || 0,
-        shadowColor: shadowColors[attributes.shadowColor || 0],
+        shadowOpacity: attributes.shadowOpacity || 0,
+        shadowColor:
+          "#" +
+          (attributes.shadowColor?.toString(16).padStart(6, "0") || "000000"),
       };
     });
     return style;
@@ -76,7 +84,6 @@ export const SectorGroup = ({
           position: "absolute",
           left: origin[0] || 0,
           top: origin[1] || 0,
-          shadowOpacity: 0.8,
         },
         containerStyle,
       ]}

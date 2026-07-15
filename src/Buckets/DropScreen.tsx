@@ -45,8 +45,9 @@ export default function DropScreen({}: tDropScreen) {
             zIndex: eLayers.dropScreen,
           },
         ]}
-        pointerEvents={"none"}
+        pointerEvents={vDropScreen.state ? "auto" : "none"}
         tint={"light"}
+        onTouchEnd={() => vDropScreen.dispatch(false)}
       />
 
       {bucketComps}

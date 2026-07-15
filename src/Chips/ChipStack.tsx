@@ -91,6 +91,7 @@ export const ColorChipFan = ({
     const foundPaints = foundColors.map(
       (color) => clarColorsList[color.index!],
     );
+    console.log("Found paints", foundPaints.length, "for target", targetColor);
     if (sideA) {
       setPaintsA(foundPaints);
     } else {

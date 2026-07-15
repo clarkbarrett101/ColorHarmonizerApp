@@ -9,7 +9,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { fGetRandomPalette, tCLARColor, tPaint } from "../utils/CLAcolor";
+import {
+  fGetRandomPalette,
+  tCLARColor,
+  tColorModel,
+  tPaint,
+} from "../utils/CLAcolor";
 import { tVerse, useVerse } from "../utils/Verse";
 import { fLerp, tChipStatus } from "../Chips/PaintChip";
 import { tActor, tAttributeMap, tAttributeModifier } from "../utils/Actor";
@@ -51,18 +56,28 @@ export type tUserContext = {
   unregisterModifier?: (id: number) => void;
   paintsPresent?: tPaint[];
   vSelectedColors?: tVerse<tCLARColor[]>;
+  vColorModel?: tVerse<tColorModel>;
 };
 
 export const Context = createContext<tUserContext>({
   userPalette: [],
-  addPaint: (paint: tPaint, index?: number) => {},
-  removePaint: (paint: tPaint) => {},
-  holdChip: (chipID?: number, status?: tChipStatus) => {},
+  addPaint: () => {},
+  removePaint: () => {},
+  holdChip: () => {},
+  heldChipPaint: null,
+  setHeldChipPaint: () => {},
+  registerChipActor: () => {},
+  unregisterChipActor: () => {},
   vPanX: null,
   vPanY: null,
   vVelocityX: null,
   vHeldChipID: null,
-  heldChipPaint: null,
+  allChipActors: {},
+  registerModifier: () => 0,
+  unregisterModifier: () => {},
+  paintsPresent: [],
+  vSelectedColors: null,
+  vColorModel: null,
 });
 export const useUserContext = () => useContext(Context);
 
@@ -70,6 +85,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const allModifiers = useRef<Record<number, tAttributeModifier>>({}).current;
   const allChipActors = useRef<Record<number, tActor>>({}).current;
   const paintsPresent = useRef<Record<number, [tPaint, tPaint?]>>({}).current;
+  const vColorModel = useVerse<tColorModel>("RYGB");
   const vSelectedColors = useVerse<tCLARColor[]>([]);
   const [paintsList, setPaintsList] = useState<tPaint[]>([]);
   const registerModifier = useCallback(
@@ -171,6 +187,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
       removePaint,
       paintsPresent: paintsList,
       vSelectedColors,
+      vColorModel,
     }),
     [userPalette, heldChipPaint],
   );

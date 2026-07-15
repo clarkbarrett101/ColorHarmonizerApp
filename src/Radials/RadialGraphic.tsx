@@ -17,10 +17,11 @@ export type tRadialGraphic = tSectorGroup & {
 
 export function RadialGraphic(props: tRadialGraphic) {
   const ctx: tRadialContext = useRadialContext();
-  const radii = ctx.radii || props.radii || [20, 200];
+  const radii = props.radii || ctx.radii || [20, 200];
   const wAngleToChord = ctx.wAngleToChord || wDefaultAngleToChord;
   const wChordToAngle = ctx.wChordToAngle || wDefaultChordToAngle;
   const arcLength = props.arcLength || ctx.totalArcLength;
+  const origin = props.origin || ctx.origin;
   const ring = props.ring || ctx.totalRings;
   const chord = props.chord || ctx.totalChords;
   const rotationR = props.rotationR || ctx.mainRotationR;
@@ -58,6 +59,8 @@ export function RadialGraphic(props: tRadialGraphic) {
         ring: r,
         chord: c,
         sectorGroupID: c,
+        origin: origin,
+        rotationR: 0,
       };
       if (fSectorModifier) {
         sector = fSectorModifier(sector);

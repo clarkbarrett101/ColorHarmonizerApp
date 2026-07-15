@@ -13,7 +13,7 @@ import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 import { eLayers } from "./UserContext";
 import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
 
-export type ePanEvent = "enter" | "leave" | "drag" | "tap";
+export type ePanEvent = "enter" | "leave" | "drag" | "tap" | "release";
 
 export type tRadialHitBox = tRadialObject & {
   shape?: "sector" | "capsule";
@@ -117,7 +117,7 @@ export default function PanManager({
       if (zone.shape === "capsule") {
         const capRadius = zone.radii[0];
         const bodyLength =
-          zone.radii[1] * zone.capsuleMod.value + zone.radii[0];
+          zone.radii[1] * (zone.capsuleMod?.value ?? 1) + zone.radii[0];
 
         // Capsule endpoints (centers of the semicircular caps)
         const startX = zone.origin[0];
@@ -146,10 +146,11 @@ export default function PanManager({
         });
       } else {
         const maxRadius = zone.radii[1];
+        const rotationR = zone.rotationR || 0;
         const angles = [
-          zone.rotationR - zone.arcLength / 2,
-          zone.rotationR + zone.arcLength / 2,
-          zone.rotationR,
+          rotationR - zone.arcLength / 2,
+          rotationR + zone.arcLength / 2,
+          rotationR,
         ];
 
         angles.forEach((angle) => {
@@ -220,20 +221,16 @@ export default function PanManager({
       );
     });
   };
-  const releaseZone = () => {
+  const releaseZone = (panState: ePanEvent) => {
     "worklet";
     if (vCurrentHitBox.shared.value !== null) {
       if (vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanPos) {
         vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanPos.value =
           vPanPos.value;
       }
-      if (
-        vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState &&
-        vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState.value !==
-          "tap"
-      ) {
+      if (vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState) {
         vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState.value =
-          "leave";
+          panState;
       }
       vCurrentHitBox.dispatch(null);
     }
@@ -302,7 +299,7 @@ export default function PanManager({
       }
     }
     if (!foundZone) {
-      releaseZone();
+      releaseZone("leave");
     }
   };
 
@@ -315,7 +312,7 @@ export default function PanManager({
         zone.vPanState.value = "tap";
         console.log("Tapped zone:", zone.id);
       }
-      releaseZone();
+      releaseZone("tap");
     }
   };
   const tap = useTapGesture({
@@ -326,7 +323,7 @@ export default function PanManager({
     onActivate: panUpdate,
     onUpdate: panUpdate,
     onDeactivate() {
-      releaseZone();
+      releaseZone("release");
     },
   });
   const compGesture = useSimultaneousGestures(tap, pan);

@@ -19,7 +19,7 @@ import {
 } from "./Radials/RadialContext";
 import { tVerse, useVerse } from "./utils/Verse";
 import { ePanEvent, usePanManager } from "./Contexts/PanManager";
-import { eLayers } from "./Contexts/UserContext";
+import { eLayers, useUserContext } from "./Contexts/UserContext";
 import { useSoundContext } from "./Contexts/SoundContext";
 import { scheduleOnRN } from "react-native-worklets";
 import { ePages } from "./Driver";
@@ -52,7 +52,6 @@ export function Menu({
   const vPanPos = useSharedValue({ angle: 22 / 7, radius: 0 });
   const vPanState = useSharedValue<ePanEvent>("enter");
   const vSlowAngle = useSharedValue<number>(0);
-  const { fShepardNotes } = useSoundContext();
   useEffect(() => {
     registerHitBox({
       id: "menu",
@@ -70,7 +69,7 @@ export function Menu({
   useAnimatedReaction(
     () => vPanState.value,
     (state) => {
-      if (state === "leave" || state === "tap") {
+      if (state === "release" || state === "tap") {
         const adjustedAngle = vPanPos.value.angle - rotationR + arcLength / 2;
         const nearestChord = Math.max(
           Math.min(Math.floor(adjustedAngle / (arcLength / chord)), chord - 1),
@@ -89,15 +88,16 @@ export function Menu({
       });
     },
   );
+  const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 0,
-    deps: [],
+    deps: [vColorModel.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
       const c = 0.5 + (1 - input.chord / (chord - 1)) * 0.5;
       const l = 0.5 + (input.ring / (ring - 1)) * 0.4;
       let ar = 22 / 7 + (input.chord / (chord - 1)) * (22 / 7);
-      let [r, g, b] = fCLARColorToRGB({ c, l, ar });
+      let [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return {
         ...input,
         red: r,

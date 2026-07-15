@@ -1,8 +1,11 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { tChipBucket } from "./ChipBucket";
 import { tChipStatus } from "../Chips/PaintChip";
 import { tVerse, useVerse } from "../utils/Verse";
 import { scheduleOnUI } from "react-native-worklets";
+import { ePanEvent, usePanManager } from "../Contexts/PanManager";
+
+import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
 
 export type tBucketContext = {
   vBuckets?: tVerse<Record<string, tChipBucket>>;
@@ -43,6 +46,7 @@ export default function BucketContext({
     });
   };
   const vDropScreen = useVerse(false);
+
   return (
     <ctx.Provider
       value={{

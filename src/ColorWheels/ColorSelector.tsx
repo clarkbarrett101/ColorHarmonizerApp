@@ -12,7 +12,7 @@ import {
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { ColorChipFan } from "../Chips/ChipStack";
 import { scheduleOnRN } from "react-native-worklets";
-import { eLayers } from "../Contexts/UserContext";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { eChipSizes } from "../Chips/PaintChip";
 import { useVerse } from "../utils/Verse";
 import { useBucketContext } from "../Buckets/BucketContext";
@@ -113,10 +113,10 @@ export default function ColorSelector({
   });
 
   /// C A L L B A C K S ///
-
+  const { vColorModel } = useUserContext();
   const chromaModifier: tAttributeModifier = {
     modID: 0,
-    deps: [dC, dL, dAR],
+    deps: [dC, dL, dAR, vColorModel.shared],
     modifier: (input) => {
       "worklet";
       const _ = vChromaPanPos.value;
@@ -127,7 +127,7 @@ export default function ColorSelector({
       c *= rd;
       const l = dL.value * rd;
       const ar = dAR.value;
-      const [r, g, b] = fCLARColorToRGB({ c, l, ar });
+      const [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return {
         ...input,
         red: r,
@@ -139,7 +139,7 @@ export default function ColorSelector({
 
   const lightnessModifier: tAttributeModifier = {
     modID: 1,
-    deps: [dC, dAR],
+    deps: [dC, dAR, dL, vColorModel.shared],
     modifier: (input) => {
       "worklet";
       const _ = vLightnessPanPos.value;
@@ -150,7 +150,10 @@ export default function ColorSelector({
       r = 0.5 + r * 0.5;
       const c = dC.value * r;
       const ar = dAR.value;
-      const [red, green, blue] = fCLARColorToRGB({ c, l, ar });
+      const [red, green, blue] = fCLARColorToRGB(
+        { c, l, ar },
+        vColorModel.shared.value,
+      );
       return {
         ...input,
         red,

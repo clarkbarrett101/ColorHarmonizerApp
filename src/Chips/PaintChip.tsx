@@ -50,6 +50,7 @@ export const eChipSizes = {
   default: [150, 100],
   grabbed: [180, 120],
   outline: [210, 140],
+  small: [100, 70],
 };
 
 export type tPaintChip = tRadialObject & {

@@ -1,5 +1,5 @@
 import { SharedValue } from "react-native-reanimated";
-import{  tCLARColor } from "../utils/CLAcolor";
+import { tCLARColor } from "../utils/CLAcolor";
 import { ReactNode } from "react";
 
 export type tRadialObject = {
@@ -13,6 +13,7 @@ export type tRadialObject = {
 
 export type tSector = tRadialObject & {
   sectorGroupID?: number;
+  rgb?: [number, number, number];
 };
 export type tSectorGroup = tSector & {
   sectors?: tSector[];
@@ -47,25 +48,32 @@ export const fMakePetalPath = (
   radii: [number, number],
   arcLength: number,
   maxRadius: number,
+  rotationR: number = 0,
+  bend: number = 0.5,
 ): string => {
   const endRad = arcLength / 2;
-  const x1 = 0.99 * maxRadius * Math.cos(endRad) - (maxRadius - radii[1]);
-  if(isNaN(x1)){
-    throw new Error(`x1 is NaN for radii ${radii} and arcLength ${arcLength} and maxRadius ${maxRadius}`);
-  }
-  const x2 = 0.99 * maxRadius * Math.cos(-endRad) - (maxRadius - radii[1]);
-  const y1 = 0.99 * maxRadius * Math.sin(endRad);
-  const y2 = 0.99 * maxRadius * Math.sin(-endRad);
-  const x3 = x2 - (radii[1] - radii[0]);
-  const x4 = x1 - (radii[1] - radii[0]);
-  const y3 = y2;
-  const y4 = y1;
+  let x1 = 0.99 * maxRadius * Math.cos(endRad) - (maxRadius - radii[1]);
+  let x2 = 0.99 * maxRadius * Math.cos(-endRad) - (maxRadius - radii[1]);
+  let y1 = 0.99 * maxRadius * Math.sin(endRad);
+  let y2 = 0.99 * maxRadius * Math.sin(-endRad);
+  let x3 = x2 - (radii[1] - radii[0]);
+  let x4 = x1 - (radii[1] - radii[0]);
+  let y3 = y2;
+  let y4 = y1;
+  x1 = x1 * Math.cos(rotationR) - y1 * Math.sin(rotationR);
+  y1 = x1 * Math.sin(rotationR) + y1 * Math.cos(rotationR);
+  x2 = x2 * Math.cos(rotationR) - y2 * Math.sin(rotationR);
+  y2 = x2 * Math.sin(rotationR) + y2 * Math.cos(rotationR);
+  x3 = x3 * Math.cos(rotationR) - y3 * Math.sin(rotationR);
+  y3 = x3 * Math.sin(rotationR) + y3 * Math.cos(rotationR);
+  x4 = x4 * Math.cos(rotationR) - y4 * Math.sin(rotationR);
+  y4 = x4 * Math.sin(rotationR) + y4 * Math.cos(rotationR);
   const largeArcFlag = arcLength <= 22 / 7 ? "0" : "1";
   const path = `
                   M ${x1} ${y1}                 
-                  A ${maxRadius / 2} ${maxRadius / 2}  0 ${largeArcFlag} 0 ${x2} ${y2} 
+                  A ${maxRadius * bend} ${maxRadius * bend} 0 ${largeArcFlag} 0 ${x2} ${y2} 
                   L ${x3} ${y3} 
-                  A ${maxRadius / 2} ${maxRadius / 2}  0 ${largeArcFlag} 0 ${x4} ${y4}       
+                  A ${maxRadius * bend} ${maxRadius * bend}  0 ${largeArcFlag} 0 ${x4} ${y4}
                   Z                              
               `.trim();
   return path;

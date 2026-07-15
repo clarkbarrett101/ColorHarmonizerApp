@@ -29,7 +29,7 @@ export const ChipHand = ({
   radii = [80, 80],
   rotationR = -6 / 7,
   arcLength = 11 / 7,
-  holdRadius = 200,
+  holdRadius = 150,
 }: tChipHand) => {
   const startAngle = rotationR + arcLength / 2;
   const selectVerse = useVerse(-1);
@@ -53,7 +53,6 @@ export const ChipHand = ({
     [],
   );
   const touching = useVerse(false);
-  //const vHeldChipStatus = useVerseRelay(vHeldChipRoot);
   const slowAngle = useSharedValue(0);
   const panWeight = useSharedValue(0);
   const pan = usePanGesture({

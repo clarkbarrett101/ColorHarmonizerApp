@@ -1,24 +1,36 @@
 import { View, Text } from "react-native";
-import React, { Profiler } from "react";
+import React, { Profiler, useEffect } from "react";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { HarmonizerWheel } from "./HarmonizerWheel";
 import { useVerse, useVerseRelay } from "../utils/Verse";
-import { tCLARColor } from "../utils/CLAcolor";
+import {
+  tCLARColor,
+  tColorModel,
+  ToRGBangle,
+  FromRGBangle,
+} from "../utils/CLAcolor";
 import { SchemeSelector } from "./SchemeSelector";
 import { SchemeChipSelector } from "./ChipSelector";
 import { BGGradient } from "../ColorWheels/BGGradient";
-import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
-import { ColorModels } from "../ColorWheels/ColorModels";
+import {
+  useAnimatedReaction,
+  useDerivedValue,
+  useSharedValue,
+} from "react-native-reanimated";
+import { ColorModels } from "./ColorModels";
 export type tColorHarmonizer = tRadialObject & {};
 export type tHarmonizerPhase = "wheel" | "scheme" | "chipSelector";
 export function ColorHarmonizer({}: tColorHarmonizer) {
   const vSelectedAngles = useVerse<number[]>([]);
-
+  const { vColorModel } = useUserContext();
+  const modelRelay = useVerseRelay(vColorModel);
+  const vModelBuffer = useSharedValue<tColorModel>(vColorModel.shared.value);
   const vPhase = useVerse<tHarmonizerPhase>("wheel");
   useAnimatedReaction(
     () => vSelectedAngles.shared.value,
     (selectedAngles, prevSelectedAngles) => {
+      vModelBuffer.value = vColorModel.shared.value;
       console.log("Selected Angles:", selectedAngles);
     },
   );
@@ -32,34 +44,34 @@ export function ColorHarmonizer({}: tColorHarmonizer) {
       return 0.8;
     });
   });
-
+  /*
+  useEffect(() => {
+    if (vColorModel.shared.value !== vModelBuffer.value) {
+      const newList = vSelectedAngles.shared.value.map((angle, index) => {
+        const rgbAngle = ToRGBangle(angle, vModelBuffer.value);
+        const newAngle = FromRGBangle(rgbAngle, vColorModel.shared.value);
+        vSelectedAngles.shared.value[index] = newAngle;
+        return newAngle;
+      });
+      vModelBuffer.value = vColorModel.shared.value;
+      vSelectedAngles.dispatch([...newList]);
+    }
+  }, [modelRelay.state]);
+*/
   return (
     <>
-      <Profiler
-        id="ColorHarmonizer"
-        onRender={(id, phase, actualDuration) => {
-          console.log(
-            `Profiler [${id}] - Phase: ${phase}, Duration: ${actualDuration}ms`,
-          );
-        }}
-      >
-        <BGGradient dARs={vSelectedAngles.shared} dCs={dCs} dLs={dLs} />
-        {vPhase?.state === "wheel" ? (
-          <HarmonizerWheel
-            draggable
-            vSelectedAngles={vSelectedAngles}
-            vPhase={vPhase}
-          />
-        ) : vPhase?.state === "scheme" ? (
-          <SchemeSelector vSelectedAngles={vSelectedAngles} vPhase={vPhase} />
-        ) : (
-          <SchemeChipSelector
-            vSelectedAngles={vSelectedAngles}
-            vPhase={vPhase}
-          />
-        )}
-        {vPhase?.state !== "chipSelector" && <ColorModels />}
-      </Profiler>
+      <BGGradient dARs={vSelectedAngles.shared} dCs={dCs} dLs={dLs} />
+      {vPhase?.state === "wheel" ? (
+        <HarmonizerWheel
+          draggable
+          vSelectedAngles={vSelectedAngles}
+          vPhase={vPhase}
+        />
+      ) : vPhase?.state === "scheme" ? (
+        <SchemeSelector vSelectedAngles={vSelectedAngles} vPhase={vPhase} />
+      ) : (
+        <SchemeChipSelector vSelectedAngles={vSelectedAngles} vPhase={vPhase} />
+      )}
     </>
   );
 }

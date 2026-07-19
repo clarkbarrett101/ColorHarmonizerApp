@@ -13,12 +13,9 @@ import {
 import { useRadialContext, RadialContext } from "../Radials/RadialContext";
 import { tSector, tSectorGroup } from "../Radials/SectorTypes";
 import { SectorGroup } from "../Radials/SectorGroup";
-import { SharedValue } from "react-native-gesture-handler/lib/typescript/v3/types";
 import { scheduleOnRN } from "react-native-worklets";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { useBucketContext } from "../Buckets/BucketContext";
-import DropScreen from "../Buckets/DropScreen";
-
 export type tBrandFilter = {
   width?: number;
   height?: number;
@@ -27,9 +24,6 @@ export type tBrandFilter = {
   totalArcLength?: number;
   mainRotationR?: number;
   origin?: [number, number];
-  dC?: SharedValue<number>;
-  dL?: SharedValue<number>;
-  dAR?: SharedValue<number>;
   layer?: number;
 };
 
@@ -47,9 +41,7 @@ export const BrandFilter = (props: tBrandFilter) => {
   const origin = props.origin || ctx.origin || [0, 0];
   const totalArcLength = props.totalArcLength || ctx.totalArcLength || 11 / 7;
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
-  const dC = props.dC || ctx.dC;
-  const dL = props.dL || ctx.dL;
-  const dAR = props.dAR || ctx.dAR;
+  const { vAccentC, vAccentL, vAccentAR } = useUserContext();
   const collapseAnim = useSharedValue(0);
   const radius =
     Math.sqrt(
@@ -129,14 +121,14 @@ export const BrandFilter = (props: tBrandFilter) => {
   const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 0,
-    deps: [dAR, dC, vColorModel.shared],
+    deps: [vAccentAR.shared, vAccentC.shared, vColorModel.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
       const rdc = Math.pow(0.1, 1 / Math.max(brands.length - 1, 1));
       const rdl = Math.pow(0.3, 1 / Math.max(brands.length - 1, 1));
       let l = Math.pow(rdl, input.ring);
-      let c = Math.pow(rdc, input.ring) * dC.value;
-      let ar = dAR.value - 2 / 7 + (input.chord / 12) * (4 / 7);
+      let c = Math.pow(rdc, input.ring) * vAccentC.shared.value;
+      let ar = vAccentAR.shared.value - 2 / 7 + (input.chord / 12) * (4 / 7);
       const [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return {
         ...input,

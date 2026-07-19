@@ -9,6 +9,7 @@ export type tRadialObject = {
   rotationR?: number;
   arcLength?: number;
   origin?: [number, number];
+  layer?: number;
 };
 
 export type tSector = tRadialObject & {

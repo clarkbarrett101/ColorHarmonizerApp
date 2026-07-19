@@ -24,6 +24,7 @@ export type tRadialHitBox = tRadialObject & {
   highlight?: boolean;
   priority?: number;
   layer?: number;
+  vActive?: SharedValue<boolean>;
 };
 
 //M 0 11 A 11 11 90 0 1 0 -11 H 13 A 11 11 90 0 1 13 11 Z
@@ -114,6 +115,9 @@ export default function PanManager({
       if (zone.layer !== undefined && zone.layer > layer) {
         scheduleOnRN(setLayer, zone.layer);
       }
+      if (zone.vActive && zone.vActive.value === false) {
+        return;
+      }
       if (zone.shape === "capsule") {
         const capRadius = zone.radii[0];
         const bodyLength =
@@ -185,7 +189,7 @@ export default function PanManager({
       /*
       )*/
 
-      console.log("Registering hitbox with id:", hitBox);
+      console.log("Registering hitbox: ", hitBox.id);
       if (hitBox.rotationR < 0) {
         hitBox.rotationR = 44 / 7 + hitBox.rotationR;
       } else if (hitBox.rotationR > 44 / 7) {
@@ -216,7 +220,9 @@ export default function PanManager({
       vHitBoxes.dispatch();
       calculateBounds();
       console.log(
-        "Unregistered hitbox. Total hitboxes:",
+        "Unregistered hitbox:",
+        id,
+        "Total hitboxes:",
         Object.keys(vHitBoxes.shared.value).length,
       );
     });
@@ -243,6 +249,9 @@ export default function PanManager({
 
     for (let i = 0; i < hitBoxesArray.length; i++) {
       const zone = hitBoxesArray[i];
+      if (zone.vActive && zone.vActive.value === false) {
+        continue;
+      }
       const x = e.absoluteX;
       const y = e.absoluteY;
       const dx = x - zone.origin[0];

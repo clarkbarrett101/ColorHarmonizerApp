@@ -51,9 +51,6 @@ export type tRadialContext = {
     chords: number,
     rotationOffset: number,
   ) => number;
-  dC?: SharedValue<number>;
-  dL?: SharedValue<number>;
-  dAR?: SharedValue<number>;
   vRotationROffset?: SharedValue<number> | { value: number };
   mTransformModifier?: tAttributeModifier;
   vPanPos?: SharedValue<{ angle: number; radius: number }>;

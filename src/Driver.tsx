@@ -6,7 +6,7 @@ import BucketContext from "./Buckets/BucketContext";
 import SoundContext from "./Contexts/SoundContext";
 import { ChipHand } from "./Chips/ChipHand";
 import { Menu } from "./Menu";
-import DropScreen from "./Buckets/DropScreen";
+import { DropScreen } from "./Buckets/DropScreen";
 import { ColorCamera } from "./Cameras/ColorCamera";
 import { WallPaintCam } from "./Cameras/WallPaintCam";
 import { ColorMixer } from "./ColorWheels/ColorMixer";
@@ -15,25 +15,27 @@ import { useVerse } from "./utils/Verse";
 import { PaletteLibrary } from "./Chips/PaletteLibrary";
 import { ColorSeasons } from "./ColorWheels/ColorSeasons";
 import { ColorHarmonizer } from "./Harmonizer/ColorHarmonizer";
+import { MenuButton } from "./Buckets/MenuButton";
+import ChipContext from "./Chips/ChipContext";
 
 export type ePages =
   | "Menu"
-  | "WallPaint"
+  | "ReColorCamera"
   | "ColorWheel"
   | "ColorMixer"
-  | "ColorCamera"
+  | "UndertoneCamera"
   | "ColorSeasons"
-  | "ColorHarmony"
+  | "ColorHarmonizer"
   | "PaletteLibrary";
 const allPages: ePages[] = [
   "Menu",
-  "WallPaint",
+  "PaletteLibrary",
+  "UndertoneCamera",
+  "ReColorCamera",
   "ColorWheel",
   "ColorMixer",
-  "ColorCamera",
   "ColorSeasons",
-  "ColorHarmony",
-  "PaletteLibrary",
+  "ColorHarmonizer",
 ];
 const Driver = () => {
   const vPage = useVerse<ePages>("Menu");
@@ -41,38 +43,32 @@ const Driver = () => {
     Menu: (
       <Menu vSelection={vPage} options={allPages.filter((p) => p !== "Menu")} />
     ),
-    WallPaint: <WallPaintCam />,
+    ReColorCamera: <WallPaintCam />,
     ColorWheel: <ColorSelector />,
     ColorMixer: <ColorMixer />,
     ColorSeasons: <ColorSeasons />,
-    ColorCamera: <ColorCamera />,
-    ColorHarmony: <ColorHarmonizer />,
+    UndertoneCamera: <ColorCamera />,
+    ColorHarmonizer: <ColorHarmonizer />,
     PaletteLibrary: <PaletteLibrary />,
   };
 
   return (
-    <UserContext>
-      <BucketContext>
+    <ChipContext>
+      <UserContext>
         <SoundContext>
-          <DropScreen />
-          <View
-            style={{
-              position: "absolute",
-              top: 40,
-              left: 20,
-              width: 50,
-              height: 50,
-              zIndex: eLayers.superMax,
-              borderRadius: 50,
-              backgroundColor: "rgba(255, 0, 0, 0.5)",
-            }}
-            onTouchEnd={() => vPage.dispatch("Menu")}
-          />
-          <PanManager>{pageMap[vPage.state]}</PanManager>
-          <ChipHand />
+          <BucketContext>
+            <PanManager drawSectors>
+              <DropScreen />
+              {vPage.state !== "Menu" && (
+                <MenuButton onPress={() => vPage.dispatch("Menu")} />
+              )}
+              {pageMap[vPage.state]}
+            </PanManager>
+            <ChipHand />
+          </BucketContext>
         </SoundContext>
-      </BucketContext>
-    </UserContext>
+      </UserContext>
+    </ChipContext>
   );
 };
 

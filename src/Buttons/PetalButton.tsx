@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import { tRadialHitBox, usePanManager } from "../Contexts/PanManager";
+import type { SharedValue } from "react-native-reanimated";
 import React, { useEffect } from "react";
 import { RadialContext, useRadialContext } from "../Radials/RadialContext";
 import { RadialGraphic } from "../Radials/RadialGraphic";
@@ -10,11 +11,17 @@ import { eLayers, useUserContext } from "../Contexts/UserContext";
 export type tPetalButton = tRadialHitBox & {
   zIndex?: number;
   fontSize?: number;
+  dC?: SharedValue<number>;
+  dL?: SharedValue<number>;
+  dAR?: SharedValue<number>;
 };
 export function PetalButton(props: tPetalButton) {
   const { id, origin, radii, rotationR, arcLength, zIndex } = props;
   const { registerHitBox, unregisterHitBox } = usePanManager();
-  const { dC, dL, dAR } = useRadialContext();
+  const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
+  const dC = props.dC ?? vAccentC.shared;
+  const dL = props.dL ?? vAccentL.shared;
+  const dAR = props.dAR ?? vAccentAR.shared;
   useEffect(() => {
     registerHitBox({ ...props, radii: [radii[0] * 0.9, radii[1] * 0.9] });
     return () => {
@@ -41,7 +48,6 @@ export function PetalButton(props: tPetalButton) {
       sectorGroupID: zIndex,
     };
   }
-  const { vColorModel } = useUserContext();
   const mColorModifier = {
     modID: 0,
     deps: [dC, dL, dAR],
@@ -89,6 +95,7 @@ export function PetalButton(props: tPetalButton) {
         rotationR={rotationR}
         radii={radii}
         fSectorGroupModifier={fSectorGroupModifier}
+        origin={origin}
       />
     </RadialContext>
   );

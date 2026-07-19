@@ -7,7 +7,7 @@ import {
   findColors,
   tBrand,
 } from "../utils/CLAcolor";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 const clarColorsList: tPaint[] = require("../clarColors.json");
 
 export type tChipFan = {
@@ -85,17 +85,26 @@ export const ColorChipFan = ({
   const [paintsA, setPaintsA] = useState<tPaint[]>([]);
   const [paintsB, setPaintsB] = useState<tPaint[]>([]);
   const [sideABuffer, setSideABuffer] = useState(sideA);
+  const lastColor = useRef<tCLARColor | null>(null);
   useEffect(() => {
-    console.log("Finding colors for target", targetColor, sideA ? "A" : "B");
-    const foundColors = findColors(targetColor, targetNumber, brand);
-    const foundPaints = foundColors.map(
-      (color) => clarColorsList[color.index!],
-    );
-    console.log("Found paints", foundPaints.length, "for target", targetColor);
-    if (sideA) {
-      setPaintsA(foundPaints);
-    } else {
-      setPaintsB(foundPaints);
+    if (targetColor !== lastColor.current) {
+      console.log("Finding colors for target", targetColor, sideA ? "A" : "B");
+      const foundColors = findColors(targetColor, targetNumber, brand);
+      const foundPaints = foundColors.map(
+        (color) => clarColorsList[color.index!],
+      );
+      console.log(
+        "Found paints",
+        foundPaints.length,
+        "for target",
+        targetColor,
+      );
+      lastColor.current = targetColor;
+      if (sideA) {
+        setPaintsA(foundPaints);
+      } else {
+        setPaintsB(foundPaints);
+      }
     }
     setSideABuffer(sideA);
   }, [sideA]);

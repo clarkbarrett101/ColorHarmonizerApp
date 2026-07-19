@@ -1,29 +1,21 @@
 import { Dimensions } from "react-native";
-import React, { useEffect, useMemo } from "react";
+import React, { use, useEffect, useMemo } from "react";
 import { eLayers } from "../Contexts/UserContext";
 import Animated, {
   useAnimatedProps,
+  useAnimatedReaction,
+  useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { ChipBucket } from "./ChipBucket";
 import { useBucketContext } from "./BucketContext";
 import { BlurView } from "expo-blur";
-import { useVerseRelay } from "../utils/Verse";
+import { tVerse, useVerseRelay } from "../utils/Verse";
+import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-export type tDropScreen = {};
 
-export default function DropScreen({}: tDropScreen) {
+export function DropScreen() {
   const { vBuckets, vDropScreen } = useBucketContext();
-  const vDropScreenRelay = useVerseRelay(vDropScreen);
-
-  const dimensions = Dimensions.get("window");
-
-  const animatedProps = useAnimatedProps(() => ({
-    intensity: vDropScreenRelay.shared.value
-      ? withTiming(20, { duration: 300 })
-      : withTiming(0, { duration: 300 }),
-  }));
-
   const bucketComps = useMemo(
     () =>
       Object.values(vBuckets.state).map((bucket) => (
@@ -31,26 +23,41 @@ export default function DropScreen({}: tDropScreen) {
       )),
     [vBuckets.state],
   );
+
   return (
     <>
-      <AnimatedBlurView
-        animatedProps={animatedProps}
-        style={[
-          {
-            position: "absolute",
-            left: 0,
-            top: 0,
-            width: dimensions.width,
-            height: dimensions.height,
-            zIndex: eLayers.dropScreen,
-          },
-        ]}
-        pointerEvents={vDropScreen.state ? "auto" : "none"}
-        tint={"light"}
-        onTouchEnd={() => vDropScreen.dispatch(false)}
-      />
-
+      <BlurScreen vActive={vDropScreen} layer={eLayers.dropScreen} />
       {bucketComps}
     </>
+  );
+}
+export type tBlurScreen = {
+  layer?: number;
+  vActive?: tVerse<boolean>;
+};
+export function BlurScreen({ vActive, layer }: tBlurScreen) {
+  const dimensions = Dimensions.get("window");
+
+  const animatedProps = useAnimatedProps(() => ({
+    intensity: vActive.shared.value
+      ? withTiming(20, { duration: 300 })
+      : withTiming(0, { duration: 300 }),
+  }));
+  return (
+    <AnimatedBlurView
+      animatedProps={animatedProps}
+      style={[
+        {
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: dimensions.width,
+          height: dimensions.height,
+          zIndex: layer,
+        },
+      ]}
+      pointerEvents={"none"}
+      tint={"light"}
+    />
   );
 }

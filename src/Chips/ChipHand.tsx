@@ -20,6 +20,7 @@ import {
 import { tPaint } from "../utils/CLAcolor";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { tChordReturn, useSoundContext } from "../Contexts/SoundContext";
+import { useChipContext } from "./ChipContext";
 
 export type tChipHand = tRadialObject & {
   holdRadius?: number;
@@ -37,15 +38,12 @@ export const ChipHand = ({
     vPanX,
     vPanY,
     vVelocityX,
-    userPalette: userPallete,
-    addPaint,
-    removePaint,
     holdChip,
     vHeldChipID,
     registerModifier,
     unregisterModifier,
-    setHeldChipPaint,
-  } = useUserContext();
+  } = useChipContext();
+  const { userPalette, addPaint, removePaint } = useUserContext();
   const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
   const { fStartChord, fPlaySFX } = useSoundContext();
   const origin = useMemo<[number, number]>(
@@ -67,7 +65,7 @@ export const ChipHand = ({
         event.absoluteX - origin[0],
       );
       const index = Math.round(
-        (1 - (startAngle - angle) / arcLength) * userPallete.length - 0.5,
+        (1 - (startAngle - angle) / arcLength) * userPalette.length - 0.5,
       );
       holdChip(eLayers.chipHand + index);
       vDropScreen.shared.value = true;
@@ -86,7 +84,7 @@ export const ChipHand = ({
       );
 
       const index = Math.round(
-        (1 - (startAngle - angle) / arcLength) * userPallete.length - 0.5,
+        (1 - (startAngle - angle) / arcLength) * userPalette.length - 0.5,
       );
       const distance = Math.sqrt(
         (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
@@ -165,7 +163,7 @@ export const ChipHand = ({
     modifier: (input: tAttributeMap, last?: tAttributeMap) => {
       "worklet";
       if (
-        input.id > eLayers.chipHand + userPallete.length ||
+        input.id > eLayers.chipHand + userPalette.length ||
         input.id < eLayers.chipHand
       ) {
         return input;
@@ -218,9 +216,9 @@ export const ChipHand = ({
   );
   const chord = useRef<tChordReturn | null>(null);
   useEffect(() => {
-    if (selectVerse.state > -1 && selectVerse.state < userPallete.length) {
+    if (selectVerse.state > -1 && selectVerse.state < userPalette.length) {
       chord.current?.(0);
-      chord.current = fStartChord?.(userPallete[selectVerse.state].clar);
+      chord.current = fStartChord?.(userPalette[selectVerse.state].clar);
     }
   }, [selectVerse.state]);
   useEffect(() => {
@@ -265,7 +263,7 @@ export const ChipHand = ({
     <>
       <ChipFan
         groupLayer={eLayers.chipHand}
-        paintsA={userPallete}
+        paintsA={userPalette}
         size={"default"}
         radius={radii[0]}
         origin={origin}

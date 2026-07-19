@@ -20,6 +20,7 @@ import { useVerse, useVerseRelay } from "../utils/Verse";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { tPaint } from "../utils/CLAcolor";
+import { useChipContext } from "../Chips/ChipContext";
 
 const fLerp = (a, b, t) => {
   "worklet";
@@ -50,7 +51,7 @@ export const ChipBucket = ({
     unregisterModifier,
     vPanX,
     vPanY,
-  } = useUserContext();
+  } = useChipContext();
   const vActive = useVerse(false);
   const inRadius = useVerse(false);
   const vHeldChipRelay = useVerseRelay(vHeldChipID);

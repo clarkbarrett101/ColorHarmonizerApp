@@ -41,6 +41,7 @@ import { tChordReturn, useSoundContext } from "../Contexts/SoundContext";
 import { AnyGesture } from "react-native-gesture-handler/lib/typescript/v3/types";
 import { translate } from "@shopify/react-native-skia";
 import { scheduleOnRN } from "react-native-worklets";
+import { useChipContext } from "./ChipContext";
 
 export type tChipStatus =
   | ["idle", "ready" | "choosing" | "returning" | "flippingUp" | "flippingDown"]
@@ -94,7 +95,7 @@ export const PaintChip = ({
     vPanX,
     vPanY,
     vVelocityX,
-  } = useUserContext();
+  } = useChipContext();
   const { vDropScreen } = useBucketContext();
   const { fStartChord, fPlaySFX } = useSoundContext();
   const rotateZ =
@@ -193,12 +194,6 @@ export const PaintChip = ({
 
   /// P A N  G E S T U R E///
   flag = "#f00";
-  const dPanx = useDerivedValue(() => {
-    return vPanX.shared.value;
-  });
-  const dPany = useDerivedValue(() => {
-    return vPanY.shared.value;
-  });
   const dRotation = useDerivedValue(() => {
     return vVelocityX.shared.value * 0.0005;
   });
@@ -208,8 +203,8 @@ export const PaintChip = ({
   const panMod = fLerpModifierFactory(
     1,
     {
-      translateX: dPanx,
-      translateY: dPany,
+      translateX: vPanX.shared,
+      translateY: vPanY.shared,
       rotateZ: dRotation,
       scaleX: dScale,
       scaleY: dScale,
@@ -228,9 +223,10 @@ export const PaintChip = ({
       const y = -0.5 + input.translateY / dimensions.height;
       return {
         ...input,
-        shadowX: fLerp(input.shadowX || 0, -x * 10, panWeight.value),
+        shadowX: fLerp(input.shadowX || 0, x * 10, panWeight.value),
         shadowY: fLerp(input.shadowY || 0, y * 10, panWeight.value),
         shadowRadius: fLerp(input.shadowRadius || 3, 6, panWeight.value),
+        shadowOpacity: fLerp(input.shadowOpacity || 0.5, 0.9, panWeight.value),
       };
     },
   };

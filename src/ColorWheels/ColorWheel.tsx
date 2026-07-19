@@ -35,16 +35,17 @@ function ColorWheel({
   wheelCenter = 11 / 7,
   draggable,
 }: tColorWheel) {
-  const { origin, wAngleToChord, wChordToAngle, dC, dL, dAR, wUpdateState } =
+  const { origin, wAngleToChord, wChordToAngle, wUpdateState } =
     useRadialContext();
   const { vColorModel } = useUserContext();
+  const { vAccentC, vAccentL, vAccentAR } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 0,
-    deps: [dC, dL, dAR],
+    deps: [vAccentC.shared, vAccentL.shared, vAccentAR.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      let c = ((input.ring / ring) * 0.5 + 0.5) * dC.value;
-      let l = ((input.ring / ring) * 0.5 + 0.5) * dL.value;
+      let c = ((input.ring / ring) * 0.5 + 0.5) * vAccentC.shared.value;
+      let l = ((input.ring / ring) * 0.5 + 0.5) * vAccentL.shared.value;
       let ar = wChordToAngle(input.chord, arcLength, chord, 0);
       let [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return {
@@ -63,15 +64,28 @@ function ColorWheel({
 
   const mTransformModifier: tAttributeModifier = {
     modID: 0,
-    deps: [dAR, dL, dC, vRotationROffset, vPanPos, vStartAngle, dragStartAngle],
+    deps: [
+      vAccentAR.shared,
+      vAccentL.shared,
+      vAccentC.shared,
+      vRotationROffset,
+      vPanPos,
+      vStartAngle,
+      dragStartAngle,
+    ],
     modifier: (input: tAttributeMap) => {
       "worklet";
       let chords = chord;
       const chordLength = (2 * arcLength) / chords;
       let startRotation = wChordToAngle(input.chord, arcLength, chords, 0);
       let rotation = input.rotateZ + -vRotationROffset.value;
-      const selectedSector = wAngleToChord(dAR.value, arcLength, chords, 0);
-      let diff = Math.abs(startRotation - dAR.value) % (44 / 7);
+      const selectedSector = wAngleToChord(
+        vAccentAR.shared.value,
+        arcLength,
+        chords,
+        0,
+      );
+      let diff = Math.abs(startRotation - vAccentAR.shared.value) % (44 / 7);
       if (diff > 22 / 7) diff = 44 / 7 - diff;
       let zDiff = Math.abs(input.chord - selectedSector) % chords;
       if (zDiff > chords / 2) zDiff = chords - zDiff;

@@ -21,7 +21,8 @@ import { PetalButton } from "../Buttons/PetalButton";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { ePanEvent } from "../Contexts/PanManager";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
-import { fCLARColorToRGB, tCLARColor } from "../utils/CLAcolor";
+import { fCLARColorToRGB, tCLARColor, tPaint } from "../utils/CLAcolor";
+import { useBucketContext } from "../Buckets/BucketContext";
 export type tHarmonizerWheel = tRadialObject & {
   draggable?: boolean;
   vSelectedAngles?: tVerse<number[]>;
@@ -41,8 +42,11 @@ export function HarmonizerWheel({
   vSelectedAngles,
   vPhase,
 }: tHarmonizerWheel) {
-  const vWheelRotation = useSharedValue(22 / 7);
-  const vSecondColor = useVerse<number | null>(null);
+  const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
+  const vWheelRotation = useSharedValue(vSelectedAngles?.state[0] ?? 0);
+  const vSecondColor = useVerse<number | null>(
+    vSelectedAngles?.state.length > 1 ? vSelectedAngles.state[1] : null,
+  );
   const vPanState = useSharedValue<ePanEvent>("leave");
   const vSecondPanState = useSharedValue<ePanEvent>("leave");
   const chordLength = arcLength / chord;
@@ -62,11 +66,13 @@ export function HarmonizerWheel({
     );
     vWheelRotation.value = withTiming(nearestSectorAngle);
   };
+
   useAnimatedReaction(
     () => vWheelRotation.value,
     (wheelRotation, prevWheelRotation) => {
       "worklet";
       const secondColor = vSecondColor.shared.value;
+      vAccentAR.shared.value = wheelRotation;
       if (secondColor !== null) {
         vSelectedAngles.shared.value = [wheelRotation, secondColor];
       } else {
@@ -74,22 +80,27 @@ export function HarmonizerWheel({
       }
     },
   );
+  function SelectColor(angle: number) {
+    "worklet";
+    if (vSecondColor.shared.value === null) {
+      vSecondColor.dispatch(angle);
+      fOnLeave(chordLength);
+    } else {
+      vSelectedAngles.dispatch([
+        Math.round(angle * 100) / 100,
+        Math.round(vSecondColor.shared.value * 100) / 100,
+      ]);
+      vPhase?.dispatch("scheme");
+    }
+  }
+
   useAnimatedReaction(
     () => vPanState.value,
     (panState, prevPanState) => {
       "worklet";
       if (panState === "tap") {
-        if (vSecondColor.shared.value === null) {
-          vSecondColor.dispatch(vWheelRotation.value);
-          fOnLeave(chordLength);
-          vPanState.value = "leave";
-        } else {
-          vSelectedAngles.dispatch([
-            Math.round(vWheelRotation.value * 100) / 100,
-            Math.round(vSecondColor.shared.value * 100) / 100,
-          ]);
-          vPhase?.dispatch("scheme");
-        }
+        SelectColor(vWheelRotation.value);
+        vPanState.value = "leave";
       }
     },
   );
@@ -135,7 +146,6 @@ export function HarmonizerWheel({
       };
     },
   };
-  const { vColorModel } = useUserContext();
   const secondColorModifier: tAttributeModifier = {
     modID: 1,
     deps: [vSecondColor.shared, vColorModel.shared],
@@ -155,18 +165,28 @@ export function HarmonizerWheel({
       };
     },
   };
-  const dC = useDerivedValue(() => 1);
-  const dL = useDerivedValue(() => 1);
-  const dAR = useDerivedValue(() => vWheelRotation.value);
+  const { registerBucket, unregisterBucket } = useBucketContext();
+  useEffect(() => {
+    registerBucket({
+      id: 31,
+      callback: (paint: tPaint) => {
+        SelectColor(paint.clar.ar);
+      },
+      origin,
+      radii: [100, 300],
+      targetLayerRange: [eLayers.chipHand, eLayers.chipHand + 10],
+    });
+    return () => {
+      unregisterBucket(31 + "");
+    };
+  }, []);
+
   return (
     <RadialContext
       value={{
         radii,
         origin,
         mainRotationR: rotationR,
-        dAR,
-        dC,
-        dL,
       }}
     >
       <ColorWheel
@@ -199,7 +219,6 @@ export function HarmonizerWheel({
               totalRings: ring,
               totalChords: 1,
               origin,
-              dAR: vSecondColor.shared,
             }}
           >
             <RadialGraphic />
@@ -212,6 +231,7 @@ export function HarmonizerWheel({
               zIndex={eLayers.colorMixer - 1}
               vPanState={vSecondPanState}
               fontSize={20}
+              dAR={vSecondColor.shared}
             />
           </RadialContext>
         </>

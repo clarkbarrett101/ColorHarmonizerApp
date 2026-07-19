@@ -9,6 +9,7 @@ import {
   withTiming,
   Easing,
   useAnimatedReaction,
+  withSpring,
 } from "react-native-reanimated";
 import { tRadialObject, tSector, tSectorGroup } from "./Radials/SectorTypes";
 import { tAttributeModifier, tAttributeMap } from "./utils/Actor";
@@ -23,6 +24,7 @@ import { eLayers, useUserContext } from "./Contexts/UserContext";
 import { useSoundContext } from "./Contexts/SoundContext";
 import { scheduleOnRN } from "react-native-worklets";
 import { ePages } from "./Driver";
+import React from "react";
 
 export type tMenu = tRadialObject & {
   vSelection?: tVerse<ePages>;
@@ -32,15 +34,17 @@ export function Menu({
   vSelection,
   options = [
     "Menu",
-    "WallPaint",
+    "PaletteLibrary",
+    "UndertoneCamera",
+    "ReColorCamera",
     "ColorWheel",
     "ColorMixer",
-    "ColorCamera",
-    "ColorHarmony",
+    "ColorSeasons",
+    "ColorHarmonizer",
   ],
-  radii = [250, 550],
+  radii = [200, 500],
   rotationR = 22 / 7,
-  arcLength = 7 / 7,
+  arcLength = 9 / 7,
   chord = options.length,
   ring = 5,
   origin = [
@@ -82,30 +86,13 @@ export function Menu({
   useAnimatedReaction(
     () => vPanPos.value,
     (pos) => {
-      vSlowAngle.value = withTiming(pos.angle, {
-        duration: 100,
-        easing: Easing.bezier(0.5, 0, 0.5, 1),
+      vSlowAngle.value = withSpring(pos.angle, {
+        damping: 100,
+        stiffness: 1000,
       });
     },
   );
-  const { vColorModel } = useUserContext();
-  const mColorModifier: tAttributeModifier = {
-    modID: 0,
-    deps: [vColorModel.shared],
-    modifier: (input: tAttributeMap) => {
-      "worklet";
-      const c = 0.5 + (1 - input.chord / (chord - 1)) * 0.5;
-      const l = 0.5 + (input.ring / (ring - 1)) * 0.4;
-      let ar = 22 / 7 + (input.chord / (chord - 1)) * (22 / 7);
-      let [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
-      return {
-        ...input,
-        red: r,
-        green: g,
-        blue: b,
-      };
-    },
-  };
+
   const mTransformModifier: tAttributeModifier = {
     modID: 1,
     deps: [vSlowAngle],
@@ -114,18 +101,26 @@ export function Menu({
       let diff = 1 - Math.abs(input.rotateZ - vSlowAngle.value) / arcLength;
       return {
         ...input,
-        translateY: input.translateY + (0.5 - input.chord / (chord - 1)) * 100,
-        translateX: input.translateX + (diff - 0.5) * 50,
-        scaleX: 1 + Math.max(0, diff - 0.8),
-        scaleY: 1 + Math.max(0, diff - 0.8),
+        translateX: input.translateX + diff * radii[0] * 0.2,
+        scaleX: 1 + Math.max(0, diff - 0.9),
+        scaleY: 1 + Math.max(0, diff - 0.9),
         zIndex: eLayers.colorMixer + Math.round(diff * chord),
       };
     },
   };
   function fSectorModifier(sector: tSector) {
+    const rgb = fCLARColorToRGB(
+      {
+        c: (sector.ring / (ring - 1)) * 0.4 + 0.4,
+        l: (sector.ring / (ring - 1)) * 0.4 + 0.4,
+        ar: 22 / 7 + (sector.chord / (chord - 1)) * (22 / 7),
+      },
+      "RYGB",
+    );
     return {
       ...sector,
-      arcLength: sector.arcLength * 1.26,
+      arcLength: sector.arcLength,
+      rgb,
     };
   }
   function fSectorGroupModifier(sectorGroup: tSectorGroup) {
@@ -134,11 +129,11 @@ export function Menu({
       children: (
         <Text
           fill="white"
-          x={-(radii[1] * 0.7 - options[sectorGroup.sectorGroupID].length * 5)}
+          x={(radii[0] + radii[1]) * -0.5}
           y={7}
           fontSize={30}
           fontFamily="Outfit"
-          textAnchor="end"
+          textAnchor="middle"
           fontWeight={600}
           transform={[{ rotate: 22 / 7 + "rad" }]}
         >
@@ -150,7 +145,6 @@ export function Menu({
   return (
     <RadialContext
       value={{
-        mColorModifier,
         mTransformModifier,
         origin,
         totalRings: ring,

@@ -2,15 +2,22 @@ import { Dimensions, Text, View } from "react-native";
 import React, { use, useEffect } from "react";
 import { type tColorModel } from "../utils/CLAcolor";
 import { useUserContext } from "../Contexts/UserContext";
-import { ColorScheme } from "../Harmonizer/SchemeSelector";
 import { tAttributeModifier } from "../utils/Actor";
 import { RadialContext } from "../Radials/RadialContext";
 import { eLayers } from "../Contexts/UserContext";
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
-import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
+import {
+  useAnimatedReaction,
+  useDerivedValue,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useBucketContext } from "../Buckets/BucketContext";
 import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
 import { tRadialObject } from "../Radials/SectorTypes";
+import { ColorFan } from "./ColorFan";
+import { Blur } from "@shopify/react-native-skia";
+import { BlurScreen } from "../Buckets/DropScreen";
+import { Sign } from "./ColorScheme";
 
 export type tColorModels = {
   radii?: [number, number];
@@ -19,73 +26,72 @@ export type tColorModels = {
 export function ColorModels({ radii = [10, 70], ring = 4 }: tColorModels) {
   const vActive = useVerse<boolean>(false);
   const { vDropScreen } = useBucketContext();
-  useEffect(() => {
-    if (vActive.state && vDropScreen?.state === false) {
-      vActive.dispatch(false);
-    }
-  }, [vDropScreen?.state]);
   const examples = [
     [0.65, 0.5, 0.0, 0.15],
     [0.3, 0.45, 0.95, 0.8],
   ];
-  if (vActive.state) {
-    return (
-      <>
-        <ColorModelSelector
-          origin={[
-            Math.round(Dimensions.get("window").width / 2),
-            Math.round(Dimensions.get("window").height * 0.15),
-          ]}
-          radii={radii}
-          colorModel="RYGB"
-          vActive={vActive}
-          ring={ring}
-          description="Hues are distributed based on the spectral wavelengths of light"
-          examples={examples}
-        />
-        <ColorModelSelector
-          origin={[
-            Math.round(Dimensions.get("window").width / 2),
-            Math.round(Dimensions.get("window").height * 0.4),
-          ]}
-          radii={radii}
-          colorModel="RYB"
-          vActive={vActive}
-          ring={ring}
-          description="Traditional color model with red, yellow, and blue as primary colors"
-          examples={examples}
-        />
-        <ColorModelSelector
-          origin={[
-            Math.round(Dimensions.get("window").width / 2),
-            Math.round(Dimensions.get("window").height * 0.65),
-          ]}
-          radii={radii}
-          colorModel="RGB"
-          vActive={vActive}
-          ring={ring}
-          label={"RGB / CYM"}
-          description="Modern color model where hues are distributed based on which colors average to gray when combined"
-          examples={examples}
-        />
-      </>
-    );
-  } else {
-    return (
-      <>
-        <ColorModelIcon
-          origin={[
-            Math.round(Dimensions.get("window").width * 0.15),
-            Math.round(Dimensions.get("window").height * 0.17),
-          ]}
-          radii={[radii[0] * 0.5, radii[1] * 0.5]}
-          vActive={vActive}
-          ring={ring - 1}
-          fontSize={radii[1] * 0.25}
-        />
-      </>
-    );
-  }
+  useEffect(() => {
+    if (vActive.state === true) {
+      console.log("Models Active -> DropScreen Active");
+      vDropScreen.dispatch(true);
+    } else {
+      console.log("Models Inactive -> DropScreen Inactive");
+      vDropScreen.dispatch(false);
+    }
+  }, [vActive.state]);
+
+  return (
+    <>
+      <BlurScreen vActive={vActive} layer={eLayers.chipHand + 20} />
+      <ColorModelSelector
+        origin={[
+          Math.round(Dimensions.get("window").width / 2),
+          Math.round(Dimensions.get("window").height * 0.15),
+        ]}
+        radii={radii}
+        colorModel="RYGB"
+        vActive={vActive}
+        ring={ring}
+        description="Hues are distributed based on the spectral wavelengths of light"
+        examples={examples}
+      />
+      <ColorModelSelector
+        origin={[
+          Math.round(Dimensions.get("window").width / 2),
+          Math.round(Dimensions.get("window").height * 0.4),
+        ]}
+        radii={radii}
+        colorModel="RYB"
+        vActive={vActive}
+        ring={ring}
+        description="Traditional color model with red, yellow, and blue as primary colors"
+        examples={examples}
+      />
+      <ColorModelSelector
+        origin={[
+          Math.round(Dimensions.get("window").width / 2),
+          Math.round(Dimensions.get("window").height * 0.65),
+        ]}
+        radii={radii}
+        colorModel="RGB"
+        vActive={vActive}
+        ring={ring}
+        label={"RGB / CYM"}
+        description="Modern color model where hues are distributed based on which colors average to gray when combined"
+        examples={examples}
+      />
+      <ColorModelIcon
+        origin={[
+          Math.round(Dimensions.get("window").width * 0.15),
+          Math.round(Dimensions.get("window").height * 0.17),
+        ]}
+        radii={[radii[0] * 0.65, radii[1] * 0.65]}
+        vActive={vActive}
+        ring={ring - 1}
+        fontSize={radii[1] * 0.25}
+      />
+    </>
+  );
 }
 
 export type tColorModelPreview = tRadialObject & {
@@ -106,15 +112,11 @@ function ColorModelIcon({
 }: tColorModelPreview) {
   const { registerHitBox, unregisterHitBox } = usePanManager();
   const { vColorModel } = useUserContext();
-  const { vDropScreen } = useBucketContext();
-
-  useEffect(() => {
-    if (vActive.state && vDropScreen?.state === false) {
-      vActive.dispatch(false);
-    }
-  }, [vDropScreen?.state]);
   const vColorModelRelay = useVerseRelay(vColorModel);
   const vPanState = useSharedValue<ePanEvent>("leave");
+  const vPanActive = useDerivedValue(() => {
+    return !(vActive?.shared.value ?? false);
+  }, [vActive]);
   useEffect(() => {
     registerHitBox({
       id: "ColorModel" + origin,
@@ -123,7 +125,8 @@ function ColorModelIcon({
       arcLength: 43.9 / 7,
       vPanState,
       priority: 10,
-      rotationR: 33 / 7,
+      rotationR: 22 / 7,
+      vActive: vPanActive,
     });
     return () => {
       unregisterHitBox("ColorModel" + origin);
@@ -134,20 +137,36 @@ function ColorModelIcon({
     (state) => {
       "worklet";
       if (state === "enter" || state === "tap") {
-        vDropScreen?.dispatch(true);
+        console.log("Color model selected:", vColorModelRelay.state);
         vActive?.dispatch(true);
+        vPanState.value = "leave";
       }
     },
   );
-  return (
-    <ColorModelPreview
-      colorModel={vColorModelRelay.state}
-      origin={origin}
-      radii={radii}
-      ring={ring}
-      fontSize={fontSize}
-    />
-  );
+  if (vActive.state === false) {
+    return (
+      <>
+        <ColorModelPreview
+          colorModel={vColorModelRelay.state}
+          origin={origin}
+          radii={radii}
+          ring={ring}
+          fontSize={fontSize}
+        />
+        <Sign
+          radii={[0, radii[1] * 0.9]}
+          origin={origin}
+          rotationR={0}
+          topText="Color"
+          bottomText="Model"
+          fontSize={30}
+          color="black"
+          zIndex={eLayers.chipFan + 1000}
+        />
+      </>
+    );
+  }
+  return null;
 }
 
 export function ColorModelSelector({
@@ -162,7 +181,6 @@ export function ColorModelSelector({
 }: tColorModelPreview) {
   const { registerHitBox, unregisterHitBox } = usePanManager();
   const { vColorModel } = useUserContext();
-  const { vDropScreen } = useBucketContext();
   const vPanState = useSharedValue<ePanEvent>("leave");
   useEffect(() => {
     registerHitBox({
@@ -173,6 +191,7 @@ export function ColorModelSelector({
       vPanState,
       priority: 10,
       rotationR: 11 / 7,
+      vActive: vActive?.shared,
     });
     return () => {
       unregisterHitBox("ColorModel" + origin);
@@ -186,7 +205,8 @@ export function ColorModelSelector({
         console.log("Color model selected:", colorModel);
         vColorModel.dispatch(colorModel);
         vActive?.dispatch(false);
-        vDropScreen?.dispatch(false);
+
+        vPanState.value = "leave";
       }
     },
   );
@@ -196,8 +216,8 @@ export function ColorModelSelector({
       for (let i = 0; i < examples.length; i++) {
         const example = examples[i].map((angle) => angle * (2 * Math.PI));
         schemes.push(
-          <ColorScheme
-            colors={example}
+          <ColorFan
+            hues={example}
             origin={origin}
             radii={[radii[1] + 50, radii[1] + 120]}
             arcLength={4 / 7}
@@ -214,6 +234,11 @@ export function ColorModelSelector({
 
     return schemes;
   }
+
+  if (vActive?.state === false) {
+    return null;
+  }
+
   return (
     <RadialContext
       value={{
@@ -267,7 +292,10 @@ function ColorModelPreview({
         rotateZ: input.rotateZ + ((44 / 7 - arcLength) / chord) * input.chord,
         shadowOpacity: 0.5,
         zIndex:
-          eLayers.chipHand + (input.chord % 2 === 0 ? 1 : -1) - input.chord,
+          eLayers.chipHand +
+          50 +
+          (input.chord % 2 === 0 ? 1 : -1) -
+          input.chord,
       };
     },
   };
@@ -281,10 +309,10 @@ function ColorModelPreview({
         mTransformModifier,
       }}
     >
-      <ColorScheme
+      <ColorFan
         origin={origin}
         radii={radii}
-        colors={modelColorsArray}
+        hues={modelColorsArray}
         chord={chord}
         ring={ring}
         arcLength={arcLength}
@@ -292,6 +320,7 @@ function ColorModelPreview({
         rotationR={rotationR}
         chromaRange={[0.6, 0.9]}
         lumaRange={[0.5, 0.8]}
+        layer={eLayers.chipHand + 100}
       />
       <View
         style={{

@@ -107,7 +107,7 @@ function fRemapRange(
   return outputRange[outputRange.length - 1];
 }
 
-function FromRGBangle(ar: number, colorModel: tColorModel): number {
+export function FromRGBangle(ar: number, colorModel: tColorModel): number {
   "worklet";
   ar = ar / (Math.PI * 2);
   ar = ar % 1;
@@ -128,7 +128,7 @@ function FromRGBangle(ar: number, colorModel: tColorModel): number {
   return ar;
 }
 
-function ToRGBangle(ar: number, colorModel: tColorModel): number {
+export function ToRGBangle(ar: number, colorModel: tColorModel): number {
   "worklet";
   ar = ar / (Math.PI * 2);
   ar = ar % 1;

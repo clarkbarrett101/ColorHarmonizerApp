@@ -53,19 +53,7 @@ export function TintSelector({
   useAnimatedReaction(
     () => vPanState.value,
     (state) => {
-      switch (state) {
-        case "enter":
-          fOnEnter();
-          break;
-        case "leave":
-          fOnEnter();
-          break;
-        case "drag":
-          break;
-        case "tap":
-          fOnEnter();
-          break;
-      }
+      if (state !== "drag") fOnEnter();
     },
     [],
   );

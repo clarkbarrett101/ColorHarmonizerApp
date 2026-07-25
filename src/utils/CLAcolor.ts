@@ -121,7 +121,7 @@ export function FromRGBangle(ar: number, colorModel: tColorModel): number {
       ar = fRemapRange(ar, modelRanges["RGB"], modelRanges["RYB"]);
       break;
     case "RYGB":
-      ar = fRemapRange(ar, modelRanges["RGB"], modelRanges["RYGB"]);
+      ar = ar ** (1 / 1.35);
   }
   ar = ar * (Math.PI * 2);
   ar = Math.round(ar * 100) / 100;
@@ -140,7 +140,7 @@ export function ToRGBangle(ar: number, colorModel: tColorModel): number {
       ar = fRemapRange(ar, modelRanges["RYB"], modelRanges["RGB"]);
       break;
     case "RYGB":
-      ar = fRemapRange(ar, modelRanges["RYGB"], modelRanges["RGB"]);
+      ar = ar ** 1.35;
       break;
   }
   ar += 2 / 7;

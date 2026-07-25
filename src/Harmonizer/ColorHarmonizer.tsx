@@ -44,20 +44,6 @@ export function ColorHarmonizer({}: tColorHarmonizer) {
       return 0.8;
     });
   });
-  /*
-  useEffect(() => {
-    if (vColorModel.shared.value !== vModelBuffer.value) {
-      const newList = vSelectedAngles.shared.value.map((angle, index) => {
-        const rgbAngle = ToRGBangle(angle, vModelBuffer.value);
-        const newAngle = FromRGBangle(rgbAngle, vColorModel.shared.value);
-        vSelectedAngles.shared.value[index] = newAngle;
-        return newAngle;
-      });
-      vModelBuffer.value = vColorModel.shared.value;
-      vSelectedAngles.dispatch([...newList]);
-    }
-  }, [modelRelay.state]);
-*/
   return (
     <>
       <BGGradient dARs={vSelectedAngles.shared} dCs={dCs} dLs={dLs} />

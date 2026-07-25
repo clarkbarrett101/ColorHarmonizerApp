@@ -24,6 +24,7 @@ type tColorWheel = tRadialObject & {
   wheelCenter?: number;
   vSecondColor?: tVerse<number | null>;
   draggable?: boolean;
+  offsetLevel?: number;
 };
 
 function ColorWheel({
@@ -34,6 +35,7 @@ function ColorWheel({
   arcLength = 44 / 7,
   wheelCenter = 11 / 7,
   draggable,
+  offsetLevel = 50,
 }: tColorWheel) {
   const { origin, wAngleToChord, wChordToAngle, wUpdateState } =
     useRadialContext();
@@ -93,7 +95,7 @@ function ColorWheel({
       if (diff > 0.9) {
         diff = 1;
       }
-      let tx = input.translateX + diff * 50;
+      let tx = input.translateX + diff * offsetLevel;
       let zIndex = 2 * Math.round(chords / 2 - zDiff) + eLayers.colorMixer;
       let vS = 1 + Math.max(0, diff - 0.8);
 

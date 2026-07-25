@@ -194,21 +194,8 @@ export function ColorMixer({
           radii,
           mColorModifier,
           mTransformModifier,
-          dAR,
-          dC,
-          dL,
         }}
       >
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            zIndex: 0,
-          }}
-        >
-          <BGGradient />
-        </View>
         <View
           style={{
             position: "absolute",
@@ -249,9 +236,6 @@ export function ColorMixer({
         setBrand={setBrand}
         height={50}
         width={(50 * (1 + Math.sqrt(5))) / 2}
-        dAR={dAR}
-        dC={dC}
-        dL={dL}
         origin={[origin[0] - radii[1] * 0.1, origin[1] + 200]}
         mainRotationR={11 / 7}
         totalArcLength={3 / 7}

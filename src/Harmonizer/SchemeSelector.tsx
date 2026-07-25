@@ -102,8 +102,8 @@ export function SchemeSelector(props: tSchemeSelector) {
         <ColorScheme
           key={index}
           origin={origin}
-          arcLength={3 / 7}
-          chordLength={1 / 7}
+          arcLength={Math.min(harmony.finalHues.length, 3) / 7}
+          chordLength={harmony.finalHues.length < 3 ? 1.3 / 7 : 1 / 7}
           rotationR={
             rotationR -
             arcLength / 2 +

@@ -17,6 +17,7 @@ import { ColorSeasons } from "./ColorWheels/ColorSeasons";
 import { ColorHarmonizer } from "./Harmonizer/ColorHarmonizer";
 import { MenuButton } from "./Buckets/MenuButton";
 import ChipContext from "./Chips/ChipContext";
+import { BGGradient } from "./ColorWheels/BGGradient";
 
 export type ePages =
   | "Menu"
@@ -57,13 +58,12 @@ const Driver = () => {
       <UserContext>
         <SoundContext>
           <BucketContext>
-            <PanManager drawSectors>
-              <DropScreen />
-              {vPage.state !== "Menu" && (
-                <MenuButton onPress={() => vPage.dispatch("Menu")} />
-              )}
-              {pageMap[vPage.state]}
-            </PanManager>
+            {vPage.state !== "ColorHarmonizer" && <BGGradient />}
+            <DropScreen />
+            {vPage.state !== "Menu" && (
+              <MenuButton onPress={() => vPage.dispatch("Menu")} />
+            )}
+            <PanManager>{pageMap[vPage.state]}</PanManager>
             <ChipHand />
           </BucketContext>
         </SoundContext>

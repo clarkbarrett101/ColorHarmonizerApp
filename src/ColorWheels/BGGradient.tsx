@@ -23,7 +23,7 @@ export type tBGGradient = {
 export function BGGradient({ dARs, dCs, dLs }: tBGGradient) {
   const { vColorModel, vAccentAR, vAccentC, vAccentL } = useUserContext();
   const colors = useDerivedValue(() => {
-    if (vAccentAR) {
+    if (!dARs || !dCs || !dLs) {
       return [
         fCLARColorToString(
           {
@@ -35,6 +35,7 @@ export function BGGradient({ dARs, dCs, dLs }: tBGGradient) {
         ),
       ];
     }
+
     const cs = dARs.value.map((ar, index) => {
       const c = dCs.value[index];
       const l = dLs.value[index];
@@ -43,7 +44,7 @@ export function BGGradient({ dARs, dCs, dLs }: tBGGradient) {
     return cs;
   });
   const shadow = useDerivedValue(() => {
-    if (vAccentAR) {
+    if (!dARs || !dCs || !dLs) {
       return fCLARColorToString(
         {
           c: vAccentC.shared.value * 0.1,

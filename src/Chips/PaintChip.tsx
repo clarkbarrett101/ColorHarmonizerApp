@@ -322,11 +322,6 @@ export const PaintChip = ({
     <Animated.View
       style={[
         {
-          position: "absolute",
-          left: 0,
-          top: 0,
-          width: eChipSizes[size][0],
-          height: eChipSizes[size][1],
           shadowColor: "#000",
           shadowOpacity: 0.7,
         },
@@ -345,7 +340,7 @@ export const PaintChip = ({
       >
         <GestureDetector gesture={compGesture}>
           <Svg
-            viewBox={`3 0 26 24`}
+            viewBox={`-16 -12 32 24`}
             style={{
               position: "absolute",
               top: 0,
@@ -374,21 +369,21 @@ export const PaintChip = ({
             </Defs>
             <G>
               <Path
-                d="M 0 4 C 8 0 24 0 32 4 V 20 C 24 24 8 24 0 20 Z"
+                d="M-16-8C-8-12 8-12 16-8V8C8 12-8 12-16 8Z"
                 fill={paint?.hex || "transparent"}
               />
               <Path
-                d="M 0 4 C 8 0 24 0 32 4 V 20 C 24 24 8 24 0 20 Z"
+                d="M-16-8C-8-12 8-12 16-8V8C8 12-8 12-16 8Z"
                 fill="url(#grad)"
               />
               <Path
-                d="M 1 5 C 12 1 20 1 31 5 V 19 C 20 23 12 23 1 19 Z"
+                d="M-15-7C-4-11 4-11 15-7V7C4 11-4 11-15 7Z"
                 fill={paint?.hex || "transparent"}
               />
             </G>
             <Text
-              x="16"
-              dy="9"
+              x="0"
+              dy="-3"
               fontSize={`${paint?.name.length > 13 ? 55 / paint.name.length : 3.5}px`}
               fontFamily="Outfit"
               fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
@@ -398,7 +393,7 @@ export const PaintChip = ({
             >
               {paint?.name}
               <TSpan
-                x="16"
+                x="0"
                 dy="3.5"
                 fontSize="3"
                 fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
@@ -408,7 +403,7 @@ export const PaintChip = ({
                 {paint?.brand}
               </TSpan>
               <TSpan
-                x="16"
+                x="0"
                 dy="3"
                 fontSize="2.5"
                 fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}

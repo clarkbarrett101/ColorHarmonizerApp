@@ -7,7 +7,9 @@ import {
   findColors,
   tBrand,
 } from "../utils/CLAcolor";
+import { SharedValue, useSharedValue } from "react-native-reanimated";
 import React, { useEffect, useRef, useState } from "react";
+import { useUserContext } from "../Contexts/UserContext";
 const clarColorsList: tPaint[] = require("../clarColors.json");
 
 export type tChipFan = {
@@ -85,28 +87,31 @@ export const ColorChipFan = ({
   const [paintsA, setPaintsA] = useState<tPaint[]>([]);
   const [paintsB, setPaintsB] = useState<tPaint[]>([]);
   const [sideABuffer, setSideABuffer] = useState(sideA);
-  const lastColor = useRef<tCLARColor | null>(null);
-  useEffect(() => {
-    if (targetColor !== lastColor.current) {
-      console.log("Finding colors for target", targetColor, sideA ? "A" : "B");
-      const foundColors = findColors(targetColor, targetNumber, brand);
-      const foundPaints = foundColors.map(
-        (color) => clarColorsList[color.index!],
-      );
-      console.log(
-        "Found paints",
-        foundPaints.length,
-        "for target",
-        targetColor,
-      );
-      lastColor.current = targetColor;
-      if (sideA) {
-        setPaintsA(foundPaints);
-      } else {
-        setPaintsB(foundPaints);
-      }
+  const lastColor = useSharedValue<tCLARColor>(targetColor);
+
+  function fNearestColors() {
+    const foundColors = findColors(targetColor, targetNumber, brand);
+    const foundPaints = foundColors.map(
+      (color) => clarColorsList[color.index!],
+    );
+    console.log("Found paints", foundPaints.length, "for target", targetColor);
+    lastColor.value = targetColor;
+    if (!sideA) {
+      setPaintsB(foundPaints);
+    } else {
+      setPaintsA(foundPaints);
     }
+
     setSideABuffer(sideA);
+  }
+  useEffect(() => {
+    if (
+      targetColor.c !== lastColor.value.c ||
+      targetColor.l !== lastColor.value.l ||
+      targetColor.ar !== lastColor.value.ar
+    ) {
+      fNearestColors();
+    }
   }, [sideA]);
   return (
     <ChipFan
@@ -117,3 +122,15 @@ export const ColorChipFan = ({
     />
   );
 };
+export function AccentChipFan({
+  brand,
+  ...rest
+}: Omit<tChipWheel, "targetColor">) {
+  const { vAccentC, vAccentL, vAccentAR } = useUserContext();
+  const targetColor = {
+    c: vAccentC.state,
+    l: vAccentL.state,
+    ar: vAccentAR.state,
+  };
+  return <ColorChipFan targetColor={targetColor} brand={brand} {...rest} />;
+}

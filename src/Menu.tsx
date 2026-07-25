@@ -70,6 +70,9 @@ export function Menu({
       unregisterHitBox("menu");
     };
   }, []);
+  const { vAccentAR, vAccentC, vAccentL } = useUserContext();
+  vAccentC.shared.value = 0.75;
+  vAccentL.shared.value = 0.9;
   useAnimatedReaction(
     () => vPanState.value,
     (state) => {
@@ -90,6 +93,15 @@ export function Menu({
         damping: 100,
         stiffness: 1000,
       });
+      const pChord = wDefaultAngleToChord(
+        pos.angle,
+        arcLength,
+        options.length,
+        rotationR,
+      );
+      vAccentAR.shared.value = withSpring(
+        22 / 7 + (pChord / (chord - 1)) * (22 / 7),
+      );
     },
   );
 

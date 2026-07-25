@@ -18,7 +18,7 @@ export const Sector = (props: tSector) => {
   const path = fPathFunction(
     props.radii,
     arcLength,
-    context.radii[1],
+    context.radii[1] || props.radii[0],
     props.rotationR || 0,
   );
   if (path.includes("NaN")) {
@@ -33,6 +33,7 @@ export const Sector = (props: tSector) => {
     red: props.rgb?.[0],
     green: props.rgb?.[1],
     blue: props.rgb?.[2],
+    strokeWidth: 0,
   });
   useEffect(() => {
     if (!mColorModifier) return;
@@ -46,10 +47,15 @@ export const Sector = (props: tSector) => {
     return actor.get((attributes) => {
       return {
         fill: `rgba(${attributes.red || 0},${attributes.green || 0},${attributes.blue || 0},1)`,
+        strokeWidth: attributes.strokeWidth || 0,
       };
     });
   });
   return (
-    <AnimatedPath animatedProps={animatedProps} d={path} strokeWidth={2} />
+    <AnimatedPath
+      animatedProps={animatedProps}
+      d={path}
+      stroke={"rgba(255,255,255,0.5)"}
+    />
   );
 };

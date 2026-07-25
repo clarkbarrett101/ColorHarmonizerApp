@@ -92,7 +92,7 @@ export function SchemeChipSelector({
         bend={0.7}
       />
       <BackIcon
-        zIndex={eLayers.chipHand}
+        zIndex={eLayers.dropScreen - 1}
         color="white"
         size={75}
         origin={[
@@ -236,13 +236,41 @@ export function ChipSelector(props: tChipSelector) {
       unregisterModifier(mChipModifier.modID);
     };
   }, []);
-
+  const mColorModifier: tAttributeModifier = {
+    modID: 0,
+    deps: [vTargetColor.shared, vColorModel.shared],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      const selectedChord = wDefaultAngleToChord(
+        vPanPos.value.angle,
+        arcLength,
+        chord,
+        rotationR,
+      );
+      const selectedRing = Math.ceil(
+        ((vPanPos.value.radius - radii[0]) / (radii[1] - radii[0])) * ring,
+      );
+      let diff =
+        Math.abs(input.chord - selectedChord) +
+        Math.abs(input.ring - selectedRing);
+      diff = chord + ring - diff;
+      diff /= chord + ring;
+      if (diff < 0.9) {
+        return input;
+      }
+      return {
+        ...input,
+        strokeWidth: 1,
+      };
+    },
+  };
   return (
     <>
       <RadialContext
         value={{
           mTransformModifier,
           radii: [props.radii[0], props.radii[1]],
+          mColorModifier,
           fPathFunction: (radii, arcLength, maxRadius, rotationR = 0) =>
             fMakePetalPath(radii, arcLength, maxRadius, rotationR, 0.2),
         }}
@@ -255,7 +283,7 @@ export function ChipSelector(props: tChipSelector) {
         origin={props.origin}
         arcLength={props.arcLength * 1.2}
         targetColor={vTargetColor.state}
-        radius={props.radii[1] * 1.2}
+        radius={props.radii[1] * 1.3}
         rotationR={rotationR}
         targetNumber={4}
         groupLayer={props.layer || eLayers.chipFan}

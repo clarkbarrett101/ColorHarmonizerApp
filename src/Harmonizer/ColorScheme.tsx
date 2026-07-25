@@ -17,6 +17,7 @@ import {
   TextPath,
   TSpan,
 } from "react-native-svg";
+import { tPaint } from "../utils/CLAcolor";
 
 export type tAngles = {
   Alpha: number;
@@ -54,6 +55,11 @@ const signPaths: { [key: string]: string } = {
     "M-14-10C-8-13-8-3-5 6-3-12 2-18 3-5 8-16 14-7 5 0 0 6 11 15 14 6 5 11 5 2 9-2 15-9 11-18 5-11 3-18-5-18-5-3-8-14-11-14-14-10M9-2C15-7 18 2 9 6L8 4C3 6-2 6 3 13 3 9 2 8 9 6L8 4C12 2 15-2 9-2Z",
   scorpio:
     "M-16-12C-8-12-8-3-8 11-5-11 0-18 2-6 8-15 12-8 2-1-5 4 5 11 10 6 12 5 12 7 12 9 13 5 13 4 12-1 11 1 10 2 6 3 8 3 8 3 9 4L9 4C7 10-3 5 7-2 14-7 10-18 4-11 2-18-6-18-7-3-9-14-13-14-16-12M21 10Z",
+
+  aquarius:
+    "M0 0C-4 7-10 9-10-1-16 12-4 12 0 4 5-5 10 11 12-2 9 7 4-8 0 0ZM0-6C-5 2-8 1-6-7-12 2-6 8 0-3 4-10 9 7 11-5 8 2 4-12 0-6Z",
+  sagittarius:
+    "M-14 14C-10 8-8 7-3 1-2 0-3-2-8-4-2-4-1-1 0-2 9-10 6-11 2-11 6-13 10-13 13-13 13-10 13-5 11-2 11-6 10-9 2 0 1 1 4 2 4 8 2 3 0 2-1 3-7 8-8 10-14 14",
 };
 export type tScheme = {
   deltaRange: number[];
@@ -104,19 +110,19 @@ const splitComp2Scheme: tScheme = {
   addAngles: ["Alpha", "sAlpha", "Beta"],
   topText: "Cool Split",
   bottomText: "Complementary",
-  signPath: signPaths.capricorn,
+  signPath: signPaths.aquarius,
 };
 const splitComp3Scheme: tScheme = {
   deltaRange: [0.75, 0.9],
   addAngles: ["Alpha", "sBeta", "Beta"],
   topText: "Warm Split",
   bottomText: "Complementary",
-  signPath: signPaths.leo,
+  signPath: signPaths.sagittarius,
 };
 const triadScheme: tScheme = {
   deltaRange: [0.33, 0.9],
   addAngles: ["Alpha", "iMu", "Beta"],
-  topText: "Triadic",
+  topText: "T r i a d i c",
   bottomText: "",
   signPath: signPaths.libra,
 };
@@ -130,14 +136,14 @@ const doubleSplitScheme: tScheme = {
 const tetradScheme: tScheme = {
   deltaRange: [0.4, 0.6],
   addAngles: ["Alpha", "iAlpha", "iBeta", "Beta"],
-  topText: "Tetradic",
+  topText: "T e t r a d i c",
   bottomText: "",
   signPath: signPaths.pisces,
 };
 const tetrad2Scheme: tScheme = {
   deltaRange: [0.9, 1],
   addAngles: ["Alpha", "iMu", "Mu", "Beta"],
-  topText: "Tetradic",
+  topText: "T e t r a d i c",
   bottomText: "",
   signPath: signPaths.pisces,
 };
@@ -157,19 +163,19 @@ const virgoScheme: tScheme = {
 };
 
 const schemes: tScheme[] = [
-  complementaryScheme,
-  analogousAScheme,
-  analogousMidScheme,
-  analogousBScheme,
-  splitCompScheme,
+  tetrad2Scheme,
+  tetradScheme,
+  virgoScheme,
+  scorpioScheme,
+  doubleSplitScheme,
   splitComp2Scheme,
   splitComp3Scheme,
   triadScheme,
-  doubleSplitScheme,
-  tetradScheme,
-  scorpioScheme,
-  virgoScheme,
-  tetrad2Scheme,
+  splitCompScheme,
+  analogousBScheme,
+  analogousMidScheme,
+  analogousAScheme,
+  complementaryScheme,
 ];
 export function fGetHarmonies(hues: number[]): tScheme[] {
   let alpha = hues[0] % (2 * Math.PI);
@@ -203,8 +209,8 @@ export function fGetHarmonies(hues: number[]): tScheme[] {
     Delta: Math.round(Math.abs(delta) * 100) / 100,
     sAlpha: Math.round((alpha - delta) * 100) / 100,
     sBeta: Math.round((beta + delta) * 100) / 100,
-    Mu: Math.round(((alpha + beta) / 2) * 100) / 100,
-    iMu: Math.round(((alpha + beta) / 2 + 1) * 100) / 100,
+    Mu: Math.round((alpha + delta / 2) * 100) / 100,
+    iMu: Math.round((alpha + delta / 2 + 1) * 100) / 100,
     iAlpha: Math.round((alpha + 1) * 100) / 100,
     iBeta: Math.round((beta + 1) * 100) / 100,
     Sigma: Math.round((alpha + 0.25) * 100) / 100,
@@ -212,6 +218,9 @@ export function fGetHarmonies(hues: number[]): tScheme[] {
     iSigma: Math.round((alpha + 1.25) * 100) / 100,
     iGamma: Math.round((beta + 0.75) * 100) / 100,
   };
+  for (const key in angles) {
+    angles[key as keyof tAngles] = angles[key as keyof tAngles] % 2;
+  }
   const harmonies: tScheme[] = [];
   for (const scheme of schemes) {
     if (

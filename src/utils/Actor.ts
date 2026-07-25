@@ -27,7 +27,8 @@ export type tAttribute =
   | "blue"
   | "held"
   | "shadowColor"
-  | "shadowOpacity";
+  | "shadowOpacity"
+  | "strokeWidth";
 
 export type tAttributeMap = { [key in tAttribute]?: number };
 
@@ -71,6 +72,10 @@ const defaultAttributes: tAttributeMap = {
   red: 0,
   blue: 0,
   green: 0,
+  held: 0,
+  shadowColor: 0,
+  shadowOpacity: 0,
+  strokeWidth: 0,
 };
 /**
  *

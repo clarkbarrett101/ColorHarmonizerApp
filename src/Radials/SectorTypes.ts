@@ -53,10 +53,10 @@ export const fMakePetalPath = (
   bend: number = 0.5,
 ): string => {
   const endRad = arcLength / 2;
-  let x1 = 0.99 * maxRadius * Math.cos(endRad) - (maxRadius - radii[1]);
-  let x2 = 0.99 * maxRadius * Math.cos(-endRad) - (maxRadius - radii[1]);
-  let y1 = 0.99 * maxRadius * Math.sin(endRad);
-  let y2 = 0.99 * maxRadius * Math.sin(-endRad);
+  let x1 = maxRadius * Math.cos(endRad) - (maxRadius - radii[1]);
+  let x2 = maxRadius * Math.cos(-endRad) - (maxRadius - radii[1]);
+  let y1 = maxRadius * Math.sin(endRad);
+  let y2 = maxRadius * Math.sin(-endRad);
   let x3 = x2 - (radii[1] - radii[0]);
   let x4 = x1 - (radii[1] - radii[0]);
   let y3 = y2;
@@ -75,7 +75,7 @@ export const fMakePetalPath = (
                   A ${maxRadius * bend} ${maxRadius * bend} 0 ${largeArcFlag} 0 ${x2} ${y2} 
                   L ${x3} ${y3} 
                   A ${maxRadius * bend} ${maxRadius * bend}  0 ${largeArcFlag} 0 ${x4} ${y4}
-                  Z                              
+                  Z  
               `.trim();
   return path;
 };

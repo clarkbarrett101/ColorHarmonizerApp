@@ -14,6 +14,7 @@ export type tPetalButton = tRadialHitBox & {
   dC?: SharedValue<number>;
   dL?: SharedValue<number>;
   dAR?: SharedValue<number>;
+  textOffset?: [number, number];
 };
 export function PetalButton(props: tPetalButton) {
   const { id, origin, radii, rotationR, arcLength, zIndex } = props;
@@ -35,11 +36,19 @@ export function PetalButton(props: tPetalButton) {
       children: words.map((word, index) => (
         <Text
           fontFamily="Outfit"
-          x={-radii[1] * 0.95}
-          y={index * 24 - (words.length / 2) * 12}
+          x={
+            -(radii[0] + radii[1]) / 2 +
+            (props.textOffset ? props.textOffset[0] : 0)
+          }
+          y={
+            (props.textOffset ? props.textOffset[1] : 0) +
+            (index - (words.length - 1) / 2) * (props.fontSize ?? 24)
+          }
           fontSize={props.fontSize ?? 24}
           key={index}
           transform={[{ scale: -1 }]}
+          alignmentBaseline="middle"
+          textAnchor="middle"
           fill={`rgba(0,0,0,.75)`}
         >
           {word}

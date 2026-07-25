@@ -12,6 +12,7 @@ import {
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { fLerpModifierFactory, tAttributeModifier } from "../utils/Actor";
+import { useChipContext } from "./ChipContext";
 
 export function PaletteLibrary({
   origin = [
@@ -21,13 +22,7 @@ export function PaletteLibrary({
 }: {
   origin?: [number, number];
 }) {
-  const {
-    userPalette,
-    addPaint,
-    removePaint,
-    registerModifier,
-    unregisterModifier,
-  } = useUserContext();
+  const { registerModifier, unregisterModifier } = useChipContext();
   const [palettes, setPalettes] = useState<tPalette[]>([
     fGetRandomPalette(4),
     fGetRandomPalette(4),

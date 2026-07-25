@@ -235,13 +235,14 @@ export const ChipHand = ({
     registerBucket({
       origin: [origin[0] + radii[0], origin[1] - radii[0]],
       radii: [holdRadius, holdRadius * 2],
-      rotationR: rotationR,
+      rotationR: -11 / 21,
       callback: (paint) => {
         addPaintCallback(paint);
       },
       targetLayerRange: [eLayers.chipFan - 50, eLayers.chipFan + 50],
       id: 21,
       zIndex: eLayers.buckets + 100,
+      icon: "addChip",
     });
     registerBucket({
       origin: [Dimensions.get("window").width / 2, eChipSizes.outline[1] / 2],
@@ -249,6 +250,7 @@ export const ChipHand = ({
       targetLayerRange: [eLayers.chipHand - 50, eLayers.chipHand + 50],
       id: 22,
       zIndex: eLayers.buckets + 100,
+      icon: "remove",
       callback: (paint) => {
         removePaintCallback(paint);
         fPlaySFX?.("drop");
@@ -282,7 +284,6 @@ export const ChipHand = ({
         <GestureDetector gesture={pan}>
           <View
             style={{
-              position: "absolute",
               left: 0,
               top: 0,
               width: holdRadius * 2,

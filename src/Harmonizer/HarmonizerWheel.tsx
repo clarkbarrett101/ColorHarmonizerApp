@@ -29,9 +29,9 @@ export type tHarmonizerWheel = tRadialObject & {
   vPhase?: tVerse<tHarmonizerPhase>;
 };
 export function HarmonizerWheel({
-  radii = [0, 250],
+  radii = [0, 210],
   origin = [
-    Dimensions.get("window").width + radii[0],
+    Dimensions.get("window").width,
     Dimensions.get("window").height / 2,
   ],
   rotationR = 22 / 7,
@@ -172,9 +172,10 @@ export function HarmonizerWheel({
       callback: (paint: tPaint) => {
         SelectColor(paint.clar.ar);
       },
-      origin,
+      origin: [origin[0] - 100, origin[1]],
       radii: [100, 300],
       targetLayerRange: [eLayers.chipHand, eLayers.chipHand + 10],
+      icon: "search",
     });
     return () => {
       unregisterBucket(31 + "");
@@ -197,16 +198,18 @@ export function HarmonizerWheel({
         wheelCenter={rotationR}
         vSecondColor={vSecondColor}
         draggable={draggable}
+        offsetLevel={30}
       />
       <PetalButton
-        id={vSecondColor.state ? `Add Second Color` : "Add First Color"}
+        id={vSecondColor.state ? `Harmonize Color Pair` : "Choose First Color"}
         origin={origin}
-        radii={[radii[1] * 1.1, radii[1] * 1.8]}
+        radii={[radii[1], radii[1] + 200]}
         rotationR={rotationR}
         arcLength={2 / 7}
         zIndex={eLayers.colorMixer - 1}
         vPanState={vPanState}
         fontSize={20}
+        textOffset={[-30, 0]}
       />
       {vSecondColor.state !== null && (
         <>
@@ -223,14 +226,15 @@ export function HarmonizerWheel({
           >
             <RadialGraphic />
             <PetalButton
-              id="Remove First Color"
+              id="Replace Color"
               origin={origin}
-              radii={[radii[1] * 1, radii[1] * 1.65]}
+              radii={[radii[1], radii[1] + 150]}
               rotationR={rotationR - chordLength}
-              arcLength={2 / 7}
+              arcLength={1.4 / 7}
               zIndex={eLayers.colorMixer - 1}
               vPanState={vSecondPanState}
               fontSize={20}
+              textOffset={[-20, 0]}
               dAR={vSecondColor.shared}
             />
           </RadialContext>

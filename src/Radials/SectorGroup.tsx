@@ -94,7 +94,7 @@ export const SectorGroup = ({
         animatedProps={animatedProps}
         width={radii?.[1] * 2}
         height={radii?.[1] * 2}
-        viewBox={`-${radii[1] * 1.1} -${radii[1] * 1.1} ${radii[1] * 2.2} ${radii[1] * 2.2}`}
+        viewBox={`-${radii[1] * 1.05} -${radii[1] * 1.05} ${radii[1] * 2.1} ${radii[1] * 2.1}`}
         style={{
           margin: -radii?.[1],
           zIndex: 5,

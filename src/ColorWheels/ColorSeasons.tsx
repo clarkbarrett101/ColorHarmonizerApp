@@ -33,6 +33,7 @@ import {
 } from "react-native-reanimated";
 import { BrandFilter } from "../ColorWheels/BrandFilter";
 import { BGGradient } from "../ColorWheels/BGGradient";
+import { useChipContext } from "../Chips/ChipContext";
 
 export function ColorSeasons({
   radii = [0, 375],
@@ -111,6 +112,7 @@ export function ColorSeasons({
       };
     },
   };
+  const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 1,
     deps: [vTargetColor.shared],
@@ -122,7 +124,7 @@ export function ColorSeasons({
         color,
         (input.ring + 0.5) / ring,
       );
-      const [r, g, b] = fCLARColorToRGB(color);
+      const [r, g, b] = fCLARColorToRGB(color, vColorModel.shared.value);
       return {
         ...input,
         red: r,
@@ -132,7 +134,7 @@ export function ColorSeasons({
     },
   };
 
-  const { registerModifier, unregisterModifier } = useUserContext();
+  const { registerModifier, unregisterModifier } = useChipContext();
   const chipMod: tAttributeModifier = {
     modID: 30,
     deps: [rotationAnim],
@@ -182,9 +184,6 @@ export function ColorSeasons({
           radii,
           mColorModifier,
           mTransformModifier,
-          dAR,
-          dC,
-          dL,
         }}
       >
         <View
@@ -237,9 +236,6 @@ export function ColorSeasons({
         setBrand={setBrand}
         height={50}
         width={(50 * (1 + Math.sqrt(5))) / 2}
-        dAR={dAR}
-        dC={dC}
-        dL={dL}
         origin={[origin[0] - radii[1] * 0.1, origin[1] + 200]}
         mainRotationR={11 / 7}
         totalArcLength={3 / 7}

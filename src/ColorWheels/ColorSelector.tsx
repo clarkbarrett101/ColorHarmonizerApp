@@ -24,6 +24,7 @@ import { BGGradient } from "../ColorWheels/BGGradient";
 import { tAttributeModifier } from "../utils/Actor";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { BrandFilter } from "../ColorWheels/BrandFilter";
+import { SweepDisplay } from "../Buttons/SweepDisplay";
 
 type tColorSelector = tRadialObject & {
   wheelCenter?: number;
@@ -276,7 +277,7 @@ export default function ColorSelector({
           />
         </RadialContext>
       </View>
-      <PanManager drawSectors zIndex={eLayers.chipHand}>
+      <PanManager zIndex={eLayers.chipHand}>
         <BrandFilter
           brand={brand}
           setBrand={dispatchBrand}

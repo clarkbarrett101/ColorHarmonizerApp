@@ -10,8 +10,7 @@ import Animated, {
 import { ChipBucket } from "./ChipBucket";
 import { useBucketContext } from "./BucketContext";
 import { BlurView } from "expo-blur";
-import { tVerse, useVerseRelay } from "../utils/Verse";
-import { ePanEvent, usePanManager } from "../Contexts/PanManager";
+import { tVerse } from "../utils/Verse";
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 export function DropScreen() {
@@ -40,7 +39,7 @@ export function BlurScreen({ vActive, layer }: tBlurScreen) {
 
   const animatedProps = useAnimatedProps(() => ({
     intensity: vActive.shared.value
-      ? withTiming(20, { duration: 300 })
+      ? withTiming(40, { duration: 300 })
       : withTiming(0, { duration: 300 }),
   }));
   return (
@@ -57,7 +56,7 @@ export function BlurScreen({ vActive, layer }: tBlurScreen) {
         },
       ]}
       pointerEvents={"none"}
-      tint={"light"}
+      tint={"extraLight"}
     />
   );
 }

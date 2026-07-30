@@ -17,7 +17,6 @@ import {
   AudioManager,
   AnalyserNode,
 } from "react-native-audio-api";
-import { useUserContext } from "./UserContext";
 const noteFiles = {
   56: require("../../assets/56.wav"),
   58: require("../../assets/58.wav"),
@@ -46,6 +45,7 @@ const harpFiles = {
 const harmonicScale = [0, 2, 4, 5, 7, 9, 11] as const;
 type triads = "dim" | "sus2" | "min" | "maj" | "sus4" | "aug";
 const triadNames = ["dim", "sus2", "min", "maj", "sus4", "aug"] as const;
+
 const triadIntervals: Record<triads, number[]> = {
   dim: [0, 3, 6],
   sus2: [0, 2, 7],
@@ -61,13 +61,37 @@ const seasonIntervals: tSeasonMap<number[]> = {
   spring: [0, 4, 7, 12, 16, 19],
 };
 export type tChord = {
-  color: tCLARColor;
-  seasons: tSeasonMap<number>;
-  mainSeason: keyof tSeasonMap<number>;
-  triad: triads;
   root: number;
-  intervals: number[];
+  season: keyof tSeasonMap<number[]>;
+  triad: triads;
+  length: number;
+  arpeggio: "up" | "down";
+  clarColor?: tCLARColor;
 };
+function fChordCode(chord: tChord): string {
+  return (
+    chord.root +
+    "," +
+    chord.season +
+    "," +
+    chord.triad +
+    "," +
+    chord.length +
+    "," +
+    chord.arpeggio
+  );
+}
+function fChordToIntervals(chord: tChord): number[] {
+  const triadInts = triadIntervals[chord.triad];
+  const seasonInts = seasonIntervals[chord.season];
+  for (let i = 0; i < triadInts.length; i++) {
+    seasonInts[i] = triadInts[i];
+  }
+  const intervals = seasonInts.map((interval) => interval + chord.root);
+  intervals.splice(chord.length, intervals.length - chord.length);
+  intervals.sort((a, b) => (chord.arpeggio === "up" ? a - b : b - a));
+  return intervals;
+}
 export type tChordReturn = (delay: number) => void;
 export type eSFX = "fan" | "grab" | "drop";
 const sfxFiles: Record<eSFX, any> = {
@@ -75,25 +99,25 @@ const sfxFiles: Record<eSFX, any> = {
   grab: require("../../assets/PickupCard.wav"),
   drop: require("../../assets/dropCard.wav"),
 };
+
 export type tSoundContext = {
   fStartChord?: (color: tCLARColor, harp?: boolean) => tChordReturn;
   fPlaySFX?: (sfx: eSFX) => void;
   analyzer?: RefObject<AnalyserNode>;
   fPlayNote?: (midiNote: number, harp?: boolean) => void;
-  fShepardNotes?: () => void;
+  fAddPaintsToPresent?: (id: string, paints: tPaint[]) => void;
 };
 
 const ctx = createContext<tSoundContext>({});
 export const useSoundContext = () => useContext(ctx);
 export default function SoundContext({ children }: { children: ReactNode }) {
-  const { paintsPresent } = useUserContext();
-  const paintMap = useRef<Record<string, tChord>>({}).current;
   const roomSize = 1;
   const decayTime = 1;
+  const paintChords = useRef<Record<string, tChord>>({}).current;
   const audioContext = useRef<AudioContext>(new AudioContext()).current;
   const buffers = useRef<Record<number, AudioBuffer | null>>({}).current;
   const harpBuffers = useRef<Record<number, AudioBuffer | null>>({}).current;
-  const lastChords = useRef<tChord[]>([]).current;
+  const paintsPresent = useRef<Record<string, tPaint[]>>({}).current;
   const analyzer = useRef<AnalyserNode | null>(null);
   const sfxBuffers = useRef<Record<eSFX, AudioBuffer | null>>({
     fan: null,
@@ -120,17 +144,25 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     gainNode.gain.value = 0.01;
     gainNode.connect(convolver);
     convolver.connect(analyzer.current!);
-    const chord =
-      paintMap[color.c + "," + color.l + "," + color.ar] || fChooseChord(color);
-    console.log("Starting chord", chord.intervals, color);
     const chordNodes: AudioBufferSourceNode[] = [];
-    for (let i = 0; i < chord.intervals.length; i++) {
-      const node = fSetupNode(chord.intervals[i], gainNode, harp);
+    let chord =
+      paintChords[
+        color.c.toFixed(2) +
+          "," +
+          color.l.toFixed(2) +
+          "," +
+          color.ar.toFixed(2)
+      ];
+    chord = chord || fChooseChord(color);
+    console.log("fStartChord", color, chord, fChordToIntervals(chord));
+    const intervals = fChordToIntervals(chord);
+    for (let i = 0; i < intervals.length; i++) {
+      const node = fSetupNode(intervals[i], gainNode, harp);
       chordNodes.push(node);
-      node.start(audioContext.currentTime + (0.5 / chord.intervals.length) * i);
+      node.start(audioContext.currentTime + (0.5 / intervals.length) * i);
     }
     gainNode.gain.linearRampToValueAtTime(
-      0.5 / chord.intervals.length,
+      0.5 / intervals.length,
       audioContext.currentTime + 0.3,
     );
     return (delay: number = 0) => {
@@ -195,33 +227,85 @@ export default function SoundContext({ children }: { children: ReactNode }) {
 
   function fChooseChord(color: tCLARColor): tChord {
     let { c, l, ar } = color;
+    c = Math.round(c * 100) / 100;
     let root =
       harmonicScale[Math.floor((ar / (Math.PI * 2)) * harmonicScale.length)] +
       62;
     if (c * l < 0.1) {
       root -= 12;
+    } else if (c * l > 0.9) {
+      root += 12;
     }
     const seasons = fGetSeasons(color);
-    let diffs = seasons;
-    let mainSeason = Object.keys(diffs).reduce((a, b) =>
-      diffs[a] > diffs[b] ? a : b,
-    ) as keyof tSeasonMap<number>;
-    let triad: triads = "maj";
-    let intervals = seasonIntervals[mainSeason] as number[];
-    let length = Math.ceil((intervals.length - 1) * Math.min(c / 0.45, 1)) + 1;
-    intervals = intervals.slice(0, length);
-    for (let i = 0; i < intervals.length; i++) {
-      intervals[i] = intervals[i] + root;
-    }
+    let season = Object.keys(seasons).reduce((a, b) =>
+      seasons[a as keyof typeof seasons] > seasons[b as keyof typeof seasons]
+        ? a
+        : b,
+    ) as keyof typeof seasons;
+    let triad: triads =
+      season === "spring" || season === "autumn" ? "maj" : "min";
+    const length = Math.ceil(c * (seasonIntervals[season].length - 1)) + 1;
+    const arpeggio = l > 0.5 ? "up" : "down";
+    return { root, season, triad, length, arpeggio };
+  }
 
-    return {
-      color,
-      seasons,
-      mainSeason,
-      root,
-      intervals,
-      triad,
-    };
+  function fMatchingChord(chordA: tChord, chordB: tChord): boolean {
+    if (chordA.root !== chordB.root) return false;
+    if (chordA.triad !== chordB.triad) return false;
+    if (chordA.season !== chordB.season) return false;
+    if (chordA.length !== chordB.length) return false;
+    if (chordA.arpeggio !== chordB.arpeggio) return false;
+    return true;
+  }
+
+  function fAssignPaintsToChords() {
+    const allPaints = Object.values(paintsPresent).flat();
+
+    const chordMap: Record<string, tPaint[]> = {};
+    allPaints.forEach((paint) => {
+      const chord = fChooseChord(paint.clar);
+      const chordCode =
+        chord.root +
+        "," +
+        chord.season +
+        "," +
+        chord.length +
+        "," +
+        chord.arpeggio;
+      if (!chordMap[chordCode]) {
+        chordMap[chordCode] = [];
+      }
+      chordMap[chordCode].push(paint);
+    });
+    const finalChords: Record<string, tChord> = {};
+    for (const chordCode in chordMap) {
+      const paints = chordMap[chordCode];
+      if (paints.length > 1) {
+        paints.sort((a, b) => a.clar.l * a.clar.c - b.clar.l * b.clar.c);
+        for (let i = 0; i < paints.length; i++) {
+          let triadIndex = 4 - Math.floor(paints.length / 2) + i;
+          triadIndex = Math.max(0, Math.min(triadIndex, triadNames.length - 1));
+          const triad = triadNames[triadIndex];
+          const colorCode =
+            paints[i].clar.c.toFixed(2) +
+            "," +
+            paints[i].clar.l.toFixed(2) +
+            "," +
+            paints[i].clar.ar.toFixed(2);
+          finalChords[colorCode] = { ...fChooseChord(paints[i].clar), triad };
+        }
+      } else {
+        const colorCode =
+          paints[0].clar.c.toFixed(2) +
+          "," +
+          paints[0].clar.l.toFixed(2) +
+          "," +
+          paints[0].clar.ar.toFixed(2);
+        finalChords[colorCode] = fChooseChord(paints[0].clar);
+      }
+    }
+    console.log("finalChords", finalChords);
+    Object.assign(paintChords, finalChords);
   }
 
   function fPlaySFX(sfx: eSFX, delay: number = 0) {
@@ -239,57 +323,10 @@ export default function SoundContext({ children }: { children: ReactNode }) {
       source.start(audioContext.currentTime + delay / 1000);
     }
   }
-
-  function fMapPaintsToChords() {
-    const rootMap: Record<string, tCLARColor[]> = {};
-    for (let i = 0; i < paintsPresent.length; i++) {
-      const chord = fChooseChord(paintsPresent[i].clar);
-      const key = chord.intervals.toString();
-      if (!rootMap[key]) {
-        rootMap[key] = [];
-      }
-      rootMap[key].push(chord.color);
-    }
-
-    for (let root in rootMap) {
-      const colors = rootMap[root];
-      if (colors.length > 1) {
-        colors.sort((a, b) => b.c * b.l - a.c * a.l);
-        console.log("Mapping paints to chords", root, colors.length);
-        for (let i = 0; i < colors.length; i++) {
-          const chord = fChooseChord(colors[i]);
-          const index = Math.max(
-            0,
-            Math.min(2 + Math.ceil(colors.length / 2) - i, 5),
-          );
-          const triad = triadIntervals[triadNames[index] as triads];
-          console.log(
-            "Mapping paint to chord",
-            colors[i],
-            chord.intervals,
-            index,
-            triad,
-          );
-          for (let j = 0; j < 3; j++) {
-            chord.intervals[j] = triad[j] + chord.root;
-          }
-          if (colors[i].l < 0.5) {
-            chord.intervals.sort((a, b) => b - a);
-          } else {
-            chord.intervals.sort((a, b) => a - b);
-          }
-          paintMap[colors[i].c + "," + colors[i].l + "," + colors[i].ar] =
-            chord;
-        }
-      } else {
-        const chord = fChooseChord(colors[0]);
-        paintMap[colors[0].c + "," + colors[0].l + "," + colors[0].ar] = chord;
-      }
-    }
+  function fAddPaintsToPresent(id: string, paints: tPaint[]) {
+    paintsPresent[id] = paints;
+    fAssignPaintsToChords();
   }
-  useEffect(() => {
-    fMapPaintsToChords();
-  }, [paintsPresent]);
 
   useEffect(() => {
     Object.keys(noteFiles).forEach((key) => {
@@ -324,6 +361,7 @@ export default function SoundContext({ children }: { children: ReactNode }) {
         fPlaySFX,
         fPlayNote,
         analyzer,
+        fAddPaintsToPresent,
       }}
     >
       {children}

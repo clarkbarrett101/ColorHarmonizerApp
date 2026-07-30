@@ -283,7 +283,7 @@ export function ChipSelector(props: tChipSelector) {
         origin={props.origin}
         arcLength={props.arcLength * 1.2}
         targetColor={vTargetColor.state}
-        radius={props.radii[1] * 1.3}
+        radius={props.radii[1] * 1.6}
         rotationR={rotationR}
         targetNumber={4}
         groupLayer={props.layer || eLayers.chipFan}

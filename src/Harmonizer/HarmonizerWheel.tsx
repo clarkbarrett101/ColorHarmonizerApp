@@ -173,7 +173,7 @@ export function HarmonizerWheel({
         SelectColor(paint.clar.ar);
       },
       origin: [origin[0] - 100, origin[1]],
-      radii: [100, 300],
+      radii: [200, 300],
       targetLayerRange: [eLayers.chipHand, eLayers.chipHand + 10],
       icon: "search",
     });

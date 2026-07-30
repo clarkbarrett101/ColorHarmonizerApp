@@ -45,6 +45,9 @@ const icons = {
     "M-23 1C-22-9-12-19-2-20L5-13C4-4-7 8-16 8ZM-16 9C-11 8-10 8-7 6L-5 10C0 11 5 10 12 6 14 7 12 6 14 7L14 15C6 21-9 21-16 15ZM-6 5C1-1 2-2 6-11 11-13 13-13 18-13L19-10l-2 0 0 3-3 0 0 5 3 0 0 3L19 1C19 1 4 11-4 9ZM18 0l0-3L15-3 15-6 18-6 18-9 21-9 21-6 24-6 24-3 21-3 21 0Z",
   swap: "M44 9 38 12C39 13 40 14 41 15 50 14 56 12 65 8L65-12C64-13 63-14 61-15L61 1C51 6 48 7 41 7L41 7ZM0 0 0 0C9 5 11 6 20 6L22-4 40 6C48 6 54 4 60 0L60-20C53-23 44-25 41-25 34-21 27-16 20-9 22-18 24-20 28-25 17-25 8-23 0-17L0-17ZM106 15C112 16 125 15 141 8L141-12C140-13 139-14 137-15L137 1C122 7 116 8 112 8ZM104 8 94 14C90 13 83 11 81 9L81 4C90 7 97 8 103 8ZM76 0 76 0C80 4 98 8 105 7L115-1 112 7C115 7 127 5 136 0L136-20C129-23 123-25 116-25L113-7 90-20 97-23 95-25C90-24 86-24 76-20ZM114-28 111-10 94-20 100-23C81-45 41-32 22-13 41-49 84-50 108-26ZM21 17 23-1 41 9 35 12C54 34 94 21 113 2 94 38 51 39 27 15ZM6 4 6 9C12 13 15 13 19 14L20 7C14 7 11 7 6 4",
 };
+/**
+ * @param radii
+ */
 export type tChipBucket = tRadialObject & {
   id?: number;
   callback?: (paint: tPaint) => void;
@@ -81,8 +84,8 @@ export const ChipBucket = ({
   useEffect(() => {
     if (vHeldChipRelay.state != null) {
       if (
-        vHeldChipRelay.state > targetLayerRange[0] &&
-        vHeldChipRelay.state < targetLayerRange[1] &&
+        vHeldChipRelay.state >= targetLayerRange[0] &&
+        vHeldChipRelay.state <= targetLayerRange[1] &&
         !vActive.shared.value
       ) {
         vActive.dispatch(true);

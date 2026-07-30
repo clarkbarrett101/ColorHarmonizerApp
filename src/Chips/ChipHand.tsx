@@ -65,7 +65,8 @@ export const ChipHand = ({
         event.absoluteX - origin[0],
       );
       const index = Math.round(
-        (1 - (startAngle - angle) / arcLength) * userPalette.length - 0.5,
+        (1 - (startAngle - angle) / arcLength) * userPalette.paints.length -
+          0.5,
       );
       holdChip(eLayers.chipHand + index);
       vDropScreen.shared.value = true;
@@ -84,7 +85,8 @@ export const ChipHand = ({
       );
 
       const index = Math.round(
-        (1 - (startAngle - angle) / arcLength) * userPalette.length - 0.5,
+        (1 - (startAngle - angle) / arcLength) * userPalette.paints.length -
+          0.5,
       );
       const distance = Math.sqrt(
         (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
@@ -114,7 +116,7 @@ export const ChipHand = ({
     return vPanX.shared.value;
   });
   const dPany = useDerivedValue(() => {
-    return vPanY.shared.value;
+    return vPanY.shared.value - 30;
   });
   const dRotation = useDerivedValue(() => {
     return vVelocityX.shared.value * 0.0005;
@@ -125,6 +127,9 @@ export const ChipHand = ({
   const dZIndex = useDerivedValue(() => {
     return eLayers.grabbedChip + 100;
   });
+  const dOffset = useDerivedValue(() => {
+    return 0;
+  });
   const handPanModifier = fLerpModifierFactory(
     11,
     {
@@ -134,6 +139,8 @@ export const ChipHand = ({
       scaleX: dScale,
       scaleY: dScale,
       zIndex: dZIndex,
+      radialOffsetY: dOffset,
+      radialOffsetX: dOffset,
     },
     panWeight,
     [
@@ -162,10 +169,7 @@ export const ChipHand = ({
     deps: [vPanX.shared, vPanY.shared, touching.shared, slowAngle],
     modifier: (input: tAttributeMap, last?: tAttributeMap) => {
       "worklet";
-      if (
-        input.id > eLayers.chipHand + userPalette.length ||
-        input.id < eLayers.chipHand
-      ) {
+      if (input.id > eLayers.chipHand + 20 || input.id < eLayers.chipHand) {
         return input;
       }
       let diff = Math.abs(input.rotateZ - slowAngle.value) / arcLength;
@@ -216,9 +220,12 @@ export const ChipHand = ({
   );
   const chord = useRef<tChordReturn | null>(null);
   useEffect(() => {
-    if (selectVerse.state > -1 && selectVerse.state < userPalette.length) {
+    if (
+      selectVerse.state > -1 &&
+      selectVerse.state < userPalette.paints.length
+    ) {
       chord.current?.(0);
-      chord.current = fStartChord?.(userPalette[selectVerse.state].clar);
+      chord.current = fStartChord?.(userPalette.paints[selectVerse.state].clar);
     }
   }, [selectVerse.state]);
   useEffect(() => {
@@ -239,7 +246,7 @@ export const ChipHand = ({
       callback: (paint) => {
         addPaintCallback(paint);
       },
-      targetLayerRange: [eLayers.chipFan - 50, eLayers.chipFan + 50],
+      targetLayerRange: [0, eLayers.chipFan + 50],
       id: 21,
       zIndex: eLayers.buckets + 100,
       icon: "addChip",
@@ -265,7 +272,7 @@ export const ChipHand = ({
     <>
       <ChipFan
         groupLayer={eLayers.chipHand}
-        paintsA={userPalette}
+        paintsA={userPalette.paints}
         size={"default"}
         radius={radii[0]}
         origin={origin}

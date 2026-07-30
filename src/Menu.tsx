@@ -1,28 +1,19 @@
 import { Dimensions, PanResponder, View } from "react-native";
-import { fCLARColorToRGB, fRGBToCLARColor, tCLARColor } from "./utils/CLAcolor";
+import { fCLARColorToRGB } from "./utils/CLAcolor";
 import { RadialGraphic } from "./Radials/RadialGraphic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { Text } from "react-native-svg";
 import {
-  useDerivedValue,
   useSharedValue,
-  withTiming,
-  Easing,
   useAnimatedReaction,
   withSpring,
 } from "react-native-reanimated";
 import { tRadialObject, tSector, tSectorGroup } from "./Radials/SectorTypes";
 import { tAttributeModifier, tAttributeMap } from "./utils/Actor";
-import {
-  RadialContext,
-  wDefaultAngleToChord,
-  wDefaultChordToAngle,
-} from "./Radials/RadialContext";
-import { tVerse, useVerse } from "./utils/Verse";
+import { RadialContext, wDefaultAngleToChord } from "./Radials/RadialContext";
+import { tVerse } from "./utils/Verse";
 import { ePanEvent, usePanManager } from "./Contexts/PanManager";
 import { eLayers, useUserContext } from "./Contexts/UserContext";
-import { useSoundContext } from "./Contexts/SoundContext";
-import { scheduleOnRN } from "react-native-worklets";
 import { ePages } from "./Driver";
 import React from "react";
 

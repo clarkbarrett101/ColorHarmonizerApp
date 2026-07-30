@@ -15,6 +15,7 @@ import Animated, {
   useDerivedValue,
   useSharedValue,
   withDelay,
+  withRepeat,
   withTiming,
 } from "react-native-reanimated";
 import {
@@ -63,6 +64,8 @@ export type tPaintChip = tRadialObject & {
   relativeZ?: number;
   sideA?: boolean;
   rotationOffset?: number;
+  labels?: boolean;
+  draggable?: boolean;
 };
 
 export const fLerp = (a: number, b: number, t: number): number => {
@@ -81,6 +84,8 @@ export const PaintChip = ({
   chipID,
   sideA = true,
   rotationOffset = 0,
+  labels = true,
+  draggable = true,
 }: tPaintChip) => {
   /// O N  M O U N T ///
 
@@ -95,6 +100,7 @@ export const PaintChip = ({
     vPanX,
     vPanY,
     vVelocityX,
+    vSwayTimer,
   } = useChipContext();
   const { vDropScreen } = useBucketContext();
   const { fStartChord, fPlaySFX } = useSoundContext();
@@ -106,11 +112,14 @@ export const PaintChip = ({
     x: origin[0] + Math.cos(rotationR) * radialOffset,
     y: origin[1] + Math.sin(rotationR) * radialOffset,
   };
+  const offset = Math.abs(rotationR) > 11 / 7 ? -radialOffset : radialOffset;
   const initialAttributes = useMemo(
     () => ({
       rotateZ: rotateZ,
-      translateX: startPosition.x,
-      translateY: startPosition.y,
+      translateX: origin[0],
+      translateY: origin[1],
+      radialOffsetX: offset,
+      zIndex: id,
       id,
       rotateX: 0,
       shadowRadius: 3,
@@ -200,14 +209,22 @@ export const PaintChip = ({
   const dScale = useDerivedValue(() => {
     return 1.3;
   });
+  const dOffset = useDerivedValue(() => {
+    return 0;
+  });
+  const dPanY = useDerivedValue(() => {
+    return vPanY.shared.value - 30;
+  });
   const panMod = fLerpModifierFactory(
     1,
     {
       translateX: vPanX.shared,
-      translateY: vPanY.shared,
+      translateY: dPanY,
       rotateZ: dRotation,
       scaleX: dScale,
       scaleY: dScale,
+      radialOffsetX: dOffset,
+      radialOffsetY: dOffset,
     },
     panWeight,
     [vPanX.shared, vPanY.shared, vVelocityX.shared, panWeight],
@@ -230,6 +247,27 @@ export const PaintChip = ({
       };
     },
   };
+  const chipSway = useSharedValue(1);
+  const swayCycle = Math.random() * 4000 + 500;
+  const swayModifier: tAttributeModifier = {
+    modID: 50,
+    deps: [vSwayTimer, chipSway],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      return {
+        ...input,
+        rotateZ:
+          input.rotateZ +
+          ((chipSway.value - 1) * Math.sin(vSwayTimer.value * 4 * 3.14)) / 100,
+        translateX:
+          input.translateX +
+          (chipSway.value - 1) * Math.cos(vSwayTimer.value * 2 * 3.14),
+        translateY:
+          input.translateY -
+          (chipSway.value - 1) * Math.sin(vSwayTimer.value * 2 * 3.14),
+      };
+    },
+  };
   useEffect(() => {
     actor.addModifier(flipModifier);
     actor.addModifier(panMod);
@@ -245,6 +283,7 @@ export const PaintChip = ({
   const panGesture = usePanGesture({
     minDistance: 0,
     onActivate: (event) => {
+      if (!draggable) return;
       panWeight.value = withTiming(1, { duration: 300 });
       vPanX.shared.value = event.absoluteX;
       vPanY.shared.value = event.absoluteY;
@@ -252,11 +291,13 @@ export const PaintChip = ({
       vDropScreen.shared.value = true;
     },
     onUpdate: (event) => {
+      if (!draggable) return;
       vPanX.shared.value = event.absoluteX;
       vPanY.shared.value = event.absoluteY;
       vVelocityX.shared.value = event.velocityX;
     },
     onDeactivate: (event) => {
+      if (!draggable) return;
       panWeight.value = withTiming(0, { duration: 300 });
       holdChip();
       vDropScreen.shared.value = false;
@@ -265,6 +306,7 @@ export const PaintChip = ({
   const touchGesture = useLongPressGesture({
     minDuration: 100,
     onActivate: (event) => {
+      if (!draggable) return;
       panWeight.value = withTiming(1, { duration: 200 });
       vPanX.shared.value = event.absoluteX;
       vPanY.shared.value = event.absoluteY;
@@ -272,6 +314,7 @@ export const PaintChip = ({
       vDropScreen.shared.value = true;
     },
     onTouchesUp: (event) => {
+      if (!draggable) return;
       panWeight.value = withTiming(0, { duration: 200 });
       holdChip();
       vDropScreen.shared.value = false;
@@ -293,6 +336,8 @@ export const PaintChip = ({
           { scaleY: attributes.scaleY || 1 },
           { scaleX: attributes.scaleX || 1 },
           { rotateZ: `${attributes.rotateZ || 0}rad` },
+          { translateX: attributes.radialOffsetX || 0 },
+          { translateY: attributes.radialOffsetY || 0 },
           { rotateX: `${attributes.rotateX || 0}rad` },
         ],
       };
@@ -309,6 +354,7 @@ export const PaintChip = ({
           height: attributes.shadowY || 0,
         },
         shadowRadius: attributes.shadowRadius || 0,
+        shadowOpacity: attributes.shadowOpacity || 0,
       };
     });
     return style;
@@ -392,26 +438,30 @@ export const PaintChip = ({
               fontWeight={500}
             >
               {paint?.name}
-              <TSpan
-                x="0"
-                dy="3.5"
-                fontSize="3"
-                fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
-                fontWeight={200}
-                textAnchor="middle"
-              >
-                {paint?.brand}
-              </TSpan>
-              <TSpan
-                x="0"
-                dy="3"
-                fontSize="2.5"
-                fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
-                fontWeight={100}
-                textAnchor="middle"
-              >
-                {"( " + paint?.label + " )"}
-              </TSpan>
+              {labels && (
+                <>
+                  <TSpan
+                    x="0"
+                    dy="3.5"
+                    fontSize="3"
+                    fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
+                    fontWeight={200}
+                    textAnchor="middle"
+                  >
+                    {paint?.brand}
+                  </TSpan>
+                  <TSpan
+                    x="0"
+                    dy="3"
+                    fontSize="2.5"
+                    fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
+                    fontWeight={100}
+                    textAnchor="middle"
+                  >
+                    {"( " + paint?.label + " )"}
+                  </TSpan>
+                </>
+              )}
             </Text>
           </Svg>
         </GestureDetector>

@@ -10,6 +10,7 @@ import {
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 import React, { useEffect, useRef, useState } from "react";
 import { useUserContext } from "../Contexts/UserContext";
+import { useSoundContext } from "../Contexts/SoundContext";
 const clarColorsList: tPaint[] = require("../clarColors.json");
 
 export type tChipFan = {
@@ -88,6 +89,7 @@ export const ColorChipFan = ({
   const [paintsB, setPaintsB] = useState<tPaint[]>([]);
   const [sideABuffer, setSideABuffer] = useState(sideA);
   const lastColor = useSharedValue<tCLARColor>(targetColor);
+  const { fAddPaintsToPresent } = useSoundContext();
 
   function fNearestColors() {
     const foundColors = findColors(targetColor, targetNumber, brand);
@@ -104,6 +106,10 @@ export const ColorChipFan = ({
 
     setSideABuffer(sideA);
   }
+  useEffect(() => {
+    fAddPaintsToPresent("chipStack", [...paintsA, ...paintsB]);
+  }, [paintsA, paintsB]);
+
   useEffect(() => {
     if (
       targetColor.c !== lastColor.value.c ||

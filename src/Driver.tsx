@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import React, { ReactNode, useEffect } from "react";
+import React, { Profiler, ReactNode, useEffect } from "react";
 import PanManager from "./Contexts/PanManager";
 import UserContext, { eLayers } from "./Contexts/UserContext";
 import BucketContext from "./Buckets/BucketContext";
@@ -54,21 +54,40 @@ const Driver = () => {
   };
 
   return (
-    <ChipContext>
-      <UserContext>
-        <SoundContext>
-          <BucketContext>
-            {vPage.state !== "ColorHarmonizer" && <BGGradient />}
-            <DropScreen />
-            {vPage.state !== "Menu" && (
-              <MenuButton onPress={() => vPage.dispatch("Menu")} />
-            )}
-            <PanManager>{pageMap[vPage.state]}</PanManager>
-            <ChipHand />
-          </BucketContext>
-        </SoundContext>
-      </UserContext>
-    </ChipContext>
+    <Profiler
+      id="Driver"
+      onRender={(
+        id,
+        phase,
+        actualDuration,
+        baseDuration,
+        startTime,
+        commitTime,
+      ) => {
+        console.log("Driver Rendered", {
+          id,
+          phase,
+          actualDuration,
+          baseDuration,
+        });
+      }}
+    >
+      <ChipContext>
+        <UserContext>
+          <SoundContext>
+            <BucketContext>
+              {vPage.state !== "ColorHarmonizer" && <BGGradient />}{" "}
+              <DropScreen />
+              {vPage.state !== "Menu" && (
+                <MenuButton onPress={() => vPage.dispatch("Menu")} />
+              )}
+              <PanManager>{pageMap[vPage.state]}</PanManager>
+              <ChipHand />
+            </BucketContext>
+          </SoundContext>
+        </UserContext>
+      </ChipContext>
+    </Profiler>
   );
 };
 

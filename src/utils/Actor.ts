@@ -28,7 +28,9 @@ export type tAttribute =
   | "held"
   | "shadowColor"
   | "shadowOpacity"
-  | "strokeWidth";
+  | "strokeWidth"
+  | "radialOffsetX"
+  | "radialOffsetY";
 
 export type tAttributeMap = { [key in tAttribute]?: number };
 

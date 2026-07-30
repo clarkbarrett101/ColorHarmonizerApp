@@ -3,6 +3,7 @@ import React, {
   ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -11,6 +12,12 @@ import { tPaint } from "../utils/CLAcolor";
 import { tVerse, useVerse } from "../utils/Verse";
 import { tChipStatus } from "../Chips/PaintChip";
 import { tActor, tAttributeModifier } from "../utils/Actor";
+import {
+  SharedValue,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 
 export type tChipContext = {
   holdChip: (chipID?: number, status?: tChipStatus) => void;
@@ -29,6 +36,7 @@ export type tChipContext = {
   allChipActors?: Record<number, tActor>;
   registerModifier?: (attributeModifier: tAttributeModifier) => number;
   unregisterModifier?: (id: number) => void;
+  vSwayTimer?: SharedValue<number>;
 };
 
 export const Context = createContext<tChipContext>({
@@ -44,12 +52,18 @@ export const Context = createContext<tChipContext>({
   allChipActors: {},
   registerModifier: () => 0,
   unregisterModifier: () => {},
+  vSwayTimer: null,
 });
 export const useChipContext = () => useContext(Context);
 
 export default function UserContext({ children }: { children: ReactNode }) {
   const allModifiers = useRef<Record<number, tAttributeModifier>>({}).current;
   const allChipActors = useRef<Record<number, tActor>>({}).current;
+  const vSwayTimer = useSharedValue(0);
+  useEffect(() => {
+    vSwayTimer.value = withRepeat(withTiming(1, { duration: 4000 }), -1, true);
+  }, []);
+
   const registerModifier = useCallback(
     (attributeModifier: tAttributeModifier) => {
       const id = attributeModifier.modID;
@@ -122,6 +136,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
       allChipActors,
       registerModifier,
       unregisterModifier,
+      vSwayTimer,
     }),
     [heldChipPaint],
   );

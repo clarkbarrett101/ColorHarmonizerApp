@@ -47,6 +47,7 @@ export function ColorHarmonizer({}: tColorHarmonizer) {
   return (
     <>
       <BGGradient dARs={vSelectedAngles.shared} dCs={dCs} dLs={dLs} />
+
       {vPhase?.state === "wheel" ? (
         <HarmonizerWheel
           draggable

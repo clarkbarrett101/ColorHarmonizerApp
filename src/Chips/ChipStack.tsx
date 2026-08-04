@@ -9,8 +9,10 @@ import {
 } from "../utils/CLAcolor";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 import React, { useEffect, useRef, useState } from "react";
-import { useUserContext } from "../Contexts/UserContext";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { useSoundContext } from "../Contexts/SoundContext";
+import { View } from "react-native";
+import { tRadialObject } from "../Radials/SectorTypes";
 const clarColorsList: tPaint[] = require("../clarColors.json");
 
 export type tChipFan = {
@@ -139,4 +141,50 @@ export function AccentChipFan({
     ar: vAccentAR.state,
   };
   return <ColorChipFan targetColor={targetColor} brand={brand} {...rest} />;
+}
+type tChipRow = tRadialObject &
+  Partial<tPaintChip> & {
+    paints: tPaint[];
+    id: number;
+    grouped: boolean;
+  };
+export function ChipRow({ id, paints, grouped, ...radialProps }: tChipRow) {
+  if (!grouped)
+    return (
+      <>
+        {paints.map((paint, index) => (
+          <PaintChip
+            key={`${id}-${index}`}
+            paintA={paint}
+            chipID={[id, index]}
+            size={"small"}
+            {...radialProps}
+          />
+        ))}
+      </>
+    );
+  return (
+    <View
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        shadowColor: "#000",
+        shadowOffset: { width: -2, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 3,
+        zIndex: id,
+      }}
+    >
+      {paints.map((paint, index) => (
+        <PaintChip
+          key={`${id}-${index}`}
+          paintA={paint}
+          chipID={[id, index]}
+          size={"small"}
+          {...radialProps}
+        />
+      ))}
+    </View>
+  );
 }

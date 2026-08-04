@@ -3,6 +3,7 @@ import React, {
   ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -16,16 +17,17 @@ import {
 } from "../utils/CLAcolor";
 import { tVerse, useVerse } from "../utils/Verse";
 import { tActor } from "../utils/Actor";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const eLayers = {
   superMax: 2000,
   grabbedChip: 1000,
-  buckets: 800,
-  chipHand: 600,
-  dropScreen: 400,
-  chipFan: 200,
-  panManager: 150,
-  colorMixer: 100,
+  buckets: 900,
+  chipHand: 800,
+  dropScreen: 700,
+  chipFan: 600,
+  panManager: 500,
+  colorMixer: 400,
   background: 10,
 };
 
@@ -60,10 +62,44 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const vAccentC = useVerse<number>(1);
   const vAccentL = useVerse<number>(1);
   const vAccentAR = useVerse<number>(0);
-  const [userPalette, setUserPalette] = useState<tPalette>(
-    fGetRandomPalette(4),
-  );
-
+  const [userPalette, setUserPalette] = useState<tPalette>({
+    paints: [],
+    name: Math.random().toString(36).substring(2, 7),
+  });
+  const loadPalette = async () => {
+    try {
+      const value = await AsyncStorage.getItem("userPalette");
+      if (value !== null) {
+        console.log("data:" + value);
+        return JSON.parse(value);
+      } else {
+        console.log("setting empty data");
+        let pal = await storePalette();
+        return pal;
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+  const storePalette = async () => {
+    try {
+      const jsonValue = JSON.stringify(userPalette);
+      await AsyncStorage.setItem("userPalette", jsonValue);
+      return userPalette;
+    } catch (e) {
+      console.log(e);
+    }
+  };
+  useEffect(() => {
+    loadPalette().then((pal) => {
+      if (pal) {
+        setUserPalette(pal);
+      }
+    });
+  }, []);
+  useEffect(() => {
+    storePalette();
+  }, [userPalette]);
   const addPaint = useCallback((paint: tPaint, index?: number) => {
     setUserPalette((prev) => {
       if (index !== undefined) {

@@ -118,13 +118,24 @@ export default function SoundContext({ children }: { children: ReactNode }) {
   const buffers = useRef<Record<number, AudioBuffer | null>>({}).current;
   const harpBuffers = useRef<Record<number, AudioBuffer | null>>({}).current;
   const paintsPresent = useRef<Record<string, tPaint[]>>({}).current;
-  const analyzer = useRef<AnalyserNode | null>(null);
+  const masterGain = useRef<GainNode>(audioContext.createGain()).current;
+  const chordsPlaying = useRef<number>(0);
   const sfxBuffers = useRef<Record<eSFX, AudioBuffer | null>>({
     fan: null,
     grab: null,
     drop: null,
   }).current;
   const ready = useRef<boolean>(false);
+
+  function fUpdateChordsPlaying(delta: number) {
+    chordsPlaying.current = Math.max(0, chordsPlaying.current + delta);
+
+    console.log(
+      "chordsPlaying",
+      chordsPlaying.current,
+      1 / (chordsPlaying.current + 1),
+    );
+  }
 
   function fStartChord(color: tCLARColor, harp: boolean = false): tChordReturn {
     if (!color || !ready.current) return () => {};
@@ -143,7 +154,7 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     convolver.buffer = impulse;
     gainNode.gain.value = 0.01;
     gainNode.connect(convolver);
-    convolver.connect(analyzer.current!);
+    convolver.connect(masterGain);
     const chordNodes: AudioBufferSourceNode[] = [];
     let chord =
       paintChords[
@@ -165,15 +176,17 @@ export default function SoundContext({ children }: { children: ReactNode }) {
       0.5 / intervals.length,
       audioContext.currentTime + 0.3,
     );
-    return (delay: number = 0) => {
+    const chordReturn: tChordReturn = (delay: number = 0) => {
+      gainNode.gain.cancelScheduledValues(audioContext.currentTime);
       gainNode.gain.linearRampToValueAtTime(
-        0.001,
-        audioContext.currentTime + 0.1 + delay,
+        0.00001,
+        audioContext.currentTime + delay,
       );
       chordNodes.forEach((node) => {
-        node.stop(audioContext.currentTime + 0.1 + delay);
+        node.stop(audioContext.currentTime + delay);
       });
     };
+    return chordReturn;
   }
 
   function fPlayNote(midiNote: number) {
@@ -193,7 +206,6 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     convolver.buffer = impulse;
     gainNode.gain.value = 0.01;
     gainNode.connect(convolver);
-    convolver.connect(analyzer.current!);
     const node = fSetupNode(midiNote, gainNode, true);
     node.start(audioContext.currentTime);
     gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.3);
@@ -309,7 +321,7 @@ export default function SoundContext({ children }: { children: ReactNode }) {
   }
 
   function fPlaySFX(sfx: eSFX, delay: number = 0) {
-    if (!analyzer.current) return;
+    if (!ready.current) return;
     const buffer = sfxBuffers[sfx];
     if (buffer) {
       const source = audioContext.createBufferSource();
@@ -347,10 +359,8 @@ export default function SoundContext({ children }: { children: ReactNode }) {
         sfxBuffers[sfx] = decodedBuffer;
       });
     });
-    analyzer.current = audioContext.createAnalyser();
-    analyzer.current.fftSize = 64;
-    analyzer.current.smoothingTimeConstant = 0.8;
-    analyzer.current.connect(audioContext.destination);
+    masterGain.gain.value = 1;
+    masterGain.connect(audioContext.destination);
     ready.current = true;
   }, []);
 
@@ -360,7 +370,6 @@ export default function SoundContext({ children }: { children: ReactNode }) {
         fStartChord,
         fPlaySFX,
         fPlayNote,
-        analyzer,
         fAddPaintsToPresent,
       }}
     >

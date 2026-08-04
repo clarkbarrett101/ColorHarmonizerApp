@@ -8,6 +8,7 @@ import Svg, {
   TSpan,
   Circle,
   Rect,
+  RadialGradient,
 } from "react-native-svg";
 import { tPaint } from "../utils/CLAcolor";
 import Animated, {
@@ -26,7 +27,7 @@ import {
   useTapGesture,
 } from "react-native-gesture-handler";
 import { use, useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions } from "react-native";
+import { Dimensions, View } from "react-native";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { useVerse } from "../utils/Verse";
 import {
@@ -147,11 +148,11 @@ export const PaintChip = ({
   useEffect(() => {
     if (vGrabbed.state) {
       setHeldChipPaint?.(paint);
-      chord.current?.(0);
+      chord.current?.(0.05);
       chord.current = fStartChord?.(paint.clar);
       fPlaySFX?.("grab");
     } else {
-      chord.current?.(0);
+      chord.current?.(0.05);
       chord.current = null;
       fPlaySFX?.("drop");
     }
@@ -203,32 +204,38 @@ export const PaintChip = ({
 
   /// P A N  G E S T U R E///
   flag = "#f00";
-  const dRotation = useDerivedValue(() => {
-    return vVelocityX.shared.value * 0.0005;
-  });
-  const dScale = useDerivedValue(() => {
-    return 1.3;
-  });
-  const dOffset = useDerivedValue(() => {
-    return 0;
-  });
-  const dPanY = useDerivedValue(() => {
-    return vPanY.shared.value - 30;
-  });
-  const panMod = fLerpModifierFactory(
-    1,
-    {
-      translateX: vPanX.shared,
-      translateY: dPanY,
-      rotateZ: dRotation,
-      scaleX: dScale,
-      scaleY: dScale,
-      radialOffsetX: dOffset,
-      radialOffsetY: dOffset,
+
+  const panMod: tAttributeModifier = {
+    modID: 1,
+    deps: [vPanX.shared, vPanY.shared, vVelocityX.shared, panWeight],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      const x = fLerp(
+        input.translateX || 0,
+        vPanX.shared.value,
+        panWeight.value,
+      );
+      const y = fLerp(
+        input.translateY || 0,
+        vPanY.shared.value,
+        panWeight.value,
+      );
+      return {
+        ...input,
+        translateX: x,
+        translateY: y,
+        rotateZ: fLerp(
+          input.rotateZ || 0,
+          input.rotateZ + vVelocityX.shared.value * 0.0005,
+          panWeight.value,
+        ),
+        scaleX: fLerp(input.scaleX || 1, 1.3, panWeight.value),
+        scaleY: fLerp(input.scaleY || 1, 1.3, panWeight.value),
+        zIndex: input.held > 0 ? eLayers.grabbedChip : input.zIndex || 0,
+        radialOffsetX: fLerp(input.radialOffsetX || 0, 0, panWeight.value),
+      };
     },
-    panWeight,
-    [vPanX.shared, vPanY.shared, vVelocityX.shared, panWeight],
-  );
+  };
 
   const dimensions = Dimensions.get("window");
   const shadowModifier: tAttributeModifier = {
@@ -284,7 +291,7 @@ export const PaintChip = ({
     minDistance: 0,
     onActivate: (event) => {
       if (!draggable) return;
-      panWeight.value = withTiming(1, { duration: 300 });
+      panWeight.value = 1;
       vPanX.shared.value = event.absoluteX;
       vPanY.shared.value = event.absoluteY;
       holdChip(id);
@@ -326,7 +333,7 @@ export const PaintChip = ({
   flag = "#f0f";
   const animatedStyle = useAnimatedStyle(() => {
     return actor.get((attributes) => {
-      return {
+      const output = {
         transform: [
           { perspective: 1000 },
           { translateY: attributes.translateY || 0 },
@@ -341,14 +348,22 @@ export const PaintChip = ({
           { rotateX: `${attributes.rotateX || 0}rad` },
         ],
       };
+      return output;
     });
   });
+
   const zStyle = useAnimatedStyle(() => {
     const style = actor.get((attributes) => {
+      if (attributes.held > 0) {
+        console.log(
+          "held chip",
+          attributes.id,
+          attributes.held,
+          attributes.zIndex,
+        );
+      }
       return {
-        zIndex: vGrabbed.shared.value
-          ? eLayers.grabbedChip
-          : attributes.zIndex || 0,
+        zIndex: attributes.zIndex || 0,
         shadowOffset: {
           width: attributes.shadowX || 0,
           height: attributes.shadowY || 0,

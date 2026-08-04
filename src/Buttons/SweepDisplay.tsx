@@ -18,9 +18,13 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-export function SweepDisplay({ origin, radii, layer }: tRadialObject) {
+export function SweepDisplay({
+  origin,
+  radii,
+  layer,
+  opacity,
+}: tRadialObject & { opacity?: number }) {
   const rAnim = useSharedValue(0);
-  const opacity = useSharedValue(0);
   useEffect(() => {
     rAnim.value = withRepeat(
       withTiming(1, { duration: 2000, easing: Easing.linear }),
@@ -55,7 +59,7 @@ export function SweepDisplay({ origin, radii, layer }: tRadialObject) {
           zIndex: layer,
           width: radii[1] * 2,
           height: radii[1] * 2,
-          opacity: 0.5,
+          opacity: opacity ?? 0.5,
         },
         animatedStyle,
       ]}

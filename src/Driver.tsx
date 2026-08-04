@@ -76,7 +76,8 @@ const Driver = () => {
         <UserContext>
           <SoundContext>
             <BucketContext>
-              {vPage.state !== "ColorHarmonizer" && <BGGradient />}{" "}
+              {vPage.state !== "ColorHarmonizer" &&
+                vPage.state !== "ReColorCamera" && <BGGradient />}
               <DropScreen />
               {vPage.state !== "Menu" && (
                 <MenuButton onPress={() => vPage.dispatch("Menu")} />

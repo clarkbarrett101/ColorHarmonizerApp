@@ -12,7 +12,7 @@ import { useRadialContext, RadialContext } from "../Radials/RadialContext";
 import { tSector, tSectorGroup } from "../Radials/SectorTypes";
 import { SectorGroup } from "../Radials/SectorGroup";
 import { scheduleOnRN } from "react-native-worklets";
-import { eLayers } from "../Contexts/UserContext";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { kelvin_table, tTemp } from "./KelvinTemp";
 
 export type tThermSelect = {
@@ -88,6 +88,7 @@ export const ThermSelect = (props: tThermSelect) => {
       unregisterZone("" + origin[0] + origin[1]);
     };
   }, []);
+  const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 0,
     modifier: (input: tAttributeMap) => {
@@ -98,7 +99,7 @@ export const ThermSelect = (props: tThermSelect) => {
         ar: temp.ar,
         l: 0.9,
       };
-      const [r, g, b] = fCLARColorToRGB(clar);
+      const [r, g, b] = fCLARColorToRGB(clar, vColorModel.shared.value);
 
       return {
         ...input,
@@ -162,6 +163,7 @@ export const ThermSelect = (props: tThermSelect) => {
         ring: i,
         children: [text],
         sectors: [sector],
+        origin,
       };
       group.push(<SectorGroup key={i} {...sectorGroup} />);
     }

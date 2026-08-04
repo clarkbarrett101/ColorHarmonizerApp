@@ -24,7 +24,7 @@ import { useIVerse } from "../utils/iVerse";
 import { tTemp, kelvin_table } from "./KelvinTemp";
 import PanManager from "../Contexts/PanManager";
 import { ThermSelect } from "./ThermSelect";
-import { eLayers } from "../Contexts/UserContext";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { GlassView } from "expo-glass-effect";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -45,6 +45,7 @@ export function WallPaintCam() {
       },
     },
   ]);
+  const { vColorModel } = useUserContext();
 
   const [targetColor, setTargetColor] = useState({
     ar: 22 / 7,
@@ -69,7 +70,7 @@ export function WallPaintCam() {
       vTargetTemp.state.k,
     );
     frameSize.value = dimensions ?? frameSize.value;
-    const replacementYUV = fCLARColorToYUV(targetColor);
+    const replacementYUV = fCLARColorToYUV(targetColor, vColorModel.state);
     const filter = Skia.RuntimeEffect.Make(shaderCode);
     const builder = Skia.RuntimeShaderBuilder(filter);
     builder.setUniform("replacementYUV", replacementYUV);
@@ -132,33 +133,34 @@ export function WallPaintCam() {
     });
     return () => unregisterBucket("" + 20);
   }, []);
-  const fill = fCLARColorToString({
-    c: kelvin_table[vSourceTemp.state.k].c,
-    l: 0.8,
-    ar: kelvin_table[vSourceTemp.state.k].ar,
-  });
+  const fill = fCLARColorToString(
+    {
+      c: kelvin_table[vSourceTemp.state.k].c,
+      l: 0.8,
+      ar: kelvin_table[vSourceTemp.state.k].ar,
+    },
+    vColorModel.state,
+  );
   return (
-    <View style={{ flex: 1 }}>
-      <PanManager zIndex={eLayers.chipHand} drawSectors>
-        <ThermSelect
-          totalArcLength={2 / 7}
-          mainRotationR={11 / 7}
-          width={75}
-          height={75}
-          tempK={vTargetTemp.state.k}
-          setTemp={(temp) => vTargetTemp.dispatch(temp)}
-          origin={[SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2 - 100]}
-        />
-        <ThermSelect
-          totalArcLength={2 / 7}
-          mainRotationR={11 / 7}
-          width={75}
-          height={75}
-          tempK={vSourceTemp.state.k}
-          setTemp={(temp) => vSourceTemp.dispatch(temp)}
-          origin={[50, SCREEN_HEIGHT / 2 - 100]}
-        />
-      </PanManager>
+    <>
+      <ThermSelect
+        totalArcLength={2 / 7}
+        mainRotationR={11 / 7}
+        width={75}
+        height={75}
+        tempK={vTargetTemp.state.k}
+        setTemp={(temp) => vTargetTemp.dispatch(temp)}
+        origin={[SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2 - 100]}
+      />
+      <ThermSelect
+        totalArcLength={2 / 7}
+        mainRotationR={11 / 7}
+        width={75}
+        height={75}
+        tempK={vSourceTemp.state.k}
+        setTemp={(temp) => vSourceTemp.dispatch(temp)}
+        origin={[50, SCREEN_HEIGHT / 2 - 100]}
+      />
       <Camera
         device={device}
         isActive={true}
@@ -176,7 +178,7 @@ export function WallPaintCam() {
         }}
         glassEffectStyle={"clear"}
       />
-    </View>
+    </>
   );
 }
 const shaderCode = `

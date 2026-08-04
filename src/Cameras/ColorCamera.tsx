@@ -24,11 +24,9 @@ import {
   wDefaultChordToAngle,
 } from "../Radials/RadialContext";
 import { tRadialObject } from "../Radials/SectorTypes";
-import Svg, { Circle } from "react-native-svg";
 import { fCLARColorToString, fYUVToCLARColor } from "../utils/CLAcolor";
 import { GlassView } from "expo-glass-effect";
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+import { useUserContext } from "../Contexts/UserContext";
 
 export function ColorCamera({
   radii = [20, 160],
@@ -47,6 +45,7 @@ export function ColorCamera({
   const vAnimAr = useAnimShared(0);
   const vChroma = useAnimShared(0);
   const [color, setColor] = useState({ ar: 0, c: 0, l: 0 });
+  const { vColorModel } = useUserContext();
   useEffect(() => {
     const interval = setInterval(() => {
       let angle = wDefaultChordToAngle(
@@ -93,19 +92,13 @@ export function ColorCamera({
       const avgU = (totalU / 64 - 128) / 256;
       const avgV = (totalV / 64 - 128) / 256;
 
-      vCamColor.value = fYUVToCLARColor([0.5, avgU, avgV]);
+      vCamColor.value = fYUVToCLARColor(
+        [0.5, avgU, avgV],
+        vColorModel.shared.value,
+      );
     }
   }, []);
-  const dL = useDerivedValue(() => 1);
-  const animatedProps = useAnimatedProps(() => {
-    return {
-      fill: fCLARColorToString({
-        c: vChroma.value,
-        l: 0.85,
-        ar: vAnimAr.value,
-      }),
-    };
-  });
+
   return (
     <View style={{ flex: 1, backgroundColor: "black" }}>
       <Camera
@@ -117,9 +110,6 @@ export function ColorCamera({
       />
       <RadialContext
         value={{
-          dAR: vAnimAr,
-          dC: vChroma,
-          dL,
           wUpdateState: () => {
             "worklet";
           },

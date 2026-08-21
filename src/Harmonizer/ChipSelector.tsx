@@ -15,14 +15,13 @@ import { BackIcon } from "../Buttons/BackIcon";
 import { ColorFan } from "./ColorFan";
 import { BrandFilter } from "../ColorWheels/BrandFilter";
 import { useChipContext } from "../Chips/ChipContext";
+import { usePanHitBox } from "../Buttons/PanHitBox";
 
 export type tSchemeChipSelector = tRadialObject & {
-  vSelectedAngles: tVerse<number[]>;
   vPhase?: tVerse<tHarmonizerPhase>;
 };
 
 export function SchemeChipSelector({
-  vSelectedAngles,
   origin = [
     Dimensions.get("window").width,
     Dimensions.get("window").height / 2,
@@ -32,61 +31,51 @@ export function SchemeChipSelector({
   rotationR = 22 / 7,
   vPhase,
 }: tSchemeChipSelector) {
-  const chordLength = Math.min(arcLength / vSelectedAngles.state.length, 1.3);
-  const { registerHitBox, unregisterHitBox } = usePanManager();
-  const vPanState = useSharedValue<ePanEvent>("leave");
-  useEffect(() => {
-    registerHitBox({
-      id: "chipSelector",
-      origin,
-      radii: [0, radii[1] - 30],
-      rotationR,
-      arcLength,
-      vPanState,
-    });
-    return () => {
-      unregisterHitBox("chipSelector");
-    };
-  }, []);
-  useAnimatedReaction(
-    () => {
-      return vPanState.value;
-    },
-    (state) => {
-      if (state === "tap" || state === "release") {
-        vSelectedAngles.dispatch([
-          vSelectedAngles.shared.value[0],
-          vSelectedAngles.shared.value.slice(-1)[0],
+  const { vSelectedRef, vSelected } = useUserContext();
+  const chordLength = Math.min(arcLength / vSelectedRef.current.length, 1.3);
+
+  usePanHitBox({
+    id: "chipSelector",
+    origin,
+    radii: [0, radii[0] - 30],
+    rotationR,
+    arcLength,
+    fOnUpdate: (vPanState, vPanPos) => {
+      "worklet";
+      if (vPanState.value === "tap" || vPanState.value === "release") {
+        vSelected.dispatch([
+          vSelected.shared.value[0],
+          vSelected.shared.value.slice(-1)[0],
         ]);
         vPhase?.dispatch("scheme");
       }
     },
-  );
+  });
   const [brandFilter, setBrandFilter] = useState<tBrand>("All Brands");
   return (
     <>
-      {vSelectedAngles.state.map((color, index) => (
+      {vSelectedRef.current.map((color, index) => (
         <ChipSelector
           key={index}
           color={color}
           arcLength={chordLength * 0.8}
           rotationR={
             rotationR +
-            chordLength * (index - vSelectedAngles.state.length / 2 + 0.5)
+            chordLength * (index - vSelectedRef.current.length / 2 + 0.5)
           }
           origin={origin}
           radii={radii}
           ring={5}
           chord={4}
           layer={eLayers.chipFan + index * 20}
-          multiplier={vSelectedAngles.state.length < 4 ? 0.9 : 0.8}
+          multiplier={vSelectedRef.current.length < 4 ? 0.9 : 0.8}
         />
       ))}
       <ColorFan
-        hues={vSelectedAngles.state}
+        hues={vSelectedRef.current}
         origin={origin}
         radii={[10, radii[0] - 30]}
-        arcLength={chordLength * vSelectedAngles.state.length * 0.8}
+        arcLength={chordLength * vSelectedRef.current.length * 0.8}
         rotationR={rotationR}
         ring={3}
         bend={0.7}

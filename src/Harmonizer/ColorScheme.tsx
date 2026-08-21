@@ -249,12 +249,15 @@ export type tColorScheme = Omit<tColorFan, "hues"> & {
 export function ColorScheme({ tScheme, ...props }: tColorScheme) {
   return (
     <>
-      <ColorFan hues={tScheme?.finalHues} {...props} />
+      <ColorFan
+        hues={tScheme?.finalHues}
+        chordLength={props.arcLength / 2}
+        {...props}
+      />
       {tScheme?.signPath && (
         <Sign
+          {...props}
           radii={[(props.radii[0] + props.radii[1]) / 2 - 25, 50]}
-          origin={props.origin}
-          rotationR={props.rotationR}
           topText={tScheme.topText}
           bottomText={tScheme.bottomText}
           fontSize={30}

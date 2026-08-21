@@ -14,7 +14,10 @@ import ColorSelector from "./ColorWheels/ColorSelector";
 import { useVerse } from "./utils/Verse";
 import { PaletteLibrary } from "./Chips/PaletteLibrary";
 import { ColorSeasons } from "./ColorWheels/ColorSeasons";
-import { ColorHarmonizer } from "./Harmonizer/ColorHarmonizer";
+import {
+  ColorHarmonizer,
+  tHarmonizerPhase,
+} from "./Harmonizer/ColorHarmonizer";
 import { MenuButton } from "./Buckets/MenuButton";
 import ChipContext from "./Chips/ChipContext";
 import { BGGradient } from "./ColorWheels/BGGradient";
@@ -40,6 +43,7 @@ const allPages: ePages[] = [
 ];
 const Driver = () => {
   const vPage = useVerse<ePages>("Menu");
+  const vPhase = useVerse<tHarmonizerPhase>("wheel");
   const pageMap: Record<ePages, ReactNode> = {
     Menu: (
       <Menu vSelection={vPage} options={allPages.filter((p) => p !== "Menu")} />
@@ -48,8 +52,16 @@ const Driver = () => {
     ColorWheel: <ColorSelector />,
     ColorMixer: <ColorMixer />,
     ColorSeasons: <ColorSeasons />,
-    UndertoneCamera: <ColorCamera />,
-    ColorHarmonizer: <ColorHarmonizer />,
+    UndertoneCamera: (
+      <ColorCamera
+        fSetHarmonizer={() => {
+          "worklet";
+          vPhase.dispatch("scheme");
+          vPage.dispatch("ColorHarmonizer");
+        }}
+      />
+    ),
+    ColorHarmonizer: <ColorHarmonizer phase={vPhase.state} />,
     PaletteLibrary: <PaletteLibrary />,
   };
 
@@ -77,12 +89,18 @@ const Driver = () => {
           <SoundContext>
             <BucketContext>
               {vPage.state !== "ColorHarmonizer" &&
+                vPage.state !== "UndertoneCamera" &&
                 vPage.state !== "ReColorCamera" && <BGGradient />}
               <DropScreen />
               {vPage.state !== "Menu" && (
-                <MenuButton onPress={() => vPage.dispatch("Menu")} />
+                <MenuButton
+                  onPress={() => {
+                    vPage.dispatch("Menu");
+                    vPhase.dispatch("wheel");
+                  }}
+                />
               )}
-              <PanManager>{pageMap[vPage.state]}</PanManager>
+              <PanManager drawSectors>{pageMap[vPage.state]}</PanManager>
               <ChipHand />
             </BucketContext>
           </SoundContext>

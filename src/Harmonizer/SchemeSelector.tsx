@@ -12,90 +12,68 @@ import { CurvedText } from "../Buttons/CurvedText";
 import { ColorFan } from "./ColorFan";
 import { ColorScheme, fGetHarmonies } from "./ColorScheme";
 import { BGGradient } from "../ColorWheels/BGGradient";
+import { usePanHitBox } from "../Buttons/PanHitBox";
+import { scheduleOnRN } from "react-native-worklets";
 
 export type tSchemeSelector = tRadialObject & {
-  vSelectedAngles?: tVerse<number[]>;
   vPhase?: tVerse<tHarmonizerPhase>;
+  Selected?: number[];
 };
 
-export function SchemeSelector(props: tSchemeSelector) {
-  const {
-    arcLength = 20 / 7,
-    radii = [200, 350],
-    origin = [
-      Dimensions.get("window").width,
-      Dimensions.get("window").height / 2,
-    ],
-    rotationR = 22 / 7,
-    ring = 5,
-    vSelectedAngles,
-    vPhase,
-  } = props;
-  const { registerHitBox, unregisterHitBox } = usePanManager();
-  const vPanPos = useSharedValue<{ angle: number; radius: number }>({
-    angle: 0,
-    radius: 0,
-  });
-  const vPanStateBack = useSharedValue<ePanEvent>("leave");
-  const vPanState = useSharedValue<ePanEvent>("leave");
+export function SchemeSelector({
+  arcLength = 20 / 7,
+  radii = [200, 350],
+  origin = [
+    Dimensions.get("window").width,
+    Dimensions.get("window").height / 2,
+  ],
+  rotationR = 22 / 7,
+  ring = 5,
+  vPhase,
+}: tSchemeSelector) {
+  const { vSelected, vSelectedRef } = useUserContext();
+  const vSelectedRelay = useVerseRelay(vSelected);
+  const schemes = useVerse(fGetHarmonies(vSelectedRef?.current));
   useEffect(() => {
-    registerHitBox({
-      id: "schemeSelector",
-      origin,
-      radii,
-      rotationR,
-      arcLength,
-      vPanPos,
-      vPanState,
-    });
-    registerHitBox({
-      id: "schemeSelectorBack",
-      origin,
-      radii: [0, radii[0] - 50],
-      rotationR,
-      arcLength,
-      vPanPos,
-      vPanState: vPanStateBack,
-    });
-    return () => {
-      unregisterHitBox("schemeSelector");
-      unregisterHitBox("schemeSelectorBack");
-    };
-  }, []);
+    schemes.dispatch(fGetHarmonies(vSelectedRef?.current));
+  }, [vSelectedRelay?.state]);
 
-  const schemes = useVerse(fGetHarmonies(vSelectedAngles?.state ?? [0, 0]));
-  useEffect(() => {
-    schemes.dispatch(fGetHarmonies(vSelectedAngles?.state ?? [0, 0]));
-  }, [vSelectedAngles?.state]);
-  useAnimatedReaction(
-    () => {
-      return vPanState.value;
-    },
-    (state) => {
-      if (state === "tap" || state === "release") {
+  usePanHitBox({
+    id: "schemeSelector",
+    origin,
+    radii,
+    rotationR,
+    arcLength,
+    fOnUpdate: (vPanState, vPanPos) => {
+      "worklet";
+      if (vPanState.value === "tap" || vPanState.value === "release") {
         const chord = wDefaultAngleToChord(
           vPanPos.value.angle,
           arcLength,
           schemes.state.length,
           rotationR,
         );
-        vSelectedAngles?.dispatch(
+        vSelected?.dispatch(
           schemes.state[chord % schemes.state.length].finalHues,
         );
         vPhase?.dispatch("chipSelector");
       }
     },
-  );
-  useAnimatedReaction(
-    () => {
-      return vPanStateBack.value;
-    },
-    (state) => {
-      if (state === "tap" || state === "release") {
+  });
+  usePanHitBox({
+    id: "schemeSelectorBack",
+    origin,
+    radii: [0, radii[0] - 50],
+    rotationR,
+    arcLength,
+    fOnUpdate: (vPanStateBack) => {
+      "worklet";
+      if (vPanStateBack.value === "tap" || vPanStateBack.value === "release") {
         vPhase?.dispatch("wheel");
       }
     },
-  );
+  });
+
   return (
     <>
       {schemes.state.map((harmony, index) => (
@@ -123,10 +101,11 @@ export function SchemeSelector(props: tSchemeSelector) {
         rotationR={rotationR}
         arcLength={18 / 7}
         bend={0.5}
+        layer={eLayers.chipFan}
         hues={[
-          ...vSelectedAngles?.state,
-          ...vSelectedAngles?.state,
-          ...vSelectedAngles?.state,
+          ...vSelectedRef?.current,
+          ...vSelectedRef?.current,
+          ...vSelectedRef?.current,
         ]}
       />
       <BackIcon

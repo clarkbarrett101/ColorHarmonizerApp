@@ -20,8 +20,8 @@ export const SectorGroup = ({
   sectorGroupID = 0,
   children,
   origin = [0, 0],
-  layer = eLayers.colorMixer,
   radii = [20, 200],
+  layer,
 }: tSectorGroup) => {
   const actor = useActor({
     ring,
@@ -32,7 +32,7 @@ export const SectorGroup = ({
     shadowX: 1,
     shadowY: 1,
     shadowOpacity: 0.7,
-    zIndex: layer + sectorGroupID,
+    zIndex: layer ? layer : sectorGroupID,
   });
 
   const { mTransformModifier } = useRadialContext();

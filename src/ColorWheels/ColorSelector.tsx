@@ -59,7 +59,6 @@ export default function ColorSelector({
     ar: 0,
   });
   const [brand, setBrand] = useState<tBrand>("All Brands");
-  const vWheelRotation = useSharedValue(wheelCenter);
   const vChromaPanPos = useSharedValue({
     angle: chromaArcRotation[1] + chromaArcRotation[0] / 3,
     radius: radii[1],
@@ -114,18 +113,17 @@ export default function ColorSelector({
   });
 
   const dAngleR = useDerivedValue(() => {
-    let ar = ((vWheelRotation.value % (44 / 7)) + 44 / 7) % (44 / 7);
+    let ar = ((vAccentAR.shared.value % (44 / 7)) + 44 / 7) % (44 / 7);
     ar = Math.round(ar * 100) / 100;
     return ar;
   });
   useAnimatedReaction(
     () => {
-      return [dChroma.value, dLuma.value, dAngleR.value];
+      return [dChroma.value, dLuma.value];
     },
     (clar) => {
       vAccentC.shared.value = clar[0];
       vAccentL.shared.value = clar[1];
-      vAccentAR.shared.value = clar[2];
     },
   );
 
@@ -216,7 +214,7 @@ export default function ColorSelector({
 
   const fOnDrop = useCallback((paint: tPaint) => {
     const clar = fNearestColor(paint.clar);
-    vWheelRotation.value = clar.ar;
+    vAccentAR.shared.value = clar.ar;
     vLightnessPanPos.value = { angle: clar.l, radius: radii[1] };
     vChromaPanPos.value = { angle: clar.c, radius: radii[1] };
   }, []);
@@ -270,7 +268,6 @@ export default function ColorSelector({
             radii={radii}
             ring={5}
             chord={24}
-            vRotationROffset={vWheelRotation}
             wheelCenter={wheelCenter}
             draggable={true}
             offsetLevel={50}

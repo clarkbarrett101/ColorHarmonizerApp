@@ -1,6 +1,7 @@
 import { Dimensions, View } from "react-native";
 import {
   Camera,
+  DrawableFrame,
   useCameraDevice,
   useCameraPermission,
   useFrameProcessor,
@@ -11,29 +12,46 @@ import Animated, {
   useAnimatedReaction,
   useSharedValue as useAnimShared,
   useDerivedValue,
+  useSharedValue,
   withDecay,
   withRepeat,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useEffect, useState } from "react";
-import { ColorWheel } from "../ColorWheels/ColorWheel";
 import {
-  RadialContext,
   wDefaultAngleToChord,
   wDefaultChordToAngle,
 } from "../Radials/RadialContext";
 import { tRadialObject } from "../Radials/SectorTypes";
-import { fCLARColorToString, fYUVToCLARColor } from "../utils/CLAcolor";
+import { fRGBToCLARColor } from "../utils/CLAcolor";
 import { GlassView } from "expo-glass-effect";
-import { useUserContext } from "../Contexts/UserContext";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
+import { tVerse, useVerse } from "../utils/Verse";
+import { ThermSelect } from "./ThermSelect";
+import { tTemp, kelvin_table } from "./KelvinTemp";
+import { SkiaCam } from "./SkiaCam";
+import { useIVerse } from "../utils/iVerse";
+import { AlphaType, ColorType } from "@shopify/react-native-skia";
+import React from "react";
+import { usePanHitBox } from "../Buttons/PanHitBox";
+import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
+import { ePages } from "../Driver";
+import { HarmonizerWheel } from "../Harmonizer/HarmonizerWheel";
 
 export function ColorCamera({
-  radii = [20, 160],
+  radii = [160, 320],
   chord = 24,
   arcLength = 43.9 / 7,
   rotationR = 22 / 7,
-}: tRadialObject) {
+  fSetHarmonizer,
+}: tRadialObject & {
+  fSetHarmonizer: () => void;
+}) {
+  const origin: [number, number] = [
+    Dimensions.get("window").width + 50,
+    Dimensions.get("window").height * 0.6,
+  ];
   const { hasPermission, requestPermission } = useCameraPermission();
   if (!hasPermission) {
     requestPermission();
@@ -41,11 +59,14 @@ export function ColorCamera({
   }
   const device = useCameraDevice("back");
   if (device == null) return null;
+  const vTransition = useSharedValue(0);
   const vCamColor = useCoreShared({ ar: 0, c: 0, l: 0 });
   const vAnimAr = useAnimShared(0);
-  const vChroma = useAnimShared(0);
-  const [color, setColor] = useState({ ar: 0, c: 0, l: 0 });
-  const { vColorModel } = useUserContext();
+  const vTemp = useVerse<tTemp>(kelvin_table[6000]);
+  const targetWhiteRGB = useIVerse(vTemp.state.rgb);
+  const vSecondColor = useVerse<number | null>(null);
+  const { vSelected, vColorModel, vAccentAR, vAccentC, vAccentL } =
+    useUserContext();
   useEffect(() => {
     const interval = setInterval(() => {
       let angle = wDefaultChordToAngle(
@@ -57,88 +78,92 @@ export function ColorCamera({
       if (Math.abs(angle - vAnimAr.value) > 22 / 7) {
         angle = angle > vAnimAr.value ? angle - 44 / 7 : angle + 44 / 7;
       }
-      console.log(
-        "Animating color towards camera color",
-        angle,
-        vCamColor.value,
-        vAnimAr.value,
-      );
       vAnimAr.value = withSpring(angle, {
         duration: 0.9,
         dampingRatio: 0.2,
       });
-      vChroma.value = vCamColor.value.c ** 0.5;
+      vAccentC.shared.value = vCamColor.value.c ** 0.5;
+      vAccentAR.shared.value = angle;
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const frameProcessor = useFrameProcessor((frame) => {
+  function frameProcessor(frame: DrawableFrame) {
     "worklet";
-    if (frame.pixelFormat === "yuv" && frame.planesCount > 1) {
-      const buffer = new Uint8Array(frame.toArrayBuffer());
-      const uvPlane = buffer.slice(buffer.length / 2, buffer.length);
-      let totalU = 0;
-      let totalV = 0;
-      for (let i = -8; i < 8; i += 2) {
-        for (let j = -8; j < 8; j += 2) {
-          const index =
-            ((frame.height / 2 + i) * (frame.width / 2) +
-              (frame.width / 2 + j)) *
-            2;
-          totalU += uvPlane[index];
-          totalV += uvPlane[index + 1];
-        }
-      }
-      const avgU = (totalU / 64 - 128) / 256;
-      const avgV = (totalV / 64 - 128) / 256;
 
-      vCamColor.value = fYUVToCLARColor(
-        [0.5, avgU, avgV],
-        vColorModel.shared.value,
-      );
+    const imageInfo = frame.readPixels(
+      frame.height / 2 - 2,
+      frame.width / 2 - 2,
+      {
+        width: 5,
+        height: 5,
+        colorType: ColorType.RGBA_8888,
+        alphaType: AlphaType.Unpremul,
+      },
+    );
+    let averageColor = [0, 0, 0];
+    for (let i = 0; i < 25; i++) {
+      averageColor[0] += imageInfo[i * 4];
+      averageColor[1] += imageInfo[i * 4 + 1];
+      averageColor[2] += imageInfo[i * 4 + 2];
     }
-  }, []);
+    averageColor = averageColor.map((c) => c / 25);
+    const clar = fRGBToCLARColor(
+      averageColor as [number, number, number],
+      vColorModel.shared.value,
+    );
+    vCamColor.value = clar;
+  }
+  const mTransformModifier: tAttributeModifier = {
+    modID: 0,
+    deps: [vTransition],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      return {
+        ...input,
+        rotateZ: input.rotateZ - (vTransition.value * 2) / 7,
+      };
+    },
+  };
+
+  const dAR = useDerivedValue(() => {
+    "worklet";
+    if (vSecondColor.shared.value === null) {
+      return vAnimAr.value;
+    } else {
+      return vSecondColor.shared.value;
+    }
+  });
 
   return (
     <View style={{ flex: 1, backgroundColor: "black" }}>
-      <Camera
-        style={{ flex: 1 }}
-        device={device}
-        isActive={true}
-        pixelFormat="yuv"
-        frameProcessor={frameProcessor}
+      <SkiaCam
+        postRenderProcessor={frameProcessor}
+        shaderCode={shaderCode}
+        uniforms={{ targetWhiteRGB: targetWhiteRGB.state.map((c) => c / 255) }}
       />
-      <RadialContext
-        value={{
-          wUpdateState: () => {
-            "worklet";
-          },
-          origin: [
-            Dimensions.get("window").width + 50,
-            Dimensions.get("window").height / 2,
-          ],
-        }}
-      >
-        <ColorWheel
-          vRotationROffset={vAnimAr}
-          wheelCenter={22 / 7}
-          chord={chord}
-          radii={radii}
-        />
-      </RadialContext>
-
-      <GlassView
-        style={{
-          flex: 1,
-          position: "absolute",
-          top: Dimensions.get("window").height / 2 - 20,
-          left: Dimensions.get("window").width / 2 - 20,
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-        }}
-        glassEffectStyle={"clear"}
+      <HarmonizerWheel
+        origin={origin}
+        draggable={false}
+        radii={radii}
+        fOnPhase={fSetHarmonizer}
+      />
+      <ThermSelect
+        mainRotationR={11 / 7}
+        tempK={vTemp.state.k}
+        setTemp={(temp) => targetWhiteRGB.dispatch(temp.rgb)}
+        origin={[50, Dimensions.get("window").height / 2 - 100]}
       />
     </View>
   );
 }
+
+const shaderCode = /* glsl */ `
+uniform shader image;
+uniform vec3 targetWhiteRGB;
+half4 main(float2 pos) {
+  half4 color = image.eval(pos);
+  color.rgb = color.rgb / targetWhiteRGB;
+  return color;
+}
+`;

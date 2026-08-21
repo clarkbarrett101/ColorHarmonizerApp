@@ -1,6 +1,7 @@
 import React, {
   createContext,
   ReactNode,
+  RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -41,6 +42,8 @@ export type tUserContext = {
   vAccentC?: tVerse<number>;
   vAccentL?: tVerse<number>;
   vAccentAR?: tVerse<number>;
+  vSelected?: tVerse<number[]>;
+  vSelectedRef: RefObject<number[]>;
 };
 
 export const Context = createContext<tUserContext>({
@@ -52,6 +55,8 @@ export const Context = createContext<tUserContext>({
   vAccentC: null,
   vAccentL: null,
   vAccentAR: null,
+  vSelected: null,
+  vSelectedRef: { current: [] },
 });
 export const useUserContext = () => useContext(Context);
 
@@ -62,6 +67,11 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const vAccentC = useVerse<number>(1);
   const vAccentL = useVerse<number>(1);
   const vAccentAR = useVerse<number>(0);
+  const vSelected = useVerse<number[]>([]);
+  const vSelectedRef = useRef(vSelected.state);
+  vSelected.subscribe((newValue) => {
+    vSelectedRef.current = newValue;
+  });
   const [userPalette, setUserPalette] = useState<tPalette>({
     paints: [],
     name: Math.random().toString(36).substring(2, 7),
@@ -129,6 +139,8 @@ export default function UserContext({ children }: { children: ReactNode }) {
       vAccentC,
       vAccentL,
       setUserPalette,
+      vSelected,
+      vSelectedRef,
     }),
     [userPalette],
   );

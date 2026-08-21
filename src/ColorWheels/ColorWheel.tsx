@@ -3,6 +3,7 @@ import {
   fCLARColorToString,
   fRGBToCLARColor,
   tCLARColor,
+  tPaint,
 } from "../utils/CLAcolor";
 import { RadialGraphic } from "../Radials/RadialGraphic";
 import { use, useCallback, useEffect, useState } from "react";
@@ -18,24 +19,26 @@ import { RadialContext, useRadialContext } from "../Radials/RadialContext";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tVerse } from "../utils/Verse";
+import React from "react";
 
 type tColorWheel = tRadialObject & {
-  vRotationROffset?: SharedValue<number>;
   wheelCenter?: number;
-  vSecondColor?: tVerse<number | null>;
   draggable?: boolean;
   offsetLevel?: number;
+  vSecondColor?: tVerse<number | null>;
+  transitionAnim?: SharedValue<number>;
 };
 
 function ColorWheel({
   radii = [0, 200],
   ring = 5,
   chord = 18,
-  vRotationROffset,
   arcLength = 44 / 7,
   wheelCenter = 11 / 7,
   draggable,
   offsetLevel = 50,
+  vSecondColor,
+  transitionAnim,
 }: tColorWheel) {
   const { origin, wAngleToChord, wChordToAngle, wUpdateState } =
     useRadialContext();
@@ -70,7 +73,6 @@ function ColorWheel({
       vAccentAR.shared,
       vAccentL.shared,
       vAccentC.shared,
-      vRotationROffset,
       vPanPos,
       vStartAngle,
       dragStartAngle,
@@ -80,7 +82,7 @@ function ColorWheel({
       let chords = chord;
       const chordLength = (2 * arcLength) / chords;
       let startRotation = wChordToAngle(input.chord, arcLength, chords, 0);
-      let rotation = input.rotateZ + -vRotationROffset.value;
+      let rotation = input.rotateZ + -vAccentAR.shared.value;
       const selectedSector = wAngleToChord(
         vAccentAR.shared.value,
         arcLength,
@@ -116,13 +118,13 @@ function ColorWheel({
   const fOnLeave = (angleOffset = 0) => {
     "worklet";
     let nearestSector = wAngleToChord(
-      vRotationROffset.value + angleOffset,
+      vAccentAR.shared.value + angleOffset,
       arcLength,
       chord,
       0,
     );
     let nearestSectorAngle = wChordToAngle(nearestSector, arcLength, chord, 0);
-    vRotationROffset.value = withTiming(nearestSectorAngle);
+    vAccentAR.shared.value = withTiming(nearestSectorAngle);
     console.log(
       "Wheel leaving, rotating to nearest sector",
       nearestSector,
@@ -140,7 +142,7 @@ function ColorWheel({
       fOnLeave(offsetAngle);
     }
     console.log(
-      "Tapped wheel," + offsetAngle + " rotating to " + vRotationROffset.value,
+      "Tapped wheel," + offsetAngle + " rotating to " + vAccentAR.shared.value,
     );
   }, []);
   useAnimatedReaction(
@@ -148,7 +150,7 @@ function ColorWheel({
     (pos) => {
       if (vPanState.value === "drag") {
         const angleDiff = vPanPos.value.angle - vStartAngle.value;
-        vRotationROffset.value = dragStartAngle.value - angleDiff;
+        vAccentAR.shared.value = dragStartAngle.value - angleDiff;
       }
     },
     [],
@@ -160,7 +162,7 @@ function ColorWheel({
       switch (state) {
         case "enter":
           vStartAngle.value = vPanPos.value.angle;
-          dragStartAngle.value = vRotationROffset.value;
+          dragStartAngle.value = vAccentAR.shared.value;
           break;
         case "leave":
           fOnLeave();
@@ -177,7 +179,6 @@ function ColorWheel({
     },
     [],
   );
-
   useEffect(() => {
     if (!draggable) return;
     const id = `${ring}-${chord}`;
@@ -196,6 +197,47 @@ function ColorWheel({
       unregisterHitBox(id);
     };
   }, []);
+  const chordLength = arcLength / chord;
+  const secondTransformModifier: tAttributeModifier = {
+    modID: 2,
+    deps: [vSecondColor.shared, vAccentAR.shared, transitionAnim],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      const offsetAngle = Math.abs(vAccentAR.shared.value) % chordLength;
+      return {
+        ...input,
+        rotateZ:
+          input.rotateZ - offsetAngle * transitionAnim.value - chordLength / 2,
+        scaleX: 1.2,
+        scaleY: 1.2,
+        translateX: input.translateX - (1 - transitionAnim.value) * offsetLevel,
+        zIndex: vSecondColor.shared.value !== null ? eLayers.chipFan + 1 : 0,
+        shadowRadius: input.shadowRadius * 1.2,
+        shadowX: input.shadowX * 1.2,
+        shadowY: input.shadowY * 1.2,
+      };
+    },
+  };
+
+  const secondColorModifier: tAttributeModifier = {
+    modID: 1,
+    deps: [vSecondColor.shared, vColorModel.shared],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      let c = (input.ring / ring) * 0.5 + 0.5;
+      let l = (input.ring / ring) * 0.5 + 0.5;
+      let [r, g, b] = fCLARColorToRGB(
+        { c, l, ar: vSecondColor.shared.value },
+        vColorModel.shared.value,
+      );
+      return {
+        ...input,
+        red: r,
+        green: g,
+        blue: b,
+      };
+    },
+  };
   return (
     <RadialContext
       value={{
@@ -210,6 +252,19 @@ function ColorWheel({
       }}
     >
       <RadialGraphic />
+      {
+        <RadialContext
+          value={{
+            mColorModifier: secondColorModifier,
+            mTransformModifier: secondTransformModifier,
+            totalChords: 1,
+            totalArcLength: chordLength,
+            mainRotationR: wheelCenter,
+          }}
+        >
+          <RadialGraphic />
+        </RadialContext>
+      }
     </RadialContext>
   );
 }

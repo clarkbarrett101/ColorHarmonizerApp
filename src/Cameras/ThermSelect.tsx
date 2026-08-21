@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { fCLARColorToRGB, tBrand } from "../utils/CLAcolor";
+import {
+  fCLARColorToRGB,
+  fYUVToCLARColor,
+  fYUVToRGB,
+  tBrand,
+} from "../utils/CLAcolor";
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { Text } from "react-native-svg";
@@ -7,6 +12,7 @@ import {
   useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { useRadialContext, RadialContext } from "../Radials/RadialContext";
 import { tSector, tSectorGroup } from "../Radials/SectorTypes";
@@ -16,57 +22,48 @@ import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { kelvin_table, tTemp } from "./KelvinTemp";
 
 export type tThermSelect = {
-  width?: number;
-  height?: number;
+  size?: number;
   tempK: number;
   setTemp: (temp: tTemp) => void;
-  totalArcLength?: number;
   mainRotationR?: number;
   origin?: [number, number];
 };
-
+const tempList = [3500, 4500, 5500, 6500, 8000, 10000, 12000];
 export const ThermSelect = (props: tThermSelect) => {
-  let temps = Object.values(kelvin_table).filter(
-    (t) => t.k >= 3000 && t.k % 1500 === 0,
-  );
+  let temps = tempList.map((k) => kelvin_table[k]);
   const ctx = useRadialContext();
   const origin = props.origin || ctx.origin || [0, 0];
-  const totalArcLength = props.totalArcLength || ctx.totalArcLength || 11 / 7;
+  const totalArcLength = 2 / 7;
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
-  const radius = props.width ? props.width / 2 : 50;
+  const radius = props.size ? props.size : 40;
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const vPanState = useSharedValue<ePanEvent>("leave");
-  const selection = useDerivedValue(() => {
-    "worklet";
-    let ring = 0;
-    if (
-      vPanPos.value.angle < mainRotationR + totalArcLength / 2 &&
-      vPanPos.value.angle > mainRotationR - totalArcLength / 2
-    ) {
-      ring = Math.floor(
-        (vPanPos.value.radius / ((temps.length * radius) / 2)) * temps.length,
-      );
-    }
-    console.log("Ring:", ring, "Angle:", vPanPos.value.angle);
-    return ring;
-  }, []);
-  useEffect(() => {
-    for (let i = 0; i < temps.length; i++) {
-      const diff = Math.abs(temps[i].k - props.tempK);
-      if (diff < 750) {
-        vPanPos.value = {
-          angle: mainRotationR,
-          radius: (i * radius) / 2,
-        };
-        break;
-      }
-    }
-  }, [props.tempK]);
+  const vActive = useSharedValue(1);
+  const vSelection = useSharedValue(0);
+
   useAnimatedReaction(
-    () => selection.value,
+    () => vPanState.value,
     (state) => {
-      const temp = temps[selection.value];
-      if (temp) scheduleOnRN(props.setTemp, temp);
+      if (state === "release" || state === "tap") {
+        if (vActive.value > 0) {
+          vActive.value = withTiming(0, { duration: 200 });
+        } else {
+          vActive.value = withTiming(1, { duration: 200 });
+        }
+        vPanState.value = "leave";
+      }
+    },
+    [],
+  );
+  useAnimatedReaction(
+    () => vPanPos.value,
+    (v) => {
+      console.log("ThermSelect PanPos", v);
+      const index = Math.round(v.radius / radius);
+      if (index >= 0 && index < temps.length) {
+        vSelection.value = index;
+        scheduleOnRN(props.setTemp, temps[index]);
+      }
     },
     [],
   );
@@ -77,9 +74,9 @@ export const ThermSelect = (props: tThermSelect) => {
       id: "" + origin[0] + origin[1],
       shape: "capsule",
       priority: 10,
-      origin: [origin[0], origin[1] + radius / 2],
+      origin: [origin[0], origin[1] - (radius * (temps.length - 3)) / 2],
       arcLength: totalArcLength,
-      radii: [radius * 0.7, (radius * temps.length) / 2],
+      radii: [radius * 0.7, radius * temps.length],
       rotationR: mainRotationR,
       vPanState,
       vPanPos,
@@ -88,41 +85,39 @@ export const ThermSelect = (props: tThermSelect) => {
       unregisterZone("" + origin[0] + origin[1]);
     };
   }, []);
-  const { vColorModel } = useUserContext();
-  const mColorModifier: tAttributeModifier = {
-    modID: 0,
-    modifier: (input: tAttributeMap) => {
-      "worklet";
-      const temp = temps[input.ring || 0];
-      const clar = {
-        c: temp.c,
-        ar: temp.ar,
-        l: 0.9,
-      };
-      const [r, g, b] = fCLARColorToRGB(clar, vColorModel.shared.value);
-
-      return {
-        ...input,
-        red: r,
-        green: g,
-        blue: b,
-      };
-    },
-  };
+  function fLerp(a: number, b: number, t: number) {
+    "worklet";
+    return a + (b - a) * t;
+  }
   const mTransformModifier: tAttributeModifier = {
     modID: 1,
-    deps: [selection],
+    deps: [vSelection, vActive],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const x = ((1 + input.ring) * radius) / 3;
+      const rot = fLerp(11 / 7, 0 / 7, vActive.value);
+      const x = fLerp(
+        (1 + input.ring - temps.length / 2) * radius,
+        input.translateX,
+        vActive.value,
+      );
+      const selected = vSelection.value === input.ring;
 
       return {
         ...input,
+        rotateZ: rot,
         translateX: x,
+        scaleX: selected ? 1.1 : 1,
+        scaleY: selected ? 1.1 : 1,
+        shadowOpacity:
+          vActive.value < 1
+            ? input.shadowOpacity
+            : selected
+              ? input.shadowOpacity
+              : 0,
         zIndex:
           temps.length -
-          Math.abs(selection.value - input.ring) +
-          eLayers.chipHand -
+          Math.abs(vSelection.value - input.ring) +
+          eLayers.colorMixer -
           10,
       };
     },
@@ -136,6 +131,7 @@ export const ThermSelect = (props: tThermSelect) => {
         chord: 0,
         ring: i,
         radii: [radius * 0.2, radius * 1.2],
+        rgb: temps[i].rgb,
       };
       const text = (
         <Text
@@ -174,7 +170,6 @@ export const ThermSelect = (props: tThermSelect) => {
     <RadialContext
       value={{
         origin,
-        mColorModifier,
         radii: [radius, radius * temps.length],
         mTransformModifier,
         totalArcLength,
@@ -185,273 +180,14 @@ export const ThermSelect = (props: tThermSelect) => {
     </RadialContext>
   );
 };
-/*<tbody><tr>
-<th rowspan="2" scope="col"><a href="/wiki/Wavelength" title="Wavelength">Wavelength</a> <br> (nm)
-</th>
-<th rowspan="2" scope="col">Approximate <br> appearance
-</th>
-<th scope="col"><a href="/wiki/Isaac_Newton" title="Isaac Newton">Newton</a><a href="#×"><span style="color:black" title="Quantified by McLaren"></span></a><sup id="cite_ref-mclaren_3-2" class="reference"><a href="#cite_note-mclaren-3"><span class="cite-bracket">[</span>2<span class="cite-bracket">]</span></a></sup>
-</th>
-<th scope="col"><a href="/wiki/ISCC-NBS" class="mw-redirect" title="ISCC-NBS">ISCC-NBS</a><a href="#×"><span style="color:black" title="Quantified by Kelly"></span></a><sup id="cite_ref-5" class="reference"><a href="#cite_note-5"><span class="cite-bracket">[</span>4<span class="cite-bracket">]</span></a></sup>
-</th>
-<th scope="col">Malacara<sup id="cite_ref-6" class="reference"><a href="#cite_note-6"><span class="cite-bracket">[</span>5<span class="cite-bracket">]</span></a></sup>
-</th>
-<th scope="col"><a href="/wiki/CRC_Handbook_of_Chemistry_and_Physics" title="CRC Handbook of Chemistry and Physics">CRC Handbook</a><sup id="cite_ref-7" class="reference"><a href="#cite_note-7"><span class="cite-bracket">[</span>6<span class="cite-bracket">]</span></a></sup>
-</th></tr>
-<tr>
-<th>1700
-</th>
-<th>1943
-</th>
-<th>2011
-</th>
-<th>2006
-</th></tr>
-<tr>
-<td>380
-</td>
-<td bgcolor="#010003">
-</td>
-<td rowspan="5">Violet
-</td>
-<td rowspan="6">Violet
-</td>
-<td rowspan="5">Violet
-</td>
-<td rowspan="7">Violet
-</td></tr>
-<tr>
-<td>390
-</td>
-<td bgcolor="#020009">
-</td></tr>
-<tr>
-<td>400
-</td>
-<td bgcolor="#080018">
-</td></tr>
-<tr>
-<td>410
-</td>
-<td bgcolor="#14002E">
-</td></tr>
-<tr>
-<td>420
-</td>
-<td bgcolor="#280053">
-</td></tr>
-<tr>
-<td>430
-</td>
-<td bgcolor="#3B007B">
-</td>
-<td rowspan="2">Indigo
-</td>
-<td rowspan="7">Blue
-</td></tr>
-<tr>
-<td>440
-</td>
-<td bgcolor="#3E0092">
-</td>
-<td rowspan="5">Blue
-</td></tr>
-<tr>
-<td>450
-</td>
-<td bgcolor="#3200A4">
-</td>
-<td rowspan="4">Blue
-</td>
-<td rowspan="5">Blue
-</td></tr>
-<tr>
-<td>460
-</td>
-<td bgcolor="#002B9B">
-</td></tr>
-<tr>
-<td>470
-</td>
-<td bgcolor="#004260">
-</td></tr>
-<tr>
-<td>480
-</td>
-<td bgcolor="#004A55">
-</td></tr>
-<tr>
-<td>490
-</td>
-<td bgcolor="#005856">
-</td>
-<td rowspan="4">Green
-</td>
-<td rowspan="1">Blue-green
-</td></tr>
-<tr>
-<td>500
-</td>
-<td bgcolor="#006E5D">
-</td>
-<td rowspan="5">Green
-</td>
-<td rowspan="2">Cyan
-</td>
-<td rowspan="7">Green
-</td></tr>
-<tr>
-<td>510
-</td>
-<td bgcolor="#008A65">
-</td></tr>
-<tr>
-<td>520
-</td>
-<td bgcolor="#00A56A">
-</td>
-<td rowspan="5">Green
-</td></tr>
-<tr>
-<td>530
-</td>
-<td bgcolor="#00B865">
-</td>
-<td rowspan="5">Yellow
-</td></tr>
-<tr>
-<td>540
-</td>
-<td bgcolor="#00C550">
-</td></tr>
-<tr>
-<td>550
-</td>
-<td bgcolor="#34CC00">
-</td>
-<td rowspan="3">Yellow-green
-</td></tr>
-<tr>
-<td>560
-</td>
-<td bgcolor="#82C400">
-</td></tr>
-<tr>
-<td>570
-</td>
-<td bgcolor="#B1B500">
-</td>
-<td rowspan="1">Yellow
-</td>
-<td rowspan="2">Yellow
-</td></tr>
-<tr>
-<td>580
-</td>
-<td bgcolor="#D5A000">
-</td>
-<td rowspan="4">Orange
-</td>
-<td rowspan="1">Yellow
-</td>
-<td rowspan="5">Orange
-</td></tr>
-<tr>
-<td>590
-</td>
-<td bgcolor="#EF8200">
-</td>
-<td rowspan="2">Orange
-</td>
-<td rowspan="3">Orange
-</td></tr>
-<tr>
-<td>600
-</td>
-<td bgcolor="#FE5D00">
-</td></tr>
-<tr>
-<td>610
-</td>
-<td bgcolor="#FF2B00">
-</td>
-<td rowspan="13">Red
-</td></tr>
-<tr>
-<td>620
-</td>
-<td bgcolor="#EB001B">
-</td>
-<td rowspan="8">Red
-</td>
-<td rowspan="13">Red
-</td></tr>
-<tr>
-<td>630
-</td>
-<td bgcolor="#C90024">
-</td>
-<td rowspan="11">Red
-</td></tr>
-<tr>
-<td>640
-</td>
-<td bgcolor="#A80022">
-</td></tr>
-<tr>
-<td>650
-</td>
-<td bgcolor="#87001B">
-</td></tr>
-<tr>
-<td>660
-</td>
-<td bgcolor="#680014">
-</td></tr>
-<tr>
-<td>670
-</td>
-<td bgcolor="#4C000C">
-</td></tr>
-<tr>
-<td>680
-</td>
-<td bgcolor="#370007">
-</td></tr>
-<tr>
-<td>690
-</td>
-<td bgcolor="#250003">
-</td></tr>
-<tr>
-<td>700
-</td>
-<td bgcolor="#180002">
-</td>
-<td rowspan="6" bgcolor="#AAAAAA">
-</td></tr>
-<tr>
-<td>710
-</td>
-<td bgcolor="#0F0001">
-</td></tr>
-<tr>
-<td>720
-</td>
-<td bgcolor="#080001">
-</td></tr>
-<tr>
-<td>730
-</td>
-<td bgcolor="#040000">
-</td></tr>
-<tr>
-<td>740
-</td>
-<td bgcolor="#020000">
-</td>
-<td rowspan="2" bgcolor="#AAAAAA">
-</td>
-<td rowspan="2" bgcolor="#AAAAAA">
-</td></tr></tbody>
-*/
+const paths = {
+  sun: "M0-46-7-26C-5-27-2-27 0-27S5-27 7-26ZM33-32 14-24C18-21 21-18 24-14ZM-32-32-24-14C-21-18-18-21-14-24ZM-26-7-46 0-26 7C-27 5-27 2-27 0-27-2-27-5-26-7ZM26-7C27-5 27-2 27 0 27 2 27 5 26 7L46 0ZM24 14C21 18 18 21 14 24L33 33ZM-24 14-32 33-14 24C-18 21-21 18-24 14ZM-7 26 0 46 7 26C5 27 2 27 0 27-2 27-5 27-7 26ZM-24 0A2 2 90 0024 0 2 2 90 00-24 0",
+  sunset:
+    "M0-26-7-6C-5-7-2-7 0-7S5-7 7-6ZM33-12 14-4C18-1 21 2 24 6ZM-32-12-24 6C-21 2-18-1-14-4ZM-26 10-45 15C-45 15-27 18-27 18-27 18-27 15-26 10ZM26 10C27 15 27 18 27 18L45 15ZM24 20A2 2 90 00-24 20Z",
+  candle:
+    "M-1-226c-28 0-94 87-94 159 0 59 29 80 69 95-15-16-26-44-26-76 0-49 31-89 53-89 21 0 53 40 53 89 0 30-9 57-23 73 36-18 62-36 62-92 0-71-67-159-94-159zm7 176-19 3c6 39 7 69 4 98-25-1-50-6-74-15v95c-3 26-22 31-22 53 0 20 15 26 22 18v36h165v-88c9 11 27 3 28-21 0-29-25-35-28-69V35c-24 9-48 14-72 15 2-30 1-61-4-101z",
+  cloud:
+    "M51-87C98-92 142-76 165-36Q196-110 134-134 66-154 50-87ZM-95-120C-143-120-181-84-181-39V-39A78 78 0 00-177-17L-175-8-184-6C-197-3-208 2-215 8-222 15-226 22-226 29V29C-226 37-220 46-210 53-199 60-184 65-167 65-159 65-150 64-142 61L-138 60-134 63C-117 77-84 87-49 87-35 87-21 86-8 83L0 81 3 88C11 107 38 122 70 122 90 122 108 116 120 107 133 98 140 87 140 75 140 75 140 74 140 74L139 64 149 65C152 65 156 65 159 65 182 65 203 61 218 55 225 53 230 49 234 46 237 44 238 41 238 40 238 39 237 37 234 34 232 32 227 29 221 26 209 20 190 16 169 15L159 15 161 4A44 44 0 00162-5C162-23 151-40 132-53 112-67 84-75 53-75 33-75 13-71-5-64L-13-61-16-69C-29-100-60-120-95-120H-95Z",
+  x: "M5 10 10 5 5 0 10-5 5-10 0-5-5-10-10-5-5 0-10 5-5 10 0 5 5 10M15 0A1 1 0 01-15 0 1 1 0 0115 0",
+  plus: "M-3 10 3 10 3 3 10 3 10-3 3-3 3-10-3-10-3-3-10-3-10 3-3 3-3 10M15 0A1 1 45 01-15 0 1 1 45 0115 0",
+};

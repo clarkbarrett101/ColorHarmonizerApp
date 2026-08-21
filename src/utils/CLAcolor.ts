@@ -81,6 +81,18 @@ export function fRGBToYUV(
   const v = Math.round((0.615 * r - 0.51499 * g - 0.10001 * b) * 10000) / 10000;
   return [y, u, v];
 }
+export function fYUVToRGB(
+  yuv: [number, number, number],
+): [number, number, number] {
+  "worklet";
+  const [y, u, v] = yuv;
+  const r = Math.round(Math.min(Math.max(0, y + 1.13983 * v), 1) * 255);
+  const g = Math.round(
+    Math.min(Math.max(0, y - 0.39465 * u - 0.5806 * v), 1) * 255,
+  );
+  const b = Math.round(Math.min(Math.max(0, y + 2.03211 * u), 1) * 255);
+  return [r, g, b];
+}
 
 function fLerp(a: number, b: number, t: number): number {
   "worklet";

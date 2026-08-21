@@ -16,16 +16,23 @@ import { useEffect, useState } from "react";
 import {
   fCLARColorToString,
   fCLARColorToYUV,
+  fGetRandomPaint,
   fRGBToYUV,
+  fYUVToRGB,
+  tPaint,
 } from "../utils/CLAcolor";
 import { useRunOnJS, useSharedValue } from "react-native-worklets-core";
 import { useBucketContext } from "../Buckets/BucketContext";
 import { useIVerse } from "../utils/iVerse";
-import { tTemp, kelvin_table } from "./KelvinTemp";
-import PanManager from "../Contexts/PanManager";
+import { tTemp, kelvin_table, fGetTempFromUV } from "./KelvinTemp";
+import PanManager, { ePanEvent } from "../Contexts/PanManager";
 import { ThermSelect } from "./ThermSelect";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { GlassView } from "expo-glass-effect";
+import { useVerse, useVerseRelay } from "../utils/Verse";
+import { PetalButton } from "../Buttons/PetalButton";
+import { PaintChip } from "../Chips/PaintChip";
+import { ReplacementMeter } from "./ReplacementMeter";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -47,30 +54,33 @@ export function WallPaintCam() {
   ]);
   const { vColorModel } = useUserContext();
 
-  const [targetColor, setTargetColor] = useState({
-    ar: 22 / 7,
-    c: 0.5,
-    l: 0.5,
-  });
+  const vTargetPaint = useIVerse<tPaint>(fGetRandomPaint());
   const vPaint = useSharedValue<SkPaint>(Skia.Paint());
 
   const frameSize = useSharedValue([0, 0]);
-
-  const vSourceTemp = useIVerse<tTemp>(kelvin_table[6000]);
-  const vTargetTemp = useIVerse<tTemp>(kelvin_table[6000]);
-  const vLightSample = useIVerse([1, 1, 1]);
-  const vLightSampleBuffer = useIVerse([1, 1, 1]);
+  const vSourceTemp = useIVerse<tTemp>(kelvin_table[6500]);
+  const vTargetTemp = useIVerse<tTemp>(kelvin_table[6500]);
+  const vWhiteSample = useIVerse([1, 1, 1]);
+  const vWhiteSampleBuffer = useIVerse([1, 1, 1]);
+  const vThreshold = useVerse(0.05);
   function resetShader(dimensions?: [number, number]) {
+    let source = fYUVToRGB([1, vSourceTemp.state.u, vSourceTemp.state.v]);
+    source = source.map((c) => c / 255) as [number, number, number];
     console.log(
       "Resetting shader with target color:",
-      targetColor,
-      "Light Sample:",
-      vLightSample.state,
+      vTargetPaint.state.clar,
+      "Source Temp:",
+      source,
       "Target Temp:",
       vTargetTemp.state.k,
+      "Threshold:",
+      vThreshold.state,
     );
     frameSize.value = dimensions ?? frameSize.value;
-    const replacementYUV = fCLARColorToYUV(targetColor, vColorModel.state);
+    const replacementYUV = fCLARColorToYUV(
+      vTargetPaint.state.clar,
+      vColorModel.state,
+    );
     const filter = Skia.RuntimeEffect.Make(shaderCode);
     const builder = Skia.RuntimeShaderBuilder(filter);
     builder.setUniform("replacementYUV", replacementYUV);
@@ -78,19 +88,24 @@ export function WallPaintCam() {
       frameSize.value[0] / 2,
       frameSize.value[1] / 2,
     ]);
-    builder.setUniform("lightSample", vLightSample.state);
-    builder.setUniform("targetUV", [
-      vTargetTemp.shared.value.u,
-      vTargetTemp.shared.value.v,
-    ]);
-    builder.setUniform("threshold", [0.05]);
+    builder.setUniform("whiteSample", source);
+    builder.setUniform(
+      "targetWhite",
+      vTargetTemp.state.rgb.map((c) => c / 255) as [number, number, number],
+    );
+    builder.setUniform("threshold", [vThreshold.state]);
     const rtShader = Skia.ImageFilter.MakeRuntimeShader(builder, null, null);
     vPaint.value.setImageFilter(rtShader);
   }
   const runResetShader = useRunOnJS(resetShader, []);
   useEffect(() => {
     resetShader();
-  }, [targetColor, vSourceTemp.state, vTargetTemp.state, vLightSample.state]);
+  }, [
+    vTargetPaint.state.clar,
+    vTargetTemp.state,
+    vSourceTemp.state,
+    vThreshold.state,
+  ]);
 
   const skfp = useSkiaFrameProcessor((frame) => {
     "worklet";
@@ -115,58 +130,76 @@ export function WallPaintCam() {
     sample = sample.map((c) => c / 9);
     sample = sample.map((c) => c / 255);
     const yuv = fRGBToYUV(sample as [number, number, number]);
-    vLightSampleBuffer.shared.value = sample as [number, number, number];
+    vWhiteSampleBuffer.shared.value = sample as [number, number, number];
   }, []);
 
   if (!device) return <View />;
-  const { registerBucket, unregisterBucket } = useBucketContext();
+
+  const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
   useEffect(() => {
     registerBucket({
       origin: [SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2],
       radii: [150, 400],
       rotationR: 0,
       callback: (paint) => {
-        setTargetColor(paint.clar);
+        vTargetPaint.dispatch(paint);
       },
       targetLayerRange: [0, 1000],
+      icon: "search",
       id: 20,
     });
     return () => unregisterBucket("" + 20);
   }, []);
-  const fill = fCLARColorToString(
-    {
-      c: kelvin_table[vSourceTemp.state.k].c,
-      l: 0.8,
-      ar: kelvin_table[vSourceTemp.state.k].ar,
-    },
-    vColorModel.state,
-  );
+
+  const [camActive, setCamActive] = useState(true);
+  const dropScreenRelay = useVerseRelay(vDropScreen);
+  useEffect(() => {
+    if (dropScreenRelay.state) {
+      setCamActive(false); //Freeze cam when drop screen is active for performance
+    } else {
+      setCamActive(true);
+    }
+  }, [dropScreenRelay.state]);
+  const { vAccentC, vAccentL, vAccentAR } = useUserContext();
+  useEffect(() => {
+    const { c, l, ar } = vTargetPaint.state.clar;
+    vAccentC.dispatch(c);
+    vAccentL.dispatch(l);
+    vAccentAR.dispatch(ar);
+  }, [vTargetPaint.state.clar]);
+  function fAddThreshold(value: number) {
+    "worklet";
+    vThreshold.dispatch(vThreshold.shared.value + value);
+  }
+
   return (
     <>
       <ThermSelect
-        totalArcLength={2 / 7}
         mainRotationR={11 / 7}
-        width={75}
-        height={75}
+        size={40}
         tempK={vTargetTemp.state.k}
         setTemp={(temp) => vTargetTemp.dispatch(temp)}
-        origin={[SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2 - 100]}
-      />
-      <ThermSelect
-        totalArcLength={2 / 7}
-        mainRotationR={11 / 7}
-        width={75}
-        height={75}
-        tempK={vSourceTemp.state.k}
-        setTemp={(temp) => vSourceTemp.dispatch(temp)}
-        origin={[50, SCREEN_HEIGHT / 2 - 100]}
+        origin={[SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2]}
       />
       <Camera
         device={device}
-        isActive={true}
-        style={{ flex: 1, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+        isActive={camActive}
+        style={{
+          position: "absolute",
+          width: SCREEN_WIDTH,
+          height: SCREEN_HEIGHT,
+          zIndex: 0,
+        }}
         frameProcessor={skfp}
+        fps={12}
       />
+      <ReplacementMeter
+        activePaint={vTargetPaint.state}
+        layer={eLayers.colorMixer}
+        origin={[SCREEN_WIDTH - 150, 150]}
+        setThreshold={fAddThreshold}
+      />
+
       <GlassView
         style={{
           position: "absolute",
@@ -175,19 +208,20 @@ export function WallPaintCam() {
           width: 40,
           height: 40,
           borderRadius: 20,
+          zIndex: eLayers.chipFan + 100,
         }}
         glassEffectStyle={"clear"}
       />
     </>
   );
 }
-const shaderCode = `
+export const shaderCode = /* glsl */ `
 uniform shader image;
 uniform vec3 replacementYUV;
 uniform vec2 center;
 uniform half threshold;
-uniform vec3 lightSample;
-uniform vec2 targetUV;
+uniform vec3 whiteSample;
+uniform vec3 targetWhite;
 vec3 rgb2yuv(vec3 rgb) {
   float y = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
   float u = -0.14713 * rgb.r - 0.28886 * rgb.g + 0.436 * rgb.b;
@@ -221,87 +255,72 @@ float boxAverage(vec2 pos, vec3 compYUV) {
     }
   }
   return minDist;
-}
-vec3 averageYUV(vec2 pos) {
-  vec3 avgYUV = vec3(0,0,0);
-  for(int x = -2; x <= 2; x++) {
-    for(int y = -2; y <= 2; y++) {
-      vec2 offset = vec2(float(x), float(y)) ;
-      vec4 color = image.eval(pos + offset);
-      vec3 yuv = rgb2yuv(color.rgb);
-      avgYUV += yuv;
-      }
-    }
-  return avgYUV / 25.0;
-}
-bool edgeDetect(vec2 pos) {
-  vec3 yuv = rgb2yuv(image.eval(pos).rgb);
-  for(int x = -1; x <= 1; x++) {
-    for(int y = -1; y <= 1; y++) {
-      vec2 offset = vec2(float(x), float(y)) ;
-      vec4 color = image.eval(pos + offset);
-      if(distance(yuv, rgb2yuv(color.rgb)) > threshold) {
-        return true;
-      }
-    }
-  }
-  return false; 
-}
-  float stdDev(vec2 pos, vec3 avgYUV) {
-    float sum = 0.0;
-    for(int x = -2; x <= 2; x++) {
-      for(int y = -2; y <= 2; y++) {
-        vec2 offset = vec2(float(x), float(y)) ;
-        vec4 color = image.eval(pos + offset);
-        vec3 yuv = rgb2yuv(color.rgb);
-        sum += distance(yuv, avgYUV);
-      }
-    }
-    return sum / 25.0;
-  }
-    vec3 lightBalance(vec3 color) {
+}    
+vec3 whiteBalance(vec3 color) {
       vec3 balanced = vec3(
-        color.r / lightSample.r,
-        color.g / lightSample.g,
-        color.b / lightSample.b
+        color.r / whiteSample.r,
+        color.g / whiteSample.g,
+        color.b / whiteSample.b
       );
+    //  balanced = color + (color-balanced)*2;
+      float y = rgb2yuv(color).r;
+      balanced = mix(color, balanced, y);
       return balanced;
     }
 
+vec4 UVRange(vec2 pos) {
+  vec4 uvRange = vec4(0, 0, 0, 0);
+
+  for(int x = -4; x <= 4; x++) {
+    for(int y = -4; y <= 4; y++) {
+      vec2 offset = vec2(float(x), float(y)) ;
+      vec4 color = image.eval(pos + offset);
+     // color.rgb = whiteBalance(color.rgb);
+      vec3 yuv = rgb2yuv(color.rgb);
+      uvRange.x = min(uvRange.x, yuv.g);
+      uvRange.y = max(uvRange.y, yuv.g);
+      uvRange.z = min(uvRange.z, yuv.b);
+      uvRange.w = max(uvRange.w, yuv.b);
+      }
+    }
+    uvRange.x -= threshold;
+    uvRange.y += threshold;
+    uvRange.z -= threshold;
+    uvRange.w += threshold;
+  return uvRange ;
+}
+vec3 posterize(vec3 color, float levels) {
+  color = floor(color * levels) / levels;
+  return color;
+}
+ 
+
 half4 main(vec2 pos) {  
-  if(distance(pos, center) < 10 ) {
+  float centerDist = distance(pos, center)/center.y;
+  if(centerDist < .02 ) {
     return image.eval(pos);
   }
-  vec3 color = image.eval(pos).rgb;
-  vec3 lightYUV = rgb2yuv(lightSample);
-  vec3 adjColor = lightBalance(color);
-  vec3 adjCenter = lightBalance(image.eval(center).rgb);
-  vec3 centerYUV = rgb2yuv(adjCenter);
-  vec3 yuv = rgb2yuv(color);
-  adjColor +=  adjColor - color;
-adjColor = mix(color, adjColor,  yuv.r);
-//return half4(adjColor, 1.0);
- vec3 adjYUV = rgb2yuv(adjColor);
-  vec3 avg = averageYUV(pos);
-  float dist = boxAverage(pos, centerYUV);
-  dist = distance(centerYUV.gb, adjYUV.gb);
-  vec2 diff = yuv.gb - adjYUV.gb;
-  diff *= 5;
- //return half4(yuv2rgb(vec3(yuv.r, diff)), 1.0);
-  float std = stdDev(pos, avg)*5;
-  dist *= 1.0 + std;
-  float distVar = (threshold-dist) / threshold; 
-  float lit = abs(yuv[0] - .5);
-  distVar += lit*.25;
-  distVar = clamp(distVar, 0, 1);
-  if(distVar > 0) {
-    yuv[0]  *= replacementYUV[0]*2;
-    yuv[1] = mix(replacementYUV[1], yuv[1], floor((1-distVar)*(1-distVar)));
-    yuv[2] = mix(replacementYUV[2], yuv[2], floor((1-distVar)*(1-distVar)));
-  }
-  if(pos.y > center.y) {
-    return half4(yuv2rgb(yuv), 1.0);
-  }
-  return half4(yuv2rgb(yuv), 1.0);
+  vec3 sampleRGB = image.eval(pos).rgb;
+  vec3 sampleYUV = rgb2yuv(sampleRGB);
+  vec3 bSampleRGB = whiteBalance(sampleRGB);
+  vec3 bCenterRGB = whiteBalance(image.eval(center).rgb);
+  vec3 bCenterYUV = rgb2yuv(bCenterRGB);
+  vec3 bSampleYUV = rgb2yuv(bSampleRGB);
+  float angle = atan(bSampleYUV.g, bSampleYUV.b);
+  float centerAngle = atan(bCenterYUV.g, bCenterYUV.b);
+  float dist = abs(angle - centerAngle) / 3.14;
+  dist = min(dist, distance(sampleYUV.gb, bCenterYUV.gb));
+  dist = clamp(dist, 0.0, 1.0);
+  dist = (threshold) - dist;
+  if(dist > 0) {
+    bSampleYUV.r  *= replacementYUV[0]*(2);
+    bSampleYUV.g = mix(bSampleYUV.g, replacementYUV[1], 1);
+    bSampleYUV.b = mix(bSampleYUV.b, replacementYUV[2], 1);
+}
+  vec3 color = yuv2rgb(bSampleYUV);
+  color.r *= targetWhite.r;
+  color.g *= targetWhite.g;
+  color.b *= targetWhite.b;
+  return half4(color, 1.0);
 }
 `;

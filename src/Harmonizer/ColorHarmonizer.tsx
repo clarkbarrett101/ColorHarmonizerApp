@@ -18,46 +18,42 @@ import {
   useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
-import { ColorModels } from "./ColorModels";
-export type tColorHarmonizer = tRadialObject & {};
+export type tColorHarmonizer = tRadialObject & { phase?: tHarmonizerPhase };
 export type tHarmonizerPhase = "wheel" | "scheme" | "chipSelector";
-export function ColorHarmonizer({}: tColorHarmonizer) {
-  const vSelectedAngles = useVerse<number[]>([]);
-  const { vColorModel } = useUserContext();
-  const modelRelay = useVerseRelay(vColorModel);
+export function ColorHarmonizer({ phase = "wheel" }: tColorHarmonizer) {
+  const { vColorModel, vSelected } = useUserContext();
   const vModelBuffer = useSharedValue<tColorModel>(vColorModel.shared.value);
-  const vPhase = useVerse<tHarmonizerPhase>("wheel");
+  const vPhase = useVerse<tHarmonizerPhase>(phase);
   useAnimatedReaction(
-    () => vSelectedAngles.shared.value,
+    () => vSelected.shared.value,
     (selectedAngles, prevSelectedAngles) => {
       vModelBuffer.value = vColorModel.shared.value;
       console.log("Selected Angles:", selectedAngles);
     },
   );
   const dCs = useDerivedValue(() => {
-    return vSelectedAngles.shared.value.map((angle) => {
+    return vSelected.shared.value.map((angle) => {
       return 0.5;
     });
   });
   const dLs = useDerivedValue(() => {
-    return vSelectedAngles.shared.value.map((angle) => {
+    return vSelected.shared.value.map((angle) => {
       return 0.8;
     });
   });
+  function fOnPhase() {
+    "worklet";
+    vPhase.dispatch("scheme");
+  }
   return (
     <>
-      <BGGradient dARs={vSelectedAngles.shared} dCs={dCs} dLs={dLs} />
-
+      <BGGradient dARs={vSelected.shared} dCs={dCs} dLs={dLs} />
       {vPhase?.state === "wheel" ? (
-        <HarmonizerWheel
-          draggable
-          vSelectedAngles={vSelectedAngles}
-          vPhase={vPhase}
-        />
+        <HarmonizerWheel draggable fOnPhase={fOnPhase} />
       ) : vPhase?.state === "scheme" ? (
-        <SchemeSelector vSelectedAngles={vSelectedAngles} vPhase={vPhase} />
+        <SchemeSelector vPhase={vPhase} Selected={vSelected.state} />
       ) : (
-        <SchemeChipSelector vSelectedAngles={vSelectedAngles} vPhase={vPhase} />
+        <SchemeChipSelector vPhase={vPhase} />
       )}
     </>
   );

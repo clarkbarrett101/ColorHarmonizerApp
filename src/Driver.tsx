@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { LightThermometer } from "./Cameras/LightThermometer";
 import React, { Profiler, ReactNode, useEffect } from "react";
 import PanManager from "./Contexts/PanManager";
 import UserContext, { eLayers } from "./Contexts/UserContext";
@@ -24,22 +25,23 @@ import { BGGradient } from "./ColorWheels/BGGradient";
 
 export type ePages =
   | "Menu"
-  | "ReColorCamera"
-  | "ColorWheel"
-  | "ColorMixer"
-  | "UndertoneCamera"
-  | "ColorSeasons"
-  | "ColorHarmonizer"
-  | "PaletteLibrary";
+  | "ReColor Camera"
+  | "Color Wheel"
+  | "Color Mixer"
+  | "Undertone Camera"
+  | "Color Seasons"
+  | "Color Harmonizer"
+  | "Palette Library"
+  | "Light Thermometer";
 const allPages: ePages[] = [
   "Menu",
-  "PaletteLibrary",
-  "UndertoneCamera",
-  "ReColorCamera",
-  "ColorWheel",
-  "ColorMixer",
-  "ColorSeasons",
-  "ColorHarmonizer",
+  "Palette Library",
+  "Undertone Camera",
+  "ReColor Camera",
+  "Color Harmonizer",
+  "Color Wheel",
+  "Color Mixer",
+  "Color Seasons",
 ];
 const Driver = () => {
   const vPage = useVerse<ePages>("Menu");
@@ -48,23 +50,31 @@ const Driver = () => {
     Menu: (
       <Menu vSelection={vPage} options={allPages.filter((p) => p !== "Menu")} />
     ),
-    ReColorCamera: <WallPaintCam />,
-    ColorWheel: <ColorSelector />,
-    ColorMixer: <ColorMixer />,
-    ColorSeasons: <ColorSeasons />,
-    UndertoneCamera: (
+    "ReColor Camera": <WallPaintCam />,
+    "Color Wheel": <ColorSelector />,
+    "Color Mixer": <ColorMixer />,
+    "Color Seasons": <ColorSeasons />,
+    "Undertone Camera": (
       <ColorCamera
         fSetHarmonizer={() => {
           "worklet";
           vPhase.dispatch("scheme");
-          vPage.dispatch("ColorHarmonizer");
+          vPage.dispatch("Color Harmonizer");
         }}
       />
     ),
-    ColorHarmonizer: <ColorHarmonizer phase={vPhase.state} />,
-    PaletteLibrary: <PaletteLibrary />,
+    "Color Harmonizer": <ColorHarmonizer phase={vPhase.state} />,
+    "Palette Library": <PaletteLibrary />,
+    "Light Thermometer": <LightThermometer />,
   };
-
+  function fShouldShowBGGradient(page: ePages) {
+    return (
+      page !== "Color Harmonizer" &&
+      page !== "Undertone Camera" &&
+      page !== "ReColor Camera" &&
+      page !== "Light Thermometer"
+    );
+  }
   return (
     <Profiler
       id="Driver"
@@ -88,9 +98,7 @@ const Driver = () => {
         <UserContext>
           <SoundContext>
             <BucketContext>
-              {vPage.state !== "ColorHarmonizer" &&
-                vPage.state !== "UndertoneCamera" &&
-                vPage.state !== "ReColorCamera" && <BGGradient />}
+              {fShouldShowBGGradient(vPage.state) && <BGGradient />}
               <DropScreen />
               {vPage.state !== "Menu" && (
                 <MenuButton
@@ -100,7 +108,7 @@ const Driver = () => {
                   }}
                 />
               )}
-              <PanManager drawSectors>{pageMap[vPage.state]}</PanManager>
+              <PanManager>{pageMap[vPage.state]}</PanManager>
               <ChipHand />
             </BucketContext>
           </SoundContext>

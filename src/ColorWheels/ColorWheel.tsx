@@ -221,11 +221,16 @@ function ColorWheel({
 
   const secondColorModifier: tAttributeModifier = {
     modID: 1,
-    deps: [vSecondColor.shared, vColorModel.shared],
+    deps: [
+      vSecondColor.shared,
+      vColorModel.shared,
+      vAccentC.shared,
+      vAccentL.shared,
+    ],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      let c = (input.ring / ring) * 0.5 + 0.5;
-      let l = (input.ring / ring) * 0.5 + 0.5;
+      let c = ((input.ring / ring) * 0.5 + 0.5) * vAccentC.shared.value;
+      let l = ((input.ring / ring) * 0.5 + 0.5) * vAccentL.shared.value;
       let [r, g, b] = fCLARColorToRGB(
         { c, l, ar: vSecondColor.shared.value },
         vColorModel.shared.value,

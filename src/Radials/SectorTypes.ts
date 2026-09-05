@@ -79,3 +79,100 @@ export const fMakePetalPath = (
               `.trim();
   return path;
 };
+
+export type tPetalSizeOptions = {
+  rotationR?: number;
+  bend?: number;
+  innerRadius?: number;
+  maxRadius?: number;
+};
+
+export const fMakePetalPathFromSize = (
+  width: number,
+  height: number,
+  options: tPetalSizeOptions = {},
+): string => {
+  const safeWidth = Math.max(0, width);
+  const safeHeight = Math.max(0, height);
+  if (safeWidth === 0 || safeHeight === 0) {
+    return "";
+  }
+
+  const innerRadius = Math.max(0, options.innerRadius ?? 0);
+  const outerRadius = innerRadius + safeWidth;
+
+  // Keep maxRadius large enough so the requested tip-to-tip height is feasible.
+  const computedMaxRadius = options.maxRadius ?? outerRadius;
+  const maxRadius = Math.max(safeHeight / 2, computedMaxRadius);
+  const chordRatio = Math.min(1, safeHeight / (2 * maxRadius));
+  const arcLength = 2 * Math.asin(chordRatio);
+
+  return fMakePetalPath(
+    [innerRadius, outerRadius],
+    arcLength,
+    maxRadius,
+    options.rotationR ?? 0,
+    options.bend ?? 0.5,
+  );
+};
+
+export const fMakeGeneralPetalPath = (
+  width: number,
+  height: number,
+  bendDegree: number = 0.5,
+  rotationR: number = 0,
+  origin: [number, number] = [0, 0],
+): string => {
+  const safeWidth = Math.max(0, width);
+  const safeHeight = Math.max(0, height);
+  if (safeWidth === 0 || safeHeight === 0) {
+    return "";
+  }
+
+  const halfW = safeWidth / 2;
+  const halfH = safeHeight / 2;
+  const bend = Math.min(1, Math.max(0, bendDegree));
+
+  // Bend changes control-point placement only, so cusp distance and bbox stay fixed.
+  const controlX = halfW * (0.25 + 0.75 * bend);
+  const controlInsetY = halfH * 0.7 * (1 - bend);
+
+  const top: [number, number] = [0, -halfH];
+  const rightMid: [number, number] = [halfW, 0];
+  const bottom: [number, number] = [0, halfH];
+  const leftMid: [number, number] = [-halfW, 0];
+
+  const c1: [number, number] = [controlX, -halfH + controlInsetY];
+  const c2: [number, number] = [controlX, halfH - controlInsetY];
+  const c3: [number, number] = [-controlX, halfH - controlInsetY];
+  const c4: [number, number] = [-controlX, -halfH + controlInsetY];
+
+  const transformPoint = (point: [number, number]): [number, number] => {
+    const [x, y] = point;
+    const cosR = Math.cos(rotationR);
+    const sinR = Math.sin(rotationR);
+    const rx = x * cosR - y * sinR;
+    const ry = x * sinR + y * cosR;
+    return [rx + origin[0], ry + origin[1]];
+  };
+
+  const [tX, tY] = transformPoint(top);
+  const [rmX, rmY] = transformPoint(rightMid);
+  const [bX, bY] = transformPoint(bottom);
+  const [lmX, lmY] = transformPoint(leftMid);
+  const [c1x, c1y] = transformPoint(c1);
+  const [c2x, c2y] = transformPoint(c2);
+  const [c3x, c3y] = transformPoint(c3);
+  const [c4x, c4y] = transformPoint(c4);
+
+  const path = `
+                M ${tX} ${tY}
+                Q ${c1x} ${c1y} ${rmX} ${rmY}
+                Q ${c2x} ${c2y} ${bX} ${bY}
+                Q ${c3x} ${c3y} ${lmX} ${lmY}
+                Q ${c4x} ${c4y} ${tX} ${tY}
+                Z
+            `.trim();
+
+  return path;
+};

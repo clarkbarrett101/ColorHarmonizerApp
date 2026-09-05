@@ -1,5 +1,5 @@
 import { View, Text, Dimensions } from "react-native";
-import React, { useEffect } from "react";
+import React, { Profiler, useEffect } from "react";
 import { useSharedValue, useAnimatedReaction } from "react-native-reanimated";
 import { usePanManager, ePanEvent } from "../Contexts/PanManager";
 import { tRadialObject } from "../Radials/SectorTypes";
@@ -186,14 +186,7 @@ export function fGetHarmonies(hues: number[]): tScheme[] {
   let warmthBeta = Math.abs(
     Math.atan2(Math.sin(beta - 11 / 7), Math.cos(beta - 11 / 7)),
   );
-  console.log(
-    "warmthAlpha",
-    warmthAlpha,
-    alpha,
-    "warmthBeta",
-    warmthBeta,
-    beta,
-  );
+
   if (warmthAlpha > warmthBeta) {
     const temp = alpha;
     alpha = beta;
@@ -239,7 +232,6 @@ export function fGetHarmonies(hues: number[]): tScheme[] {
       harmonies.push(harmony);
     }
   }
-  console.log("harmonies", harmonies, angles);
   return harmonies;
 }
 

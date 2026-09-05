@@ -25,13 +25,13 @@ export function Menu({
   vSelection,
   options = [
     "Menu",
-    "PaletteLibrary",
-    "UndertoneCamera",
-    "ReColorCamera",
-    "ColorWheel",
-    "ColorMixer",
-    "ColorSeasons",
-    "ColorHarmonizer",
+    "Palette Library",
+    "Undertone Camera",
+    "ReColor Camera",
+    "Color Wheel",
+    "Color Mixer",
+    "Color Seasons",
+    "Color Harmonizer",
   ],
   radii = [200, 500],
   rotationR = 22 / 7,
@@ -62,8 +62,10 @@ export function Menu({
     };
   }, []);
   const { vAccentAR, vAccentC, vAccentL } = useUserContext();
-  vAccentC.shared.value = 0.75;
-  vAccentL.shared.value = 0.9;
+  useEffect(() => {
+    vAccentC.shared.value = 0.75;
+    vAccentL.shared.value = 0.9;
+  }, [vAccentC, vAccentL]);
   useAnimatedReaction(
     () => vPanState.value,
     (state) => {

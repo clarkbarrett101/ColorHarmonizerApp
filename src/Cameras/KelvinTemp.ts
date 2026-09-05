@@ -899,12 +899,15 @@ export const kelvin_table: { [key: number]: tTemp } = {
 };
 
 export function fGetTempFromUV(u: number, v: number): tTemp {
+  "worklet";
   let closestTemp: tTemp = kelvin_table[1000];
   let closestDistance = Number.MAX_VALUE;
-  for (const temp of Object.values(kelvin_table)) {
+  for (const key in kelvin_table) {
+    const temp = kelvin_table[Number(key)];
     const distance = Math.sqrt(
       Math.pow(u - temp.u, 2) + Math.pow(v - temp.v, 2),
     );
+
     if (distance < closestDistance) {
       closestDistance = distance;
       closestTemp = temp;

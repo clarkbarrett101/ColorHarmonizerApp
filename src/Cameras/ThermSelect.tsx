@@ -20,6 +20,7 @@ import { SectorGroup } from "../Radials/SectorGroup";
 import { scheduleOnRN } from "react-native-worklets";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { kelvin_table, tTemp } from "./KelvinTemp";
+import { PetalBox } from "../Buttons/PetalBox";
 
 export type tThermSelect = {
   size?: number;
@@ -27,20 +28,42 @@ export type tThermSelect = {
   setTemp: (temp: tTemp) => void;
   mainRotationR?: number;
   origin?: [number, number];
+  tempList?: number[];
+  arcLength?: number;
 };
-const tempList = [3500, 4500, 5500, 6500, 8000, 10000, 12000];
+const defaultTempList = [3500, 4500, 5500, 6500, 8000, 10000, 12000];
 export const ThermSelect = (props: tThermSelect) => {
-  let temps = tempList.map((k) => kelvin_table[k]);
+  let temps = (props.tempList || defaultTempList).map((k) => kelvin_table[k]);
   const ctx = useRadialContext();
   const origin = props.origin || ctx.origin || [0, 0];
-  const totalArcLength = 2 / 7;
+  const totalArcLength = props.arcLength || ctx.totalArcLength || 44 / 7;
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
   const radius = props.size ? props.size : 40;
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const vPanState = useSharedValue<ePanEvent>("leave");
   const vActive = useSharedValue(1);
   const vSelection = useSharedValue(0);
+  useEffect(() => {
+    let closestIndex = -1;
+    let closestDistance = Number.MAX_VALUE;
+    for (let i = 0; i < temps.length; i++) {
+      const distance = Math.abs(temps[i].k - props.tempK);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = i;
+      }
+    }
 
+    console.log(
+      "ThermSelect initialIndex",
+      closestIndex,
+      "for tempK",
+      props.tempK,
+    );
+    if (closestIndex >= 0) {
+      vPanPos.value = { angle: 0, radius: closestIndex * radius };
+    }
+  }, [props.tempK]);
   useAnimatedReaction(
     () => vPanState.value,
     (state) => {

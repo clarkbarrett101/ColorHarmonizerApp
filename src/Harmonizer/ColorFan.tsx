@@ -35,7 +35,6 @@ export function ColorFan({
   chordLength = arcLength / hues.length,
   layer = eLayers.colorMixer,
 }: tColorFan) {
-  console.log("ColorFan hues: ", hues);
   if (hues.length === 0) {
     console.warn(
       "ColorFan: hues array is empty. Please provide an array of hues.",

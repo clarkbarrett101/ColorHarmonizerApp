@@ -1,5 +1,5 @@
 import { Dimensions } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { Profiler, useEffect, useState } from "react";
 import { fMakePetalPath, tRadialObject, tSector } from "../Radials/SectorTypes";
 import { RadialGraphic } from "../Radials/RadialGraphic";
 import { fCLARColorToRGB, tBrand, tCLARColor } from "../utils/CLAcolor";

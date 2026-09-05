@@ -37,16 +37,18 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 export type tSkiaCam = {
   shaderCode?: string;
   uniforms?: Record<string, number[]>;
-  frameProcessor?: (frame: DrawableFrame) => void;
-  postRenderProcessor?: (frame: DrawableFrame) => void;
+  preProcessor?: (frame: DrawableFrame) => void;
+  postProcessor?: (frame: DrawableFrame) => void;
   camActive?: boolean;
+  fps?: number;
 };
 export function SkiaCam({
   shaderCode,
   uniforms,
-  frameProcessor,
+  preProcessor,
   camActive = true,
-  postRenderProcessor,
+  postProcessor,
+  fps = 12,
 }: tSkiaCam) {
   const { hasPermission, requestPermission } = useCameraPermission();
   if (!hasPermission) {
@@ -84,11 +86,11 @@ export function SkiaCam({
       if (frameSize.value[0] === 0) {
         runResetShader([frame.width, frame.height]);
       }
-      frameProcessor?.(frame);
+      preProcessor?.(frame);
       frame.render(vPaint.value);
-      postRenderProcessor?.(frame);
+      postProcessor?.(frame);
     },
-    [frameProcessor, shaderCode, uniforms],
+    [preProcessor, postProcessor, shaderCode, uniforms],
   );
 
   if (!device) return <View />;
@@ -105,7 +107,7 @@ export function SkiaCam({
           zIndex: 0,
         }}
         frameProcessor={skfp}
-        fps={12}
+        fps={fps}
       />
 
       <GlassView

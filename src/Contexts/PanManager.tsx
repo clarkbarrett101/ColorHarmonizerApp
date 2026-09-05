@@ -118,19 +118,17 @@ export default function PanManager({
       if (zone.vActive && zone.vActive.value === false) {
         return;
       }
+
       if (zone.shape === "capsule") {
         const capRadius = zone.radii[0];
         const bodyLength =
           zone.radii[1] * (zone.capsuleMod?.value ?? 1) + zone.radii[0];
-
-        // Capsule endpoints (centers of the semicircular caps)
         const startX = zone.origin[0];
         const startY = zone.origin[1] - capRadius;
         const endX = zone.origin[0] + bodyLength * Math.cos(zone.rotationR);
         const endY =
           zone.origin[1] + bodyLength * Math.sin(zone.rotationR) - capRadius;
 
-        // Account for the radius extending in all directions from endpoints
         const points = [
           { x: startX - capRadius, y: startY - capRadius },
           { x: startX + capRadius, y: startY - capRadius },
@@ -151,9 +149,10 @@ export default function PanManager({
       } else {
         const maxRadius = zone.radii[1];
         const rotationR = zone.rotationR || 0;
+        const zoneArcLength = Math.min(zone.arcLength, 22 / 7);
         const angles = [
-          rotationR - zone.arcLength / 2,
-          rotationR + zone.arcLength / 2,
+          rotationR - zoneArcLength / 2,
+          rotationR + zoneArcLength / 2,
           rotationR,
         ];
 

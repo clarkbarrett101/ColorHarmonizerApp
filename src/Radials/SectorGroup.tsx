@@ -63,6 +63,7 @@ export const SectorGroup = ({
     "worklet";
     const style = actor.get((attributes) => {
       return {
+        opacity: attributes.alpha || 0,
         zIndex: attributes.zIndex || 3,
         shadowOffset: {
           width: attributes.shadowX || 0,

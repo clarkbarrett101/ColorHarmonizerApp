@@ -34,7 +34,7 @@ export function TintSelector({
   const vPanState = useSharedValue<ePanEvent>("leave");
   const context = useRadialContext();
   const { origin, wAngleToChord, wChordToAngle, wUpdateState } = context;
-  const lastAngle = useSharedValue(0);
+  const lastAngle = useSharedValue(vPanPos?.value.angle ?? 0);
   const fOnEnter = () => {
     "worklet";
     let nearestSectorAngle = wChordToAngle(
@@ -45,15 +45,17 @@ export function TintSelector({
     );
     if (nearestSectorAngle !== lastAngle.value) {
       vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
-      lastAngle.value = nearestSectorAngle;
-      wUpdateState();
     }
   };
 
   useAnimatedReaction(
     () => vPanState.value,
     (state) => {
-      if (state !== "drag") fOnEnter();
+      if (state == "enter" || state == "tap" || state == "release") {
+        fOnEnter();
+        wUpdateState();
+        vPanState.value = "leave";
+      }
     },
     [],
   );

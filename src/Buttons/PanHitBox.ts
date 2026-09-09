@@ -32,7 +32,7 @@ export function usePanHitBox(props: tPanHitBox) {
     return () => {
       unregisterHitBox(props.id);
     };
-  }, []);
+  }, [props.rotationR]);
   useAnimatedReaction(
     () => [vPanState.value, vPanPos.value],
     ([state, pos]) => {

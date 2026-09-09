@@ -17,6 +17,8 @@ import {
   AudioManager,
   AnalyserNode,
 } from "react-native-audio-api";
+import * as Haptics from "expo-haptics";
+
 const noteFiles = {
   56: require("../../assets/56.wav"),
   58: require("../../assets/58.wav"),
@@ -129,12 +131,6 @@ export default function SoundContext({ children }: { children: ReactNode }) {
 
   function fUpdateChordsPlaying(delta: number) {
     chordsPlaying.current = Math.max(0, chordsPlaying.current + delta);
-
-    console.log(
-      "chordsPlaying",
-      chordsPlaying.current,
-      1 / (chordsPlaying.current + 1),
-    );
   }
 
   function fStartChord(color: tCLARColor, harp: boolean = false): tChordReturn {
@@ -165,7 +161,6 @@ export default function SoundContext({ children }: { children: ReactNode }) {
           color.ar.toFixed(2)
       ];
     chord = chord || fChooseChord(color);
-    console.log("fStartChord", color, chord, fChordToIntervals(chord));
     const intervals = fChordToIntervals(chord);
     for (let i = 0; i < intervals.length; i++) {
       const node = fSetupNode(intervals[i], gainNode, harp);
@@ -316,13 +311,13 @@ export default function SoundContext({ children }: { children: ReactNode }) {
         finalChords[colorCode] = fChooseChord(paints[0].clar);
       }
     }
-    console.log("finalChords", finalChords);
     Object.assign(paintChords, finalChords);
   }
 
   function fPlaySFX(sfx: eSFX, delay: number = 0) {
     if (!ready.current) return;
     const buffer = sfxBuffers[sfx];
+
     if (buffer) {
       const source = audioContext.createBufferSource();
       source.buffer = buffer;

@@ -13,6 +13,7 @@ import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { useSoundContext } from "../Contexts/SoundContext";
 import { View } from "react-native";
 import { tRadialObject } from "../Radials/SectorTypes";
+import { tVerse } from "../utils/Verse";
 const clarColorsList: tPaint[] = require("../clarColors.json");
 
 export type tChipFan = {
@@ -98,7 +99,6 @@ export const ColorChipFan = ({
     const foundPaints = foundColors.map(
       (color) => clarColorsList[color.index!],
     );
-    console.log("Found paints", foundPaints.length, "for target", targetColor);
     lastColor.value = targetColor;
     if (!sideA) {
       setPaintsB(foundPaints);
@@ -113,6 +113,7 @@ export const ColorChipFan = ({
   }, [paintsA, paintsB]);
 
   useEffect(() => {
+    console.log(targetColor, "vs", lastColor.value);
     if (
       targetColor.c !== lastColor.value.c ||
       targetColor.l !== lastColor.value.l ||
@@ -130,6 +131,7 @@ export const ColorChipFan = ({
     />
   );
 };
+/*
 export function AccentChipFan({
   brand,
   ...rest
@@ -142,6 +144,7 @@ export function AccentChipFan({
   };
   return <ColorChipFan targetColor={targetColor} brand={brand} {...rest} />;
 }
+  */
 type tChipRow = tRadialObject &
   Partial<tPaintChip> & {
     paints: tPaint[];

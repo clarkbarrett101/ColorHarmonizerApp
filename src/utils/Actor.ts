@@ -30,7 +30,8 @@ export type tAttribute =
   | "shadowOpacity"
   | "strokeWidth"
   | "radialOffsetX"
-  | "radialOffsetY";
+  | "radialOffsetY"
+  | "alpha";
 
 export type tAttributeMap = { [key in tAttribute]?: number };
 
@@ -74,6 +75,7 @@ const defaultAttributes: tAttributeMap = {
   red: 0,
   blue: 0,
   green: 0,
+  alpha: 0,
   held: 0,
   shadowColor: 0,
   shadowOpacity: 0,
@@ -105,6 +107,11 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
         for (const dep of attributeModifier.deps) {
           if (!deps.includes(dep)) {
             deps.push(dep);
+            if (dep === undefined) {
+              console.warn(
+                "Undefined dependency detected:" + attributeModifier.modID,
+              );
+            }
           }
         }
       }
@@ -138,8 +145,10 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
   const get = (callback: (attributes: tAttributeMap) => any) => {
     "worklet";
     const depsValues = deps.map((dep) => dep.value); // This line is necessary so that the depedencies are all reference in the closure
-    let modifiedAttributes = { ...attributes.value };
+
+    let modifiedAttributes: tAttributeMap = { ...attributes.value };
     for (let id in modifiers.value) {
+      modifiedAttributes.alpha = 1;
       const modifier = modifiers.value[id];
       modifiedAttributes = modifier(modifiedAttributes);
     }

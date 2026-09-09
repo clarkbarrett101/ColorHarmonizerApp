@@ -13,13 +13,15 @@ import {
   SharedValue,
   withTiming,
   useAnimatedReaction,
+  withDelay,
 } from "react-native-reanimated";
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { RadialContext, useRadialContext } from "../Radials/RadialContext";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
-import { tVerse } from "../utils/Verse";
+import { tVerse, useVerse } from "../utils/Verse";
 import React from "react";
+import { View } from "react-native";
 
 type tColorWheel = tRadialObject & {
   wheelCenter?: number;
@@ -40,6 +42,11 @@ function ColorWheel({
   vSecondColor,
   transitionAnim,
 }: tColorWheel) {
+  const vIntroAnim = useSharedValue(0);
+  const secondColor = useVerse(null);
+  vSecondColor = vSecondColor || secondColor;
+  const transitionA = useSharedValue(0);
+  transitionAnim = transitionAnim || transitionA;
   const { origin, wAngleToChord, wChordToAngle, wUpdateState } =
     useRadialContext();
   const { vColorModel } = useUserContext();
@@ -66,7 +73,10 @@ function ColorWheel({
   const vPanState = useSharedValue<ePanEvent>("leave");
   const vStartAngle = useSharedValue(0);
   const dragStartAngle = useSharedValue(0);
-
+  function fLerp(a: number, b: number, t: number): number {
+    "worklet";
+    return a + (b - a) * t;
+  }
   const mTransformModifier: tAttributeModifier = {
     modID: 0,
     deps: [
@@ -76,6 +86,7 @@ function ColorWheel({
       vPanPos,
       vStartAngle,
       dragStartAngle,
+      vIntroAnim,
     ],
     modifier: (input: tAttributeMap) => {
       "worklet";
@@ -100,17 +111,16 @@ function ColorWheel({
       let tx = input.translateX + diff * offsetLevel;
       let zIndex = 2 * Math.round(chords / 2 - zDiff) + eLayers.colorMixer;
       let vS = 1 + Math.max(0, diff - 0.8);
-
       return {
         ...input,
         zIndex,
-        rotateZ: rotation,
-        scaleX: vS,
-        scaleY: vS,
-        translateX: tx,
-        shadowRadius: input.shadowRadius * vS,
-        shadowX: input.shadowX * vS,
-        shadowY: input.shadowY * vS,
+        rotateZ: fLerp(-22 / 7, rotation, vIntroAnim.value),
+        scaleX: fLerp(1, vS, vIntroAnim.value),
+        scaleY: fLerp(1, vS, vIntroAnim.value),
+        translateX: fLerp(input.translateX - 100, tx, vIntroAnim.value),
+        shadowRadius: fLerp(0, input.shadowRadius * vS, vIntroAnim.value),
+        shadowX: fLerp(0.1, input.shadowX * vS, vIntroAnim.value),
+        shadowY: fLerp(0.1, input.shadowY * vS, vIntroAnim.value),
       };
     },
   };
@@ -180,6 +190,7 @@ function ColorWheel({
     [],
   );
   useEffect(() => {
+    vIntroAnim.value = withDelay(500, withTiming(1, { duration: 500 }));
     if (!draggable) return;
     const id = `${ring}-${chord}`;
     registerZone({
@@ -243,6 +254,7 @@ function ColorWheel({
       };
     },
   };
+
   return (
     <RadialContext
       value={{

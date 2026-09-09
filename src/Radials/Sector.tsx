@@ -46,7 +46,7 @@ export const Sector = (props: tSector) => {
     "worklet";
     return actor.get((attributes) => {
       return {
-        fill: `rgba(${attributes.red || 0},${attributes.green || 0},${attributes.blue || 0},1)`,
+        fill: `rgb(${attributes.red || 0},${attributes.green || 0},${attributes.blue || 0})`,
         strokeWidth: attributes.strokeWidth || 0,
       };
     });

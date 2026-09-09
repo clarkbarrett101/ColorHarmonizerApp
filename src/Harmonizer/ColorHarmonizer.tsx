@@ -22,6 +22,7 @@ export type tColorHarmonizer = tRadialObject & { phase?: tHarmonizerPhase };
 export type tHarmonizerPhase = "wheel" | "scheme" | "chipSelector";
 export function ColorHarmonizer({ phase = "wheel" }: tColorHarmonizer) {
   const { vColorModel, vSelected } = useUserContext();
+  const vSelectedRelay = useVerseRelay(vSelected);
   const vModelBuffer = useSharedValue<tColorModel>(vColorModel.shared.value);
   const vPhase = useVerse<tHarmonizerPhase>(phase);
   useAnimatedReaction(
@@ -45,15 +46,27 @@ export function ColorHarmonizer({ phase = "wheel" }: tColorHarmonizer) {
     "worklet";
     vPhase.dispatch("scheme");
   }
+  useEffect(() => {
+    vSelectedRelay?.dispatch();
+  }, []);
+  useEffect(() => {
+    if (vSelectedRelay.state.length < 2) {
+      vPhase.dispatch("wheel");
+    } else if (vSelectedRelay.state.length == 2) {
+      vPhase.dispatch("scheme");
+    } else if (vSelectedRelay.state.length > 2) {
+      vPhase.dispatch("chipSelector");
+    }
+  }, [vSelectedRelay.state]);
   return (
     <>
       <BGGradient dARs={vSelected.shared} dCs={dCs} dLs={dLs} />
       {vPhase?.state === "wheel" ? (
         <HarmonizerWheel draggable fOnPhase={fOnPhase} />
       ) : vPhase?.state === "scheme" ? (
-        <SchemeSelector vPhase={vPhase} Selected={vSelected.state} />
+        <SchemeSelector vPhase={vPhase} vSelected={vSelectedRelay} />
       ) : (
-        <SchemeChipSelector vPhase={vPhase} />
+        <SchemeChipSelector vPhase={vPhase} vSelected={vSelectedRelay} />
       )}
     </>
   );

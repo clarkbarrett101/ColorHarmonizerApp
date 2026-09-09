@@ -1,5 +1,5 @@
 import { View, Text, Dimensions } from "react-native";
-import React, { Profiler, useEffect } from "react";
+import React, { use, useEffect, useState } from "react";
 import { useSharedValue, useAnimatedReaction } from "react-native-reanimated";
 import { usePanManager, ePanEvent } from "../Contexts/PanManager";
 import { tRadialObject } from "../Radials/SectorTypes";
@@ -237,8 +237,9 @@ export function fGetHarmonies(hues: number[]): tScheme[] {
 
 export type tColorScheme = Omit<tColorFan, "hues"> & {
   tScheme: tScheme;
+  ready?: boolean;
 };
-export function ColorScheme({ tScheme, ...props }: tColorScheme) {
+export function ColorScheme({ tScheme, ready = true, ...props }: tColorScheme) {
   return (
     <>
       <ColorFan
@@ -246,7 +247,7 @@ export function ColorScheme({ tScheme, ...props }: tColorScheme) {
         chordLength={props.arcLength / 2}
         {...props}
       />
-      {tScheme?.signPath && (
+      {ready && tScheme?.signPath && (
         <Sign
           {...props}
           radii={[(props.radii[0] + props.radii[1]) / 2 - 25, 50]}

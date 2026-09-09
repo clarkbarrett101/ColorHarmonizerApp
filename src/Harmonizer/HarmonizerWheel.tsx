@@ -1,11 +1,13 @@
 import { G, Text } from "react-native-svg";
 import { Dimensions } from "react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import type { tHarmonizerPhase } from "./ColorHarmonizer";
 import {
+  runOnJS,
   useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
+  withDelay,
   withTiming,
 } from "react-native-reanimated";
 import {
@@ -43,11 +45,17 @@ export function HarmonizerWheel({
     "worklet";
   },
 }: tHarmonizerWheel) {
+  const chordLength = arcLength / chord;
+
   const { vAccentAR, vSelected } = useUserContext();
+  const { registerBucket, unregisterBucket } = useBucketContext();
+  const vIntroAnim = useVerse(0);
+  const transitionAnim = useSharedValue(0);
+  const vSelectedRelay = useVerseRelay(vSelected);
   const vSecondColor = useVerse<number | null>(
     vSelected?.state.length > 1 ? vSelected.state[1] : null,
   );
-  const chordLength = arcLength / chord;
+
   const fOnLeave = (angleOffset = 0) => {
     "worklet";
     let nearestSector = wDefaultAngleToChord(
@@ -77,6 +85,7 @@ export function HarmonizerWheel({
       }
     },
   );
+
   function SelectColor(angle: number) {
     "worklet";
     if (vSecondColor.shared.value === null) {
@@ -89,15 +98,20 @@ export function HarmonizerWheel({
       ]);
     }
   }
-  const vSelectedRelay = useVerseRelay(vSelected);
+
   useEffect(() => {
     if (vSelectedRelay?.state.length > 1) {
       console.log("HarmonizerWheel vSelectedRelay: ", vSelectedRelay?.state);
       fOnPhase();
     }
   }, [vSelectedRelay?.state]);
-  const { registerBucket, unregisterBucket } = useBucketContext();
+
   useEffect(() => {
+    vIntroAnim.shared.value = withDelay(500, withTiming(1, { duration: 500 }));
+    setTimeout(() => {
+      vIntroAnim.dispatch(1);
+    }, 1000);
+
     registerBucket({
       id: 31,
       callback: (paint: tPaint) => {
@@ -134,6 +148,7 @@ export function HarmonizerWheel({
       }
     },
   });
+
   const dAR = useDerivedValue(() => {
     if (vSecondColor.shared.value !== null) {
       return vSecondColor.shared.value;
@@ -141,7 +156,7 @@ export function HarmonizerWheel({
       return vAccentAR.shared.value;
     }
   });
-  const transitionAnim = useSharedValue(0);
+
   useAnimatedReaction(
     () => vSecondColor.shared.value,
     (secondColor) => {
@@ -155,24 +170,41 @@ export function HarmonizerWheel({
     [],
   );
 
+  function fLerp(a: number, b: number, t: number) {
+    "worklet";
+    return a + (b - a) * t;
+  }
+
+  const mTransitionModifier: tAttributeModifier = {
+    modID: 1,
+    deps: [vIntroAnim.shared],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      return {
+        ...input,
+        rotateZ: fLerp(0, rotationR, vIntroAnim.shared.value),
+      };
+    },
+  };
+
   const secondTransformModifier: tAttributeModifier = {
     modID: 2,
-    deps: [transitionAnim],
+    deps: [transitionAnim, vIntroAnim.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
       return {
         ...input,
         shadowOpacity: transitionAnim.value > 0.5 ? input.shadowOpacity : 0,
-        rotateZ: input.rotateZ - transitionAnim.value * chordLength,
+        rotateZ:
+          fLerp(0, rotationR, vIntroAnim.shared.value) -
+          transitionAnim.value * chordLength,
         translateX: input.translateX + transitionAnim.value * -10,
       };
     },
   };
-  function fLerp(a: number, b: number, t: number) {
-    "worklet";
-    return a + (b - a) * t;
-  }
+
   const fontSize = radii[0] * 0.08;
+  const fill = "rgba(0,0,0,0.75)";
   return (
     <RadialContext
       value={{
@@ -194,9 +226,10 @@ export function HarmonizerWheel({
       <PetalBox
         origin={origin}
         radii={radii}
-        rotationR={rotationR}
+        rotationR={0}
         arcLength={3 / 7}
         layer={eLayers.colorMixer - 2}
+        mTransformModifier={mTransitionModifier}
       >
         <G
           transform={[
@@ -205,7 +238,7 @@ export function HarmonizerWheel({
           ]}
         >
           <Text
-            fill="rgba(0,0,0,0.75)"
+            fill={fill}
             fontSize={fontSize}
             fontFamily="Outfit"
             y={-1.5 * fontSize}
@@ -215,7 +248,7 @@ export function HarmonizerWheel({
             {"Select " + (vSecondColor.state === null ? "First" : "Second")}
           </Text>
           <Text
-            fill="rgba(0,0,0,0.75)"
+            fill={fill}
             fontSize={fontSize}
             fontFamily="Outfit"
             alignmentBaseline="middle"
@@ -224,7 +257,7 @@ export function HarmonizerWheel({
             Color To
           </Text>
           <Text
-            fill="rgba(0,0,0,0.75)"
+            fill={fill}
             fontSize={fontSize}
             fontFamily="Outfit"
             y={1.5 * fontSize}
@@ -235,53 +268,52 @@ export function HarmonizerWheel({
           </Text>
         </G>
       </PetalBox>
-      <RadialContext value={{ mTransformModifier: secondTransformModifier }}>
-        <PetalBox
-          origin={origin}
-          radii={radii}
-          rotationR={rotationR}
-          arcLength={3 / 7}
-          layer={eLayers.colorMixer - 5}
-          dAR={dAR}
+      <PetalBox
+        origin={origin}
+        radii={radii}
+        rotationR={0}
+        arcLength={3 / 7}
+        layer={eLayers.colorMixer - 5}
+        dAR={dAR}
+        mTransformModifier={secondTransformModifier}
+      >
+        <G
+          transform={[
+            { scale: -1 },
+            { translateX: -fLerp(radii[0], radii[1], 0.7) },
+          ]}
         >
-          <G
-            transform={[
-              { scale: -1 },
-              { translateX: -fLerp(radii[0], radii[1], 0.7) },
-            ]}
+          <Text
+            fill={fill}
+            fontSize={fontSize}
+            fontFamily="Outfit"
+            y={-1.5 * fontSize}
+            alignmentBaseline="middle"
+            textAnchor="middle"
           >
-            <Text
-              fill="rgba(0,0,0,0.75)"
-              fontSize={fontSize}
-              fontFamily="Outfit"
-              y={-1.5 * fontSize}
-              alignmentBaseline="middle"
-              textAnchor="middle"
-            >
-              Remove
-            </Text>
-            <Text
-              fill="rgba(0,0,0,0.75)"
-              fontSize={fontSize}
-              fontFamily="Outfit"
-              alignmentBaseline="middle"
-              textAnchor="middle"
-            >
-              First
-            </Text>
-            <Text
-              fill="rgba(0,0,0,0.75)"
-              fontSize={fontSize}
-              fontFamily="Outfit"
-              y={1.5 * fontSize}
-              alignmentBaseline="middle"
-              textAnchor="middle"
-            >
-              Color
-            </Text>
-          </G>
-        </PetalBox>
-      </RadialContext>
+            Remove
+          </Text>
+          <Text
+            fill={fill}
+            fontSize={fontSize}
+            fontFamily="Outfit"
+            alignmentBaseline="middle"
+            textAnchor="middle"
+          >
+            First
+          </Text>
+          <Text
+            fill={fill}
+            fontSize={fontSize}
+            fontFamily="Outfit"
+            y={1.5 * fontSize}
+            alignmentBaseline="middle"
+            textAnchor="middle"
+          >
+            Color
+          </Text>
+        </G>
+      </PetalBox>
     </RadialContext>
   );
 }

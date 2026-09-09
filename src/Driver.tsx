@@ -108,7 +108,7 @@ const Driver = () => {
                   }}
                 />
               )}
-              <PanManager>{pageMap[vPage.state]}</PanManager>
+              <PanManager drawSectors>{pageMap[vPage.state]}</PanManager>
               <ChipHand />
             </BucketContext>
           </SoundContext>

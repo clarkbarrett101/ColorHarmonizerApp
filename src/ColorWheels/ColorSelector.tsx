@@ -14,7 +14,7 @@ import {
   useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
-import { AccentChipFan, ColorChipFan } from "../Chips/ChipStack";
+import { ColorChipFan } from "../Chips/ChipStack";
 import { scheduleOnRN } from "react-native-worklets";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { eChipSizes } from "../Chips/PaintChip";
@@ -230,7 +230,11 @@ export default function ColorSelector({
       ar: dAngleR.value,
     });
     vSideA.dispatch(!vSideA.shared.value);
-    console.log("Dispatching color", vTargetColor.state);
+    console.log(
+      "Dispatching color",
+      vTargetColor.shared.value,
+      "to chip selector",
+    );
   }
 
   /// R E N D E R ///

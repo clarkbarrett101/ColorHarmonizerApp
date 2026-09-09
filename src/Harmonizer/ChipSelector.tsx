@@ -19,6 +19,7 @@ import { usePanHitBox } from "../Buttons/PanHitBox";
 
 export type tSchemeChipSelector = tRadialObject & {
   vPhase?: tVerse<tHarmonizerPhase>;
+  vSelected?: tVerse<number[]>;
 };
 
 export function SchemeChipSelector({
@@ -30,10 +31,10 @@ export function SchemeChipSelector({
   arcLength = 21 / 7,
   rotationR = 22 / 7,
   vPhase,
+  vSelected,
 }: tSchemeChipSelector) {
-  const { vSelectedRef, vSelected } = useUserContext();
-  const chordLength = Math.min(arcLength / vSelectedRef.current.length, 1.3);
-
+  const chordLength = Math.min(arcLength / vSelected.state.length, 1.3);
+  console.log("vSelected state:", vSelected?.state);
   usePanHitBox({
     id: "chipSelector",
     origin,
@@ -47,38 +48,48 @@ export function SchemeChipSelector({
           vSelected.shared.value[0],
           vSelected.shared.value.slice(-1)[0],
         ]);
-        vPhase?.dispatch("scheme");
       }
     },
   });
   const [brandFilter, setBrandFilter] = useState<tBrand>("All Brands");
   return (
     <>
-      {vSelectedRef.current.map((color, index) => (
+      {vSelected.state.map((color, index) => (
         <ChipSelector
           key={index}
           color={color}
           arcLength={chordLength * 0.8}
           rotationR={
-            rotationR +
-            chordLength * (index - vSelectedRef.current.length / 2 + 0.5)
+            rotationR + chordLength * (index - vSelected.state.length / 2 + 0.5)
           }
           origin={origin}
           radii={radii}
           ring={5}
           chord={4}
           layer={eLayers.chipFan + index * 20}
-          multiplier={vSelectedRef.current.length < 4 ? 0.9 : 0.8}
+          multiplier={vSelected.state.length < 4 ? 0.9 : 0.8}
         />
       ))}
       <ColorFan
-        hues={vSelectedRef.current}
+        hues={vSelected.state}
         origin={origin}
         radii={[10, radii[0] - 30]}
-        arcLength={chordLength * vSelectedRef.current.length * 0.8}
+        arcLength={chordLength * vSelected.state.length * 0.8}
         rotationR={rotationR}
         ring={3}
         bend={0.7}
+      />
+      <BrandFilter
+        brand={brandFilter}
+        setBrand={setBrandFilter}
+        origin={[
+          Dimensions.get("window").width - 40,
+          Dimensions.get("window").height / 2,
+        ]}
+        mainRotationR={11 / 7}
+        totalArcLength={2 / 7}
+        width={100}
+        height={50}
       />
       <BackIcon
         zIndex={eLayers.dropScreen - 1}
@@ -224,7 +235,7 @@ export function ChipSelector(props: tChipSelector) {
       unregisterHitBox(`chipSelector-${rotationR}`);
       unregisterModifier(mChipModifier.modID);
     };
-  }, []);
+  }, [props.rotationR]);
   const mColorModifier: tAttributeModifier = {
     modID: 0,
     deps: [vTargetColor.shared, vColorModel.shared],

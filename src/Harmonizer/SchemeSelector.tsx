@@ -4,7 +4,12 @@ import { tRadialObject } from "../Radials/SectorTypes";
 import { RadialContext, wDefaultAngleToChord } from "../Radials/RadialContext";
 import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
-import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
+import {
+  useAnimatedReaction,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tHarmonizerPhase } from "./ColorHarmonizer";
 import { BackIcon } from "../Buttons/BackIcon";
@@ -14,10 +19,11 @@ import { ColorScheme, fGetHarmonies } from "./ColorScheme";
 import { BGGradient } from "../ColorWheels/BGGradient";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 import { scheduleOnRN } from "react-native-worklets";
+import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 
 export type tSchemeSelector = tRadialObject & {
   vPhase?: tVerse<tHarmonizerPhase>;
-  Selected?: number[];
+  vSelected: tVerse<number[]>;
 };
 
 export function SchemeSelector({
@@ -30,13 +36,13 @@ export function SchemeSelector({
   rotationR = 22 / 7,
   ring = 5,
   vPhase,
+  vSelected,
 }: tSchemeSelector) {
-  const { vSelected, vSelectedRef } = useUserContext();
-  const vSelectedRelay = useVerseRelay(vSelected);
-  const schemes = useVerse(fGetHarmonies(vSelectedRef?.current));
+  console.log("vSelected state:", vSelected?.state);
+  const schemes = useVerse(fGetHarmonies(vSelected?.state));
   useEffect(() => {
-    schemes.dispatch(fGetHarmonies(vSelectedRef?.current));
-  }, [vSelectedRelay?.state]);
+    schemes.dispatch(fGetHarmonies(vSelected?.state));
+  }, [vSelected?.state]);
 
   usePanHitBox({
     id: "schemeSelector",
@@ -53,10 +59,12 @@ export function SchemeSelector({
           schemes.state.length,
           rotationR,
         );
+        let hues = vSelected?.shared.value;
+        const finalHues = schemes.state[chord % schemes.state.length].finalHues;
+        console.log("Current hues:", hues);
         vSelected?.dispatch(
           schemes.state[chord % schemes.state.length].finalHues,
         );
-        vPhase?.dispatch("chipSelector");
       }
     },
   });
@@ -73,9 +81,27 @@ export function SchemeSelector({
       }
     },
   });
+  const vIntroAnim = useVerse(0);
+  useEffect(() => {
+    vIntroAnim.shared.value = withDelay(500, withTiming(1, { duration: 500 }));
+    setTimeout(() => {
+      vIntroAnim.dispatch(1);
+    }, 1000);
+  }, []);
+  const mTransitionModifier: tAttributeModifier = {
+    modID: 1,
+    deps: [vIntroAnim.shared],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      return {
+        ...input,
+        rotateZ: vIntroAnim.shared.value * input.rotateZ,
+      };
+    },
+  };
 
   return (
-    <>
+    <RadialContext value={{ mTransformModifier: mTransitionModifier }}>
       {schemes.state.map((harmony, index) => (
         <ColorScheme
           key={index}
@@ -90,6 +116,7 @@ export function SchemeSelector({
           radii={radii}
           bend={0.3}
           tScheme={harmony}
+          ready={vIntroAnim.state > 0.5}
         />
       ))}
       <ColorFan
@@ -102,21 +129,19 @@ export function SchemeSelector({
         arcLength={18 / 7}
         bend={0.5}
         layer={eLayers.chipFan}
-        hues={[
-          ...vSelectedRef?.current,
-          ...vSelectedRef?.current,
-          ...vSelectedRef?.current,
-        ]}
+        hues={[...vSelected?.state, ...vSelected?.state, ...vSelected?.state]}
       />
-      <BackIcon
-        zIndex={eLayers.chipFan}
-        color="white"
-        size={75}
-        origin={[
-          Dimensions.get("window").width - 40,
-          Dimensions.get("window").height / 2,
-        ]}
-      />
-    </>
+      {vIntroAnim.state > 0.5 && (
+        <BackIcon
+          zIndex={eLayers.chipFan}
+          color="white"
+          size={75}
+          origin={[
+            Dimensions.get("window").width - 40,
+            Dimensions.get("window").height / 2,
+          ]}
+        />
+      )}
+    </RadialContext>
   );
 }

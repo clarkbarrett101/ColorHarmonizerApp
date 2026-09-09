@@ -25,6 +25,7 @@ export function PetalBox({
   arcLength = 2 / 7,
   radii = [0, 50],
   children,
+  mTransformModifier,
 }: tPetalBox) {
   const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
   const chroma = dC ?? vAccentC.shared;
@@ -58,6 +59,7 @@ export function PetalBox({
     <RadialContext
       value={{
         mColorModifier,
+        mTransformModifier,
       }}
     >
       <RadialGraphic

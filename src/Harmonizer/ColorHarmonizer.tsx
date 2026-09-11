@@ -58,16 +58,5 @@ export function ColorHarmonizer({ phase = "wheel" }: tColorHarmonizer) {
       vPhase.dispatch("chipSelector");
     }
   }, [vSelectedRelay.state]);
-  return (
-    <>
-      <BGGradient dARs={vSelected.shared} dCs={dCs} dLs={dLs} />
-      {vPhase?.state === "wheel" ? (
-        <HarmonizerWheel draggable fOnPhase={fOnPhase} />
-      ) : vPhase?.state === "scheme" ? (
-        <SchemeSelector vPhase={vPhase} vSelected={vSelectedRelay} />
-      ) : (
-        <SchemeChipSelector vPhase={vPhase} vSelected={vSelectedRelay} />
-      )}
-    </>
-  );
+  return <></>;
 }

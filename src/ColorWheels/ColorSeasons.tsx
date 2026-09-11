@@ -21,7 +21,7 @@ import { RadialGraphic } from "../Radials/RadialGraphic";
 import { useVerse } from "../utils/Verse";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { ChipFan } from "../Chips/ChipStack";
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tRadialObject, tSectorGroup } from "../Radials/SectorTypes";
 import { useBucketContext } from "../Buckets/BucketContext";
@@ -53,7 +53,7 @@ export function ColorSeasons({
     { c: 0.6, l: 0.1, ar: 33 / 7 },
   ];
 
-  const [brand, setBrand] = useState<tBrand>("All Brands");
+  const vBrand = useVerse<tBrand>("All Brands");
   const randomPaint = useMemo(() => fGetRandomPaint(), []);
   const vTargetColor = useVerse<tPaint>(randomPaint);
   function colorMaptoArray(colorMap: tSeasonMap<tPaint>): tPaint[] {
@@ -71,7 +71,7 @@ export function ColorSeasons({
     return arg;
   }
   const paints = useRef<tPaint[]>(
-    colorMaptoArray(fGetSeasonColors(vTargetColor.state.clar, brand)),
+    colorMaptoArray(fGetSeasonColors(vTargetColor.state.clar, vBrand.state)),
   );
   const [sideA, setSideA] = useState(true);
   const rotationAnim = useSharedValue(0);
@@ -80,13 +80,13 @@ export function ColorSeasons({
   }, []);
   useEffect(() => {
     paints.current = colorMaptoArray(
-      fGetSeasonColors(vTargetColor.state.clar, brand),
+      fGetSeasonColors(vTargetColor.state.clar, vBrand.state),
     );
 
     sideA ? setSideA(false) : setSideA(true);
     rotationAnim.value = 0;
     rotationAnim.value = withTiming(1, { duration: 500 });
-  }, [vTargetColor.state, brand]);
+  }, [vTargetColor.state, vBrand.state]);
   const fSectorGroupModifier = (sectorGroup: tSectorGroup) => {
     return {
       ...sectorGroup,
@@ -173,9 +173,6 @@ export function ColorSeasons({
       unregisterModifier(chipMod.modID);
     };
   }, []);
-  const dC = useDerivedValue(() => vTargetColor.shared.value.clar.c);
-  const dL = useDerivedValue(() => vTargetColor.shared.value.clar.l);
-  const dAR = useDerivedValue(() => vTargetColor.shared.value.clar.ar);
   return (
     <>
       <RadialContext
@@ -186,16 +183,6 @@ export function ColorSeasons({
           mTransformModifier,
         }}
       >
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            zIndex: 0,
-          }}
-        >
-          <BGGradient />
-        </View>
         <View
           style={{
             position: "absolute",
@@ -232,10 +219,8 @@ export function ColorSeasons({
         groupLayer={eLayers.chipFan}
       />
       <BrandFilter
-        brand={brand}
-        setBrand={setBrand}
-        height={50}
-        width={(50 * (1 + Math.sqrt(5))) / 2}
+        vBrand={vBrand}
+        radius={50}
         origin={[origin[0] - radii[1] * 0.1, origin[1] + 200]}
         mainRotationR={11 / 7}
         totalArcLength={3 / 7}

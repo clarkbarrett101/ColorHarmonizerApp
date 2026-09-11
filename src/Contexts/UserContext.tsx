@@ -16,7 +16,7 @@ import {
   tPaint,
   tPalette,
 } from "../utils/CLAcolor";
-import { tVerse, useVerse } from "../utils/Verse";
+import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
 import { tActor } from "../utils/Actor";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -32,6 +32,24 @@ export const eLayers = {
   background: 10,
 };
 
+export type ePages =
+  | "Menu"
+  | "ReColor Camera"
+  | "Color Wheel"
+  | "Color Mixer"
+  | "Undertone Camera"
+  | "Color Seasons"
+  | "Color Harmonizer"
+  | "Palette Library"
+  | "Light Thermometer"
+  | "Scheme Selector"
+  | "Chip Selector";
+
+export type tPage = {
+  vTransition: tVerse<number>;
+  vPage: tVerse<ePages>;
+};
+
 export type tUserContext = {
   userPalette: tPalette;
   setUserPalette?: React.Dispatch<React.SetStateAction<tPalette>>;
@@ -43,6 +61,7 @@ export type tUserContext = {
   vAccentL?: tVerse<number>;
   vAccentAR?: tVerse<number>;
   vSelected?: tVerse<number[]>;
+  vPage?: tVerse<ePages>;
 };
 
 export const Context = createContext<tUserContext>({
@@ -55,11 +74,17 @@ export const Context = createContext<tUserContext>({
   vAccentL: null,
   vAccentAR: null,
   vSelected: null,
+  vPage: null,
 });
 export const useUserContext = () => useContext(Context);
 
-export default function UserContext({ children }: { children: ReactNode }) {
-  const allChipActors = useRef<Record<number, tActor>>({}).current;
+export default function UserContext({
+  vPage,
+  children,
+}: {
+  vPage?: tVerse<ePages>;
+  children: ReactNode;
+}) {
   const paintsPresent = useRef<Record<number, [tPaint, tPaint?]>>({}).current;
   const vColorModel = useVerse<tColorModel>("RYGB");
   const vAccentC = useVerse<number>(1);
@@ -134,6 +159,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
       vAccentL,
       setUserPalette,
       vSelected,
+      vPage,
     }),
     [userPalette],
   );

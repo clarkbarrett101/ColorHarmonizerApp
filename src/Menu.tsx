@@ -1,7 +1,7 @@
 import { Dimensions, PanResponder, View } from "react-native";
 import { fCLARColorToRGB } from "./utils/CLAcolor";
 import { RadialGraphic } from "./Radials/RadialGraphic";
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 import { Text } from "react-native-svg";
 import {
   useSharedValue,
@@ -11,39 +11,33 @@ import {
 import { tRadialObject, tSector, tSectorGroup } from "./Radials/SectorTypes";
 import { tAttributeModifier, tAttributeMap } from "./utils/Actor";
 import { RadialContext, wDefaultAngleToChord } from "./Radials/RadialContext";
-import { tVerse } from "./utils/Verse";
+import { tVerse, useVerse } from "./utils/Verse";
 import { ePanEvent, usePanManager } from "./Contexts/PanManager";
-import { eLayers, useUserContext } from "./Contexts/UserContext";
-import { ePages } from "./Driver";
-import React from "react";
+import { eLayers, ePages, useUserContext } from "./Contexts/UserContext";
 
-export type tMenu = tRadialObject & {
-  vSelection?: tVerse<ePages>;
-  options?: ePages[];
-};
+const allPages: ePages[] = [
+  "Palette Library",
+  "Undertone Camera",
+  "ReColor Camera",
+  "Color Harmonizer",
+  "Color Wheel",
+  "Color Mixer",
+  "Color Seasons",
+];
+
 export function Menu({
-  vSelection,
-  options = [
-    "Menu",
-    "Palette Library",
-    "Undertone Camera",
-    "ReColor Camera",
-    "Color Wheel",
-    "Color Mixer",
-    "Color Seasons",
-    "Color Harmonizer",
-  ],
   radii = [200, 500],
   rotationR = 22 / 7,
   arcLength = 9 / 7,
-  chord = options.length,
+  chord = allPages.length,
   ring = 5,
   origin = [
     Dimensions.get("window").width + radii[0],
     Dimensions.get("window").height / 2,
   ],
-}: tMenu) {
+}: tRadialObject) {
   const { registerHitBox, unregisterHitBox } = usePanManager();
+  const { vPage } = useUserContext();
   const vPanPos = useSharedValue({ angle: 22 / 7, radius: 0 });
   const vPanState = useSharedValue<ePanEvent>("enter");
   const vSlowAngle = useSharedValue<number>(0);
@@ -51,7 +45,7 @@ export function Menu({
     registerHitBox({
       id: "menu",
       origin,
-      radii,
+      radii: [0, Dimensions.get("window").width * 1.5],
       rotationR,
       arcLength,
       vPanPos,
@@ -75,7 +69,7 @@ export function Menu({
           Math.min(Math.floor(adjustedAngle / (arcLength / chord)), chord - 1),
           0,
         );
-        vSelection?.dispatch(options[nearestChord]);
+        vPage?.dispatch(allPages[nearestChord]);
       }
     },
   );
@@ -89,7 +83,7 @@ export function Menu({
       const pChord = wDefaultAngleToChord(
         pos.angle,
         arcLength,
-        options.length,
+        chord,
         rotationR,
       );
       vAccentAR.shared.value = withSpring(
@@ -142,7 +136,7 @@ export function Menu({
           fontWeight={600}
           transform={[{ rotate: 22 / 7 + "rad" }]}
         >
-          {options[sectorGroup.sectorGroupID]}
+          {allPages[sectorGroup.sectorGroupID]}
         </Text>
       ),
     };

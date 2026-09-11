@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { fCLARColorToRGB, tBrand, tCLARColor, tPaint } from "../utils/CLAcolor";
+
 import { ColorWheel } from "../ColorWheels/ColorWheel";
 import { TintSelector } from "../ColorWheels/TintSelector";
 import { Dimensions, View } from "react-native";
@@ -20,11 +21,9 @@ import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { eChipSizes } from "../Chips/PaintChip";
 import { useVerse } from "../utils/Verse";
 import { useBucketContext } from "../Buckets/BucketContext";
-import { BGGradient } from "../ColorWheels/BGGradient";
 import { tAttributeModifier } from "../utils/Actor";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { BrandFilter } from "../ColorWheels/BrandFilter";
-import { SweepDisplay } from "../Buttons/SweepDisplay";
 
 type tColorSelector = tRadialObject & {
   wheelCenter?: number;
@@ -58,7 +57,7 @@ export default function ColorSelector({
     l: 0.5,
     ar: 0,
   });
-  const [brand, setBrand] = useState<tBrand>("All Brands");
+  const vBrand = useVerse<tBrand>("All Brands");
   const vChromaPanPos = useSharedValue({
     angle: chromaArcRotation[1] + chromaArcRotation[0] / 3,
     radius: radii[1],
@@ -219,9 +218,6 @@ export default function ColorSelector({
     vChromaPanPos.value = { angle: clar.c, radius: radii[1] };
   }, []);
 
-  function dispatchBrand(brand: tBrand) {
-    setBrand(brand);
-  }
   function wUpdateState() {
     "worklet";
     vTargetColor.dispatch({
@@ -280,10 +276,8 @@ export default function ColorSelector({
       </View>
       <PanManager zIndex={eLayers.chipHand}>
         <BrandFilter
-          brand={brand}
-          setBrand={dispatchBrand}
-          height={50}
-          width={(50 * (1 + Math.sqrt(5))) / 2}
+          vBrand={vBrand}
+          radius={50}
           totalArcLength={3 / 7}
           mainRotationR={11 / 7}
           origin={[Dimensions.get("window").width - 60, 75]}
@@ -292,7 +286,7 @@ export default function ColorSelector({
       <ColorChipFan
         targetColor={vTargetColor.state}
         targetNumber={9}
-        brand={brand}
+        brand={vBrand.state}
         origin={origin}
         size={"default"}
         rotationR={21.5 / 7}

@@ -1,30 +1,15 @@
 import { Dimensions } from "react-native";
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { RadialContext, wDefaultAngleToChord } from "../Radials/RadialContext";
 import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
-import { ePanEvent, usePanManager } from "../Contexts/PanManager";
-import {
-  useAnimatedReaction,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from "react-native-reanimated";
+import { withDelay, withTiming } from "react-native-reanimated";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
-import { tHarmonizerPhase } from "./ColorHarmonizer";
 import { BackIcon } from "../Buttons/BackIcon";
-import { CurvedText } from "../Buttons/CurvedText";
 import { ColorFan } from "./ColorFan";
 import { ColorScheme, fGetHarmonies } from "./ColorScheme";
-import { BGGradient } from "../ColorWheels/BGGradient";
 import { usePanHitBox } from "../Buttons/PanHitBox";
-import { scheduleOnRN } from "react-native-worklets";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
-
-export type tSchemeSelector = tRadialObject & {
-  vPhase?: tVerse<tHarmonizerPhase>;
-  vSelected: tVerse<number[]>;
-};
 
 export function SchemeSelector({
   arcLength = 20 / 7,
@@ -34,15 +19,13 @@ export function SchemeSelector({
     Dimensions.get("window").height / 2,
   ],
   rotationR = 22 / 7,
-  ring = 5,
-  vPhase,
-  vSelected,
-}: tSchemeSelector) {
-  console.log("vSelected state:", vSelected?.state);
-  const schemes = useVerse(fGetHarmonies(vSelected?.state));
+}: tRadialObject) {
+  const { vSelected, vPage } = useUserContext();
+  const vSelectedRelay = useVerseRelay(vSelected);
+  const schemes = useVerse(fGetHarmonies(vSelectedRelay?.state));
   useEffect(() => {
-    schemes.dispatch(fGetHarmonies(vSelected?.state));
-  }, [vSelected?.state]);
+    schemes.dispatch(fGetHarmonies(vSelectedRelay?.state));
+  }, [vSelectedRelay?.state]);
 
   usePanHitBox({
     id: "schemeSelector",
@@ -56,15 +39,15 @@ export function SchemeSelector({
         const chord = wDefaultAngleToChord(
           vPanPos.value.angle,
           arcLength,
-          schemes.state.length,
+          schemes.shared.value.length,
           rotationR,
         );
-        let hues = vSelected?.shared.value;
-        const finalHues = schemes.state[chord % schemes.state.length].finalHues;
-        console.log("Current hues:", hues);
-        vSelected?.dispatch(
-          schemes.state[chord % schemes.state.length].finalHues,
+        console.log("Current hues:", chord, schemes.shared.value.length);
+        console.log("vSelectedRelay state: ", vSelectedRelay?.state);
+        vSelectedRelay?.dispatch(
+          schemes.shared.value[chord % schemes.shared.value.length].finalHues,
         );
+        vPage?.dispatch("Chip Selector");
       }
     },
   });
@@ -77,7 +60,7 @@ export function SchemeSelector({
     fOnUpdate: (vPanStateBack) => {
       "worklet";
       if (vPanStateBack.value === "tap" || vPanStateBack.value === "release") {
-        vPhase?.dispatch("wheel");
+        vPage?.dispatch("Color Harmonizer");
       }
     },
   });
@@ -128,8 +111,12 @@ export function SchemeSelector({
         rotationR={rotationR}
         arcLength={18 / 7}
         bend={0.5}
-        layer={eLayers.chipFan}
-        hues={[...vSelected?.state, ...vSelected?.state, ...vSelected?.state]}
+        layer={eLayers.colorMixer}
+        hues={[
+          ...vSelectedRelay?.state,
+          ...vSelectedRelay?.state,
+          ...vSelectedRelay?.state,
+        ]}
       />
       {vIntroAnim.state > 0.5 && (
         <BackIcon

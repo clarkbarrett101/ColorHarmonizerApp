@@ -101,6 +101,7 @@ export default function PanManager({
     maxX: 0,
     maxY: 0,
   });
+
   function calculateBounds() {
     "worklet";
     if (Object.keys(vHitBoxes.shared.value).length === 0) {
@@ -120,6 +121,9 @@ export default function PanManager({
       }
 
       if (zone.shape === "capsule") {
+        if (zone.rotationR === undefined) {
+          zone.rotationR = 0;
+        }
         const capRadius = zone.radii[0];
         const bodyLength =
           zone.radii[1] * (zone.capsuleMod?.value ?? 1) + zone.radii[0];

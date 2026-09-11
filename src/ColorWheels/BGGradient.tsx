@@ -4,26 +4,24 @@ import {
   Shadow,
   SweepGradient,
 } from "@shopify/react-native-skia";
-import { Dimensions, Share, View } from "react-native";
-import {
-  SharedValue,
-  useAnimatedReaction,
-  useDerivedValue,
-} from "react-native-reanimated";
-import { useRadialContext } from "../Radials/RadialContext";
-import { fCLARColorToString, tCLARColor } from "../utils/CLAcolor";
-import { eLayers, useUserContext } from "../Contexts/UserContext";
-import { tVerse } from "../utils/Verse";
+import { Dimensions, View } from "react-native";
+import { useDerivedValue } from "react-native-reanimated";
+import { useVerseRelay } from "../utils/Verse";
+import { fCLARColorToString } from "../utils/CLAcolor";
+import { eLayers, ePages, useUserContext } from "../Contexts/UserContext";
+import { use, useEffect } from "react";
 
-export type tBGGradient = {
-  dARs?: SharedValue<number[]>;
-  dCs?: SharedValue<number[]>;
-  dLs?: SharedValue<number[]>;
-};
-export function BGGradient({ dARs, dCs, dLs }: tBGGradient) {
-  const { vColorModel, vAccentAR, vAccentC, vAccentL } = useUserContext();
+export function BGGradient() {
+  const { vColorModel, vAccentAR, vAccentC, vAccentL, vSelected, vPage } =
+    useUserContext();
+  const vPageRelay = useVerseRelay(vPage);
+  const harmonizerPages: ePages[] = [
+    "Color Harmonizer",
+    "Scheme Selector",
+    "Chip Selector",
+  ];
   const colors = useDerivedValue(() => {
-    if (!dARs || !dCs || !dLs) {
+    if (!harmonizerPages.includes(vPageRelay?.state)) {
       return [
         fCLARColorToString(
           {
@@ -36,29 +34,19 @@ export function BGGradient({ dARs, dCs, dLs }: tBGGradient) {
       ];
     }
 
-    const cs = dARs.value.map((ar, index) => {
-      const c = dCs.value[index];
-      const l = dLs.value[index];
+    const cs = vSelected.shared.value.map((ar, index) => {
+      const c = vAccentC.shared.value;
+      const l = vAccentL.shared.value;
       return fCLARColorToString({ c, l, ar }, vColorModel.shared.value);
     });
     return cs;
   });
   const shadow = useDerivedValue(() => {
-    if (!dARs || !dCs || !dLs) {
-      return fCLARColorToString(
-        {
-          c: vAccentC.shared.value * 0.1,
-          l: vAccentL.shared.value * 0.75,
-          ar: vAccentAR.shared.value,
-        },
-        vColorModel.shared.value,
-      );
-    }
     return fCLARColorToString(
       {
-        c: dCs.value[0] * 0.1,
-        l: dLs.value[0] * 0.75,
-        ar: dARs.value[0],
+        c: vAccentC.shared.value * 0.1,
+        l: vAccentL.shared.value * 0.5,
+        ar: vAccentAR.shared.value,
       },
       vColorModel.shared.value,
     );

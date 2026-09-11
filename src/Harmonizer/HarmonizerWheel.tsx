@@ -1,9 +1,7 @@
 import { G, Text } from "react-native-svg";
 import { Dimensions } from "react-native";
 import React, { useEffect, useState } from "react";
-import type { tHarmonizerPhase } from "./ColorHarmonizer";
 import {
-  runOnJS,
   useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
@@ -17,7 +15,7 @@ import {
 } from "../Radials/RadialContext";
 import { ColorWheel } from "../ColorWheels/ColorWheel";
 import { tRadialObject } from "../Radials/SectorTypes";
-import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
+import { useVerse, useVerseRelay } from "../utils/Verse";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { tPaint } from "../utils/CLAcolor";
@@ -26,10 +24,6 @@ import { PetalBox } from "../Buttons/PetalBox";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 import { scheduleOnRN } from "react-native-worklets";
 
-export type tHarmonizerWheel = tRadialObject & {
-  draggable?: boolean;
-  fOnPhase: () => void;
-};
 export function HarmonizerWheel({
   radii = [210, 420],
   origin = [
@@ -41,19 +35,16 @@ export function HarmonizerWheel({
   ring = 5,
   chord = 24,
   draggable = true,
-  fOnPhase = () => {
-    "worklet";
-  },
-}: tHarmonizerWheel) {
+}: tRadialObject & { draggable?: boolean }) {
   const chordLength = arcLength / chord;
 
-  const { vAccentAR, vSelected } = useUserContext();
+  const { vAccentAR, vSelected, vPage } = useUserContext();
   const { registerBucket, unregisterBucket } = useBucketContext();
   const vIntroAnim = useVerse(0);
   const transitionAnim = useSharedValue(0);
   const vSelectedRelay = useVerseRelay(vSelected);
   const vSecondColor = useVerse<number | null>(
-    vSelected?.state.length > 1 ? vSelected.state[1] : null,
+    vSelectedRelay?.state.length > 1 ? vSelectedRelay.state[1] : null,
   );
 
   const fOnLeave = (angleOffset = 0) => {
@@ -96,15 +87,9 @@ export function HarmonizerWheel({
         Math.round(angle * 100) / 100,
         Math.round(vSecondColor.shared.value * 100) / 100,
       ]);
+      vPage.dispatch("Scheme Selector");
     }
   }
-
-  useEffect(() => {
-    if (vSelectedRelay?.state.length > 1) {
-      console.log("HarmonizerWheel vSelectedRelay: ", vSelectedRelay?.state);
-      fOnPhase();
-    }
-  }, [vSelectedRelay?.state]);
 
   useEffect(() => {
     vIntroAnim.shared.value = withDelay(500, withTiming(1, { duration: 500 }));
@@ -199,6 +184,7 @@ export function HarmonizerWheel({
           fLerp(0, rotationR, vIntroAnim.shared.value) -
           transitionAnim.value * chordLength,
         translateX: input.translateX + transitionAnim.value * -10,
+        alpha: vIntroAnim.shared.value > 0.5 ? input.alpha : 0,
       };
     },
   };

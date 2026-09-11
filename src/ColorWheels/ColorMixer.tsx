@@ -19,7 +19,7 @@ import { RadialGraphic } from "../Radials/RadialGraphic";
 import { useVerse } from "../utils/Verse";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { ChipFan } from "../Chips/ChipStack";
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tRadialObject, tSectorGroup } from "../Radials/SectorTypes";
 import { useBucketContext } from "../Buckets/BucketContext";
@@ -52,7 +52,7 @@ export function ColorMixer({
     5: "black",
   };
   const colors = { ...refColors };
-  const [brand, setBrand] = useState<tBrand>("All Brands");
+  const vBrand = useVerse<tBrand>("All Brands");
   const vTargetColor = useVerse<tPaint>(fGetRandomPaint());
   function colorMaptoArray(colorMap: tColorMap<tPaint>): tPaint[] {
     const arg = Array(6);
@@ -64,10 +64,10 @@ export function ColorMixer({
     return arg;
   }
   const paintsA = useRef<tPaint[]>(
-    colorMaptoArray(fClosestColors(vTargetColor.state, brand)),
+    colorMaptoArray(fClosestColors(vTargetColor.state, vBrand.state)),
   );
   const paintsB = useRef<tPaint[]>(
-    colorMaptoArray(fClosestColors(vTargetColor.state, brand)),
+    colorMaptoArray(fClosestColors(vTargetColor.state, vBrand.state)),
   );
   const [sideA, setSideA] = useState(true);
   const rotationAnim = useSharedValue(0);
@@ -77,18 +77,18 @@ export function ColorMixer({
   useEffect(() => {
     if (sideA) {
       paintsB.current = colorMaptoArray(
-        fClosestColors(vTargetColor.state, brand),
+        fClosestColors(vTargetColor.state, vBrand.state),
       );
       setSideA(false);
     } else {
       paintsA.current = colorMaptoArray(
-        fClosestColors(vTargetColor.state, brand),
+        fClosestColors(vTargetColor.state, vBrand.state),
       );
       setSideA(true);
     }
     rotationAnim.value = 0;
     rotationAnim.value = withTiming(1, { duration: 500 });
-  }, [vTargetColor.state, brand]);
+  }, [vTargetColor.state, vBrand.state]);
   const fSectorGroupModifier = (sectorGroup: tSectorGroup) => {
     return {
       ...sectorGroup,
@@ -183,9 +183,7 @@ export function ColorMixer({
       //unregisterModifier(chipMod.modID);
     };
   }, []);
-  const dC = useDerivedValue(() => vTargetColor.shared.value.clar.c);
-  const dL = useDerivedValue(() => vTargetColor.shared.value.clar.l);
-  const dAR = useDerivedValue(() => vTargetColor.shared.value.clar.ar);
+
   return (
     <>
       <RadialContext
@@ -232,10 +230,8 @@ export function ColorMixer({
         groupLayer={eLayers.chipFan}
       />
       <BrandFilter
-        brand={brand}
-        setBrand={setBrand}
-        height={50}
-        width={(50 * (1 + Math.sqrt(5))) / 2}
+        vBrand={vBrand}
+        radius={50}
         origin={[origin[0] - radii[1] * 0.1, origin[1] + 200]}
         mainRotationR={11 / 7}
         totalArcLength={3 / 7}

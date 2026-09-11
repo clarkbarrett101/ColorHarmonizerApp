@@ -1,26 +1,33 @@
 import { View } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import { fCLARColorToRGB, tBrand } from "../utils/CLAcolor";
-import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { Text, TSpan } from "react-native-svg";
 import {
+  GestureDetector,
+  usePanGesture,
+  useSimultaneousGestures,
+  useTapGesture,
+} from "react-native-gesture-handler";
+import {
   useAnimatedReaction,
+  useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useRadialContext, RadialContext } from "../Radials/RadialContext";
 import { tSector, tSectorGroup } from "../Radials/SectorTypes";
 import { SectorGroup } from "../Radials/SectorGroup";
-import { scheduleOnRN } from "react-native-worklets";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
-import { useBucketContext } from "../Buckets/BucketContext";
+import { tVerse, useVerse } from "../utils/Verse";
+import { BlurScreen } from "../Buckets/DropScreen";
+
+type tPanEvent = "enter" | "leave" | "drag" | "tap" | "release";
 export type tBrandFilter = {
-  width?: number;
-  height?: number;
-  setBrand: (brand: tBrand) => void;
-  brand: tBrand;
+  radius: number;
+  vBrand: tVerse<tBrand>;
   totalArcLength?: number;
   mainRotationR?: number;
   origin?: [number, number];
@@ -37,18 +44,16 @@ export const BrandFilter = (props: tBrandFilter) => {
     "Valspar",
   ];
   const ctx = useRadialContext();
-  const { vDropScreen } = useBucketContext();
+  const vBlur = useVerse(false);
   const origin = props.origin || ctx.origin || [0, 0];
   const totalArcLength = props.totalArcLength || ctx.totalArcLength || 11 / 7;
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
   const { vAccentC, vAccentL, vAccentAR } = useUserContext();
   const collapseAnim = useSharedValue(0);
-  const radius =
-    Math.sqrt(
-      Math.pow(props.width || 200, 2) + Math.pow(props.height || 200, 2),
-    ) / 2;
+  const radius = props.radius || 50;
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
-  const vPanState = useSharedValue<ePanEvent>("leave");
+  const vPanState = useSharedValue<tPanEvent>("leave");
+  const vInZone = useSharedValue(false);
   const selection = useDerivedValue(() => {
     "worklet";
     const ring = Math.floor(
@@ -56,68 +61,98 @@ export const BrandFilter = (props: tBrandFilter) => {
     );
     return ring;
   }, []);
-  const {
-    registerHitBox: registerZone,
-    unregisterHitBox: unregisterZone,
-    calculateBounds,
-  } = usePanManager();
 
   const fToggle = () => {
     "worklet";
     collapseAnim.value = withTiming(collapseAnim.value === 0 ? 1 : 0, {
       duration: 500,
     });
-    scheduleOnRN(props.setBrand, brands[selection.value]);
+    props.vBrand.dispatch(brands[selection.value]);
   };
 
   useAnimatedReaction(
     () => collapseAnim.value > 0.5,
     (v) => {
-      if (collapseAnim.value !== 0 && collapseAnim.value !== 1)
-        calculateBounds();
-      vDropScreen.dispatch(v);
+      vBlur.dispatch(v);
+      console.log("Blur state changed:", v);
     },
   );
 
   useAnimatedReaction(
     () => vPanState.value,
     (state) => {
-      switch (state) {
-        case "enter":
-          fToggle();
-          break;
-        case "leave":
-          fToggle();
-          break;
-        case "drag":
-          break;
-        case "tap":
-          fToggle();
-          break;
+      if (state === "tap" || state === "release" || state === "enter") {
+        fToggle();
+        if (state === "tap") {
+          state = "leave";
+        }
       }
     },
     [],
   );
 
-  useEffect(() => {
-    registerZone({
-      id: "brandFilter",
-      shape: "capsule",
-      priority: 12,
-      origin: origin || [0, 0],
-      arcLength: totalArcLength,
-      radii: [radius, radius * brands.length],
-      capsuleMod: collapseAnim,
-      rotationR: mainRotationR,
-      vPanState,
-      vPanPos,
-      layer: props.layer || eLayers.chipHand,
-    });
-    return () => {
-      unregisterZone("brandFilter");
-      vDropScreen.dispatch(false);
-    };
-  }, []);
+  const fPanUpdate = (e: { absoluteX: number; absoluteY: number }) => {
+    "worklet";
+    const dx = e.absoluteX - origin[0];
+    const dy = e.absoluteY - origin[1];
+    let angle = Math.atan2(dy, dx);
+    if (angle < 0) {
+      angle += 44 / 7;
+    }
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    vPanPos.value = { angle, radius: distance };
+
+    const localX =
+      dx * Math.cos(-mainRotationR) - dy * Math.sin(-mainRotationR);
+    const localY =
+      dx * Math.sin(-mainRotationR) + dy * Math.cos(-mainRotationR);
+    const clampedX = Math.max(
+      0,
+      Math.min(collapseAnim.value * (radius * (brands.length - 1)), localX),
+    );
+    const distX = localX - clampedX;
+    const inZone = distX * distX + localY * localY <= radius * radius;
+
+    if (inZone) {
+      if (!vInZone.value) {
+        vPanState.value = "enter";
+      } else {
+        vPanState.value = "drag";
+      }
+      vInZone.value = true;
+    } else if (vInZone.value) {
+      vPanState.value = "leave";
+      vInZone.value = false;
+    }
+  };
+
+  const fTapUpdate = (e: { absoluteX: number; absoluteY: number }) => {
+    "worklet";
+    fPanUpdate(e);
+    if (vInZone.value) {
+      vPanState.value = "tap";
+      vInZone.value = false;
+    }
+  };
+
+  const tap = useTapGesture({
+    onActivate: fTapUpdate,
+  });
+
+  const pan = usePanGesture({
+    minDistance: 5,
+    onActivate: fPanUpdate,
+    onUpdate: fPanUpdate,
+    onDeactivate: () => {
+      "worklet";
+      if (vInZone.value) {
+        vPanState.value = "release";
+        vInZone.value = false;
+      }
+    },
+  });
+
+  const compGesture = useSimultaneousGestures(tap, pan);
   const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 0,
@@ -149,10 +184,7 @@ export const BrandFilter = (props: tBrandFilter) => {
         ...input,
         translateX: x,
         zIndex:
-          brands.length -
-          Math.abs(selection.value - input.ring) +
-          eLayers.chipHand -
-          10,
+          brands.length - Math.abs(selection.value - input.ring) + props.layer,
         shadowRadius:
           input.shadowRadius *
           (input.ring === selection.value ? 1 : collapseAnim.value),
@@ -213,18 +245,53 @@ export const BrandFilter = (props: tBrandFilter) => {
     return group;
   }, [brands]);
 
+  const gestureBoundsStyle = useAnimatedStyle(() => {
+    const bodyLength = collapseAnim.value * (radius * (brands.length - 1));
+    const endX = origin[0] + bodyLength * Math.cos(mainRotationR);
+    const endY = origin[1] + bodyLength * Math.sin(mainRotationR);
+    const minX = Math.min(origin[0], endX) - radius;
+    const minY = Math.min(origin[1], endY) - radius;
+    const maxX = Math.max(origin[0], endX) + radius;
+    const maxY = Math.max(origin[1], endY) + radius;
+
+    return {
+      borderWidth: 1,
+      borderRadius: radius,
+      left: minX,
+      top: minY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY),
+    };
+  }, [origin, mainRotationR, radius, brands.length]);
+
   return (
-    <RadialContext
-      value={{
-        origin,
-        mColorModifier,
-        radii: [radius, radius * brands.length],
-        mTransformModifier,
-        totalArcLength,
-        mainRotationR,
-      }}
-    >
-      {sectors()}
-    </RadialContext>
+    <>
+      <Animated.View
+        style={{
+          position: "absolute",
+          zIndex: eLayers.superMax,
+        }}
+        pointerEvents="box-none"
+      >
+        <Animated.View style={[{ position: "absolute" }, gestureBoundsStyle]}>
+          <GestureDetector gesture={compGesture}>
+            <View style={{ width: "100%", height: "100%" }} />
+          </GestureDetector>
+        </Animated.View>
+      </Animated.View>
+      <BlurScreen vActive={vBlur} layer={props.layer - 1} />
+      <RadialContext
+        value={{
+          origin,
+          mColorModifier,
+          radii: [radius, radius * brands.length],
+          mTransformModifier,
+          totalArcLength,
+          mainRotationR,
+        }}
+      >
+        {sectors()}
+      </RadialContext>
+    </>
   );
 };

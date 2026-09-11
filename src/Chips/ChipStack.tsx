@@ -113,7 +113,6 @@ export const ColorChipFan = ({
   }, [paintsA, paintsB]);
 
   useEffect(() => {
-    console.log(targetColor, "vs", lastColor.value);
     if (
       targetColor.c !== lastColor.value.c ||
       targetColor.l !== lastColor.value.l ||
@@ -122,6 +121,9 @@ export const ColorChipFan = ({
       fNearestColors();
     }
   }, [sideA]);
+  useEffect(() => {
+    fNearestColors();
+  }, [targetNumber, brand]);
   return (
     <ChipFan
       paintsA={paintsA}

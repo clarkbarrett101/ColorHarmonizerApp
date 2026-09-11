@@ -46,10 +46,7 @@ export function ColorCamera({
   chord = 24,
   arcLength = 43.9 / 7,
   rotationR = 22 / 7,
-  fSetHarmonizer,
-}: tRadialObject & {
-  fSetHarmonizer: () => void;
-}) {
+}: tRadialObject) {
   const origin: [number, number] = [
     Dimensions.get("window").width + 50,
     Dimensions.get("window").height * 0.6,
@@ -62,7 +59,6 @@ export function ColorCamera({
   const device = useCameraDevice("back");
   if (device == null) return null;
   const vThermoMode = useVerse(false);
-  const vTransition = useSharedValue(0);
   const vCamColor = useIVerse({ ar: 0, c: 0, l: 0 });
   const vAnimAr = useVerse(0);
   const vTemp = useIVerse<tTemp>(kelvin_table[6000]);
@@ -91,14 +87,6 @@ export function ColorCamera({
       });
       vAccentC.shared.value = vCamColor.shared.value.c ** 0.5;
       vAccentAR.shared.value = angle;
-      console.log(
-        "thermo:",
-        vThermoMode.shared.value,
-        "angle:",
-        angle,
-        "vCamColor:",
-        vCamColor.shared.value,
-      );
       if (!vThermoMode.shared.value) {
         vTemp.dispatch();
       }
@@ -241,12 +229,7 @@ export function ColorCamera({
       </PetalBox>
       {vThermoMode.state && (
         <>
-          <HarmonizerWheel
-            origin={origin}
-            draggable={false}
-            radii={radii}
-            fOnPhase={fSetHarmonizer}
-          />
+          <HarmonizerWheel origin={origin} draggable={false} radii={radii} />
 
           <PetalBox
             origin={[50, Dimensions.get("window").height / 2]}

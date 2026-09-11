@@ -1,8 +1,9 @@
 import { View } from "react-native";
 import { LightThermometer } from "./Cameras/LightThermometer";
 import React, { Profiler, ReactNode, useEffect } from "react";
+import type { ePages } from "./Contexts/UserContext";
 import PanManager from "./Contexts/PanManager";
-import UserContext, { eLayers } from "./Contexts/UserContext";
+import UserContext from "./Contexts/UserContext";
 import BucketContext from "./Buckets/BucketContext";
 import SoundContext from "./Contexts/SoundContext";
 import { ChipHand } from "./Chips/ChipHand";
@@ -15,61 +16,31 @@ import ColorSelector from "./ColorWheels/ColorSelector";
 import { useVerse } from "./utils/Verse";
 import { PaletteLibrary } from "./Chips/PaletteLibrary";
 import { ColorSeasons } from "./ColorWheels/ColorSeasons";
-import {
-  ColorHarmonizer,
-  tHarmonizerPhase,
-} from "./Harmonizer/ColorHarmonizer";
 import { MenuButton } from "./Buckets/MenuButton";
 import ChipContext from "./Chips/ChipContext";
 import { BGGradient } from "./ColorWheels/BGGradient";
+import { SchemeChipSelector } from "./Harmonizer/ChipSelector";
+import { SchemeSelector } from "./Harmonizer/SchemeSelector";
+import { HarmonizerWheel } from "./Harmonizer/HarmonizerWheel";
 
-export type ePages =
-  | "Menu"
-  | "ReColor Camera"
-  | "Color Wheel"
-  | "Color Mixer"
-  | "Undertone Camera"
-  | "Color Seasons"
-  | "Color Harmonizer"
-  | "Palette Library"
-  | "Light Thermometer";
-const allPages: ePages[] = [
-  "Menu",
-  "Palette Library",
-  "Undertone Camera",
-  "ReColor Camera",
-  "Color Harmonizer",
-  "Color Wheel",
-  "Color Mixer",
-  "Color Seasons",
-];
 const Driver = () => {
   const vPage = useVerse<ePages>("Menu");
-  const vPhase = useVerse<tHarmonizerPhase>("wheel");
+  const vTransition = useVerse<number>(0);
   const pageMap: Record<ePages, ReactNode> = {
-    Menu: (
-      <Menu vSelection={vPage} options={allPages.filter((p) => p !== "Menu")} />
-    ),
+    Menu: <Menu />,
     "ReColor Camera": <WallPaintCam />,
     "Color Wheel": <ColorSelector />,
     "Color Mixer": <ColorMixer />,
     "Color Seasons": <ColorSeasons />,
-    "Undertone Camera": (
-      <ColorCamera
-        fSetHarmonizer={() => {
-          "worklet";
-          vPhase.dispatch("scheme");
-          vPage.dispatch("Color Harmonizer");
-        }}
-      />
-    ),
-    "Color Harmonizer": <ColorHarmonizer phase={vPhase.state} />,
+    "Undertone Camera": <ColorCamera />,
+    "Color Harmonizer": <HarmonizerWheel />,
     "Palette Library": <PaletteLibrary />,
     "Light Thermometer": <LightThermometer />,
+    "Scheme Selector": <SchemeSelector />,
+    "Chip Selector": <SchemeChipSelector />,
   };
   function fShouldShowBGGradient(page: ePages) {
     return (
-      page !== "Color Harmonizer" &&
       page !== "Undertone Camera" &&
       page !== "ReColor Camera" &&
       page !== "Light Thermometer"
@@ -78,14 +49,7 @@ const Driver = () => {
   return (
     <Profiler
       id="Driver"
-      onRender={(
-        id,
-        phase,
-        actualDuration,
-        baseDuration,
-        startTime,
-        commitTime,
-      ) => {
+      onRender={(id, phase, actualDuration, baseDuration) => {
         console.log("Driver Rendered", {
           id,
           phase,
@@ -95,7 +59,7 @@ const Driver = () => {
       }}
     >
       <ChipContext>
-        <UserContext>
+        <UserContext vPage={vPage}>
           <SoundContext>
             <BucketContext>
               {fShouldShowBGGradient(vPage.state) && <BGGradient />}
@@ -104,11 +68,11 @@ const Driver = () => {
                 <MenuButton
                   onPress={() => {
                     vPage.dispatch("Menu");
-                    vPhase.dispatch("wheel");
                   }}
                 />
               )}
               <PanManager drawSectors>{pageMap[vPage.state]}</PanManager>
+
               <ChipHand />
             </BucketContext>
           </SoundContext>

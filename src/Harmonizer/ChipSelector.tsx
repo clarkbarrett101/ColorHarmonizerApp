@@ -3,24 +3,18 @@ import React, { Profiler, useEffect, useState } from "react";
 import { fMakePetalPath, tRadialObject, tSector } from "../Radials/SectorTypes";
 import { RadialGraphic } from "../Radials/RadialGraphic";
 import { fCLARColorToRGB, tBrand, tCLARColor } from "../utils/CLAcolor";
-import { tVerse, useVerse } from "../utils/Verse";
+import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
 import { ColorChipFan } from "../Chips/ChipStack";
 import { RadialContext, wDefaultAngleToChord } from "../Radials/RadialContext";
 import { tAttributeModifier, tAttributeMap } from "../utils/Actor";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
-import { ePanEvent, usePanManager } from "../Contexts/PanManager";
-import { tHarmonizerPhase } from "./ColorHarmonizer";
+import { usePanManager } from "../Contexts/PanManager";
 import { BackIcon } from "../Buttons/BackIcon";
 import { ColorFan } from "./ColorFan";
 import { BrandFilter } from "../ColorWheels/BrandFilter";
 import { useChipContext } from "../Chips/ChipContext";
 import { usePanHitBox } from "../Buttons/PanHitBox";
-
-export type tSchemeChipSelector = tRadialObject & {
-  vPhase?: tVerse<tHarmonizerPhase>;
-  vSelected?: tVerse<number[]>;
-};
 
 export function SchemeChipSelector({
   origin = [
@@ -30,11 +24,38 @@ export function SchemeChipSelector({
   radii = [125, 250],
   arcLength = 21 / 7,
   rotationR = 22 / 7,
-  vPhase,
-  vSelected,
-}: tSchemeChipSelector) {
-  const chordLength = Math.min(arcLength / vSelected.state.length, 1.3);
-  console.log("vSelected state:", vSelected?.state);
+}: tRadialObject) {
+  const { vSelected, vPage } = useUserContext();
+  const { registerModifier, unregisterModifier } = useChipContext();
+  const vSelectedRelay = useVerseRelay(vSelected);
+  console.log("vSelectedRelay state: ", vSelectedRelay?.state);
+  const chordLength = Math.min(arcLength / vSelectedRelay?.state.length, 1.3);
+  const mChipModifier: tAttributeModifier = {
+    modID: 30,
+    deps: [],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      if (input.id > eLayers.chipHand - 10 || input.held) {
+        return input;
+      }
+      const multiplier = vSelectedRelay?.shared.value.length < 4 ? 0.9 : 0.8;
+      return {
+        ...input,
+        scaleX: multiplier,
+        scaleY: multiplier,
+        radialOffsetX:
+          input.radialOffsetX * (multiplier < 0.85 ? 1 : multiplier),
+      };
+      ``;
+    },
+  };
+  useEffect(() => {
+    registerModifier(mChipModifier);
+    return () => {
+      unregisterModifier(mChipModifier.modID);
+    };
+  }, []);
+
   usePanHitBox({
     id: "chipSelector",
     origin,
@@ -44,52 +65,50 @@ export function SchemeChipSelector({
     fOnUpdate: (vPanState, vPanPos) => {
       "worklet";
       if (vPanState.value === "tap" || vPanState.value === "release") {
-        vSelected.dispatch([
-          vSelected.shared.value[0],
-          vSelected.shared.value.slice(-1)[0],
+        vSelectedRelay?.dispatch([
+          vSelectedRelay?.shared.value[0],
+          vSelectedRelay?.shared.value.slice(-1)[0],
         ]);
+        vPage?.dispatch("Scheme Selector");
       }
     },
   });
-  const [brandFilter, setBrandFilter] = useState<tBrand>("All Brands");
+  const vBrand = useVerse<tBrand>("All Brands");
   return (
     <>
-      {vSelected.state.map((color, index) => (
+      {vSelectedRelay?.state.map((color, index) => (
         <ChipSelector
           key={index}
           color={color}
           arcLength={chordLength * 0.8}
           rotationR={
-            rotationR + chordLength * (index - vSelected.state.length / 2 + 0.5)
+            rotationR +
+            chordLength * (index - vSelectedRelay?.state.length / 2 + 0.5)
           }
           origin={origin}
           radii={radii}
           ring={5}
           chord={4}
           layer={eLayers.chipFan + index * 20}
-          multiplier={vSelected.state.length < 4 ? 0.9 : 0.8}
+          vBrand={vBrand}
         />
       ))}
       <ColorFan
-        hues={vSelected.state}
+        hues={vSelectedRelay?.state}
         origin={origin}
         radii={[10, radii[0] - 30]}
-        arcLength={chordLength * vSelected.state.length * 0.8}
+        arcLength={chordLength * vSelectedRelay?.state.length * 0.8}
         rotationR={rotationR}
         ring={3}
         bend={0.7}
       />
       <BrandFilter
-        brand={brandFilter}
-        setBrand={setBrandFilter}
-        origin={[
-          Dimensions.get("window").width - 40,
-          Dimensions.get("window").height / 2,
-        ]}
+        vBrand={vBrand}
+        origin={[40, 150]}
         mainRotationR={11 / 7}
         totalArcLength={2 / 7}
-        width={100}
-        height={50}
+        radius={50}
+        layer={eLayers.buckets}
       />
       <BackIcon
         zIndex={eLayers.dropScreen - 1}
@@ -107,11 +126,11 @@ export function SchemeChipSelector({
 export type tChipSelector = tRadialObject & {
   color: number;
   layer?: number;
-  multiplier?: number;
+  vBrand?: tVerse<tBrand>;
 };
 
 export function ChipSelector(props: tChipSelector) {
-  const { arcLength, chord, ring, rotationR, radii } = props;
+  const { arcLength, chord, ring, rotationR, radii, vBrand } = props;
   const vPanPos = useSharedValue<{ angle: number; radius: number }>({
     angle: rotationR,
     radius: (radii[0] + radii[1]) / 2,
@@ -127,6 +146,7 @@ export function ChipSelector(props: tChipSelector) {
   const { vColorModel } = useUserContext();
   useEffect(() => {
     setSideA((prev) => !prev);
+    console.log("vTargetColor state: ", vTargetColor.state);
   }, [vTargetColor.state]);
   const selection = useSharedValue([0, 0]);
   useAnimatedReaction(
@@ -205,21 +225,6 @@ export function ChipSelector(props: tChipSelector) {
       };
     },
   };
-  const mChipModifier: tAttributeModifier = {
-    modID: 30,
-    deps: [],
-    modifier: (input: tAttributeMap) => {
-      "worklet";
-      if (input.id > eLayers.chipHand - 10 || input.held) {
-        return input;
-      }
-      return {
-        ...input,
-        scaleX: props.multiplier || 1,
-        scaleY: props.multiplier || 1,
-      };
-    },
-  };
 
   useEffect(() => {
     registerHitBox({
@@ -230,10 +235,8 @@ export function ChipSelector(props: tChipSelector) {
       arcLength: props.arcLength,
       vPanPos,
     });
-    registerModifier(mChipModifier);
     return () => {
       unregisterHitBox(`chipSelector-${rotationR}`);
-      unregisterModifier(mChipModifier.modID);
     };
   }, [props.rotationR]);
   const mColorModifier: tAttributeModifier = {
@@ -264,6 +267,7 @@ export function ChipSelector(props: tChipSelector) {
       };
     },
   };
+
   return (
     <>
       <RadialContext
@@ -287,6 +291,7 @@ export function ChipSelector(props: tChipSelector) {
         rotationR={rotationR}
         targetNumber={4}
         groupLayer={props.layer || eLayers.chipFan}
+        brand={vBrand?.state}
       />
     </>
   );

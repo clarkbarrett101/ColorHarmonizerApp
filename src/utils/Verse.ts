@@ -69,11 +69,9 @@ export function useVerseRelay<type>(
   const { state, dispatch, shared, subscribe, unSubscribe } = verse;
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
-
   const [localState, setLocalState] = useState(() =>
     callback ? callback(state) : state,
   );
-
   // Keep relay aligned if parent/state source swaps or callback logic changes.
   useEffect(() => {
     const next = callbackRef.current ? callbackRef.current(state) : state;
@@ -85,7 +83,7 @@ export function useVerseRelay<type>(
       const next = callbackRef.current ? callbackRef.current(value) : value;
       setLocalState((prev) => (Object.is(prev, next) ? prev : next));
     });
-
+    dispatch();
     return () => {
       unsubscribe?.();
     };

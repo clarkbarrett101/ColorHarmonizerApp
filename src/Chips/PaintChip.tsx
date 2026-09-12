@@ -6,17 +6,12 @@ import Svg, {
   Stop,
   Text,
   TSpan,
-  Circle,
-  Rect,
-  RadialGradient,
 } from "react-native-svg";
 import { tPaint } from "../utils/CLAcolor";
 import Animated, {
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
-  withRepeat,
   withTiming,
 } from "react-native-reanimated";
 import {
@@ -24,24 +19,15 @@ import {
   useLongPressGesture,
   usePanGesture,
   useSimultaneousGestures,
-  useTapGesture,
 } from "react-native-gesture-handler";
-import { use, useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, View } from "react-native";
-import { eLayers, useUserContext } from "../Contexts/UserContext";
+import { useEffect, useMemo, useRef } from "react";
+import { Dimensions } from "react-native";
+import { eLayers } from "../Contexts/UserContext";
 import { useVerse } from "../utils/Verse";
-import {
-  fLerpModifierFactory,
-  tAttributeMap,
-  tAttributeModifier,
-  useActor,
-} from "../utils/Actor";
+import { tAttributeMap, tAttributeModifier, useActor } from "../utils/Actor";
 import { useBucketContext } from "../Buckets/BucketContext";
 import { tRadialObject } from "../Radials/SectorTypes";
-import { AudioContext, OscillatorNode } from "react-native-audio-api";
 import { tChordReturn, useSoundContext } from "../Contexts/SoundContext";
-import { AnyGesture } from "react-native-gesture-handler/lib/typescript/v3/types";
-import { translate } from "@shopify/react-native-skia";
 import { scheduleOnRN } from "react-native-worklets";
 import { useChipContext } from "./ChipContext";
 
@@ -90,7 +76,6 @@ export const PaintChip = ({
 }: tPaintChip) => {
   /// O N  M O U N T ///
 
-  let flag = "#0f0";
   const id = chipID[0] + chipID[1];
   const {
     holdChip,
@@ -135,8 +120,9 @@ export const PaintChip = ({
   const vGrabbed = useVerse(false);
   const panWeight = useSharedValue(0);
   const flipAnim = useSharedValue(0);
+  const dimensions = Dimensions.get("window");
+
   /// S T A T E  M A C H I N E ///
-  flag = "#ff0";
 
   useEffect(() => {
     return vHeldChipID.subscribe?.((newID) => {
@@ -172,7 +158,7 @@ export const PaintChip = ({
       isSideA ? 500 * relativeZ : (1 - relativeZ) * 500,
       withTiming(0.5, { duration: 200 }, (finished) => {
         if (finished) {
-          scheduleOnRN(fPlaySFX, "grab");
+          scheduleOnRN(fPlaySFX, "fan");
           flipDown(isSideA);
         }
       }),
@@ -186,107 +172,8 @@ export const PaintChip = ({
     }
   }, [sideA]);
 
-  const flipModifier: tAttributeModifier = {
-    modID: 0,
-    deps: [flipAnim, vGrabbed.shared],
-    modifier: (input: tAttributeMap) => {
-      "worklet";
-      const rx = fLerp(0.5 / 7, 21.5 / 7, flipAnim.value);
-      return {
-        ...input,
-        rotateX: rx,
-        zIndex:
-          flipAnim.value > 0.5 ? chipID[0] + chipID[1] : chipID[0] - chipID[1],
-        held: vGrabbed.shared.value ? 1 : 0,
-      };
-    },
-  };
-
   /// P A N  G E S T U R E///
-  flag = "#f00";
 
-  const panMod: tAttributeModifier = {
-    modID: 1,
-    deps: [vPanX.shared, vPanY.shared, vVelocityX.shared, panWeight],
-    modifier: (input: tAttributeMap) => {
-      "worklet";
-      const x = fLerp(
-        input.translateX || 0,
-        vPanX.shared.value,
-        panWeight.value,
-      );
-      const y = fLerp(
-        input.translateY || 0,
-        vPanY.shared.value,
-        panWeight.value,
-      );
-      return {
-        ...input,
-        translateX: x,
-        translateY: y,
-        rotateZ: fLerp(
-          input.rotateZ || 0,
-          input.rotateZ + vVelocityX.shared.value * 0.0005,
-          panWeight.value,
-        ),
-        scaleX: fLerp(input.scaleX || 1, 1.3, panWeight.value),
-        scaleY: fLerp(input.scaleY || 1, 1.3, panWeight.value),
-        zIndex: input.held > 0 ? eLayers.grabbedChip : input.zIndex || 0,
-        radialOffsetX: fLerp(input.radialOffsetX || 0, 0, panWeight.value),
-      };
-    },
-  };
-
-  const dimensions = Dimensions.get("window");
-  const shadowModifier: tAttributeModifier = {
-    modID: 2,
-    deps: [panWeight, vPanX.shared, vPanY.shared],
-    modifier: (input: tAttributeMap) => {
-      "worklet";
-      const x = -0.25 + input.translateX / dimensions.width;
-      const y = -0.5 + input.translateY / dimensions.height;
-      return {
-        ...input,
-        shadowX: fLerp(input.shadowX || 0, x * 10, panWeight.value),
-        shadowY: fLerp(input.shadowY || 0, y * 10, panWeight.value),
-        shadowRadius: fLerp(input.shadowRadius || 3, 6, panWeight.value),
-        shadowOpacity: fLerp(input.shadowOpacity || 0.5, 0.9, panWeight.value),
-      };
-    },
-  };
-  const chipSway = useSharedValue(1);
-  const swayCycle = Math.random() * 4000 + 500;
-  const swayModifier: tAttributeModifier = {
-    modID: 50,
-    deps: [vSwayTimer, chipSway],
-    modifier: (input: tAttributeMap) => {
-      "worklet";
-      return {
-        ...input,
-        rotateZ:
-          input.rotateZ +
-          ((chipSway.value - 1) * Math.sin(vSwayTimer.value * 4 * 3.14)) / 100,
-        translateX:
-          input.translateX +
-          (chipSway.value - 1) * Math.cos(vSwayTimer.value * 2 * 3.14),
-        translateY:
-          input.translateY -
-          (chipSway.value - 1) * Math.sin(vSwayTimer.value * 2 * 3.14),
-      };
-    },
-  };
-  useEffect(() => {
-    actor.addModifier(flipModifier);
-    actor.addModifier(panMod);
-    actor.addModifier(shadowModifier);
-    registerChipActor(id, actor, [paintA, paintB]);
-    return () => {
-      actor.removeModifier(flipModifier.modID);
-      actor.removeModifier(panMod.modID);
-      actor.removeModifier(shadowModifier.modID);
-      unregisterChipActor(id);
-    };
-  }, []);
   const panGesture = usePanGesture({
     minDistance: 0,
     onActivate: (event) => {
@@ -310,6 +197,7 @@ export const PaintChip = ({
       vDropScreen.shared.value = false;
     },
   });
+
   const touchGesture = useLongPressGesture({
     minDuration: 100,
     onActivate: (event) => {
@@ -329,8 +217,87 @@ export const PaintChip = ({
   });
   const compGesture = useSimultaneousGestures(panGesture, touchGesture);
 
+  /// M O D I F I E R S ///
+
+  const flipModifier: tAttributeModifier = {
+    modID: 0,
+    deps: [flipAnim, vGrabbed.shared],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      const rx = fLerp(0.5 / 7, 21.5 / 7, flipAnim.value);
+      return {
+        ...input,
+        rotateX: rx,
+        zIndex:
+          flipAnim.value > 0.5 ? chipID[0] + chipID[1] : chipID[0] - chipID[1],
+        held: vGrabbed.shared.value ? 1 : 0,
+      };
+    },
+  };
+
+  const panMod: tAttributeModifier = {
+    modID: 1,
+    deps: [vPanX.shared, vPanY.shared, vVelocityX.shared, panWeight],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      const x = fLerp(
+        input.translateX || 0,
+        vPanX.shared.value,
+        panWeight.value,
+      );
+      const y = fLerp(
+        input.translateY || 0,
+        vPanY.shared.value,
+        panWeight.value,
+      );
+      return {
+        ...input,
+        translateX: x,
+        translateY: y,
+        rotateZ: fLerp(
+          input.rotateZ || 0,
+          vVelocityX.shared.value * 0.0005,
+          panWeight.value,
+        ),
+        scaleX: fLerp(input.scaleX || 1, 1.3, panWeight.value),
+        scaleY: fLerp(input.scaleY || 1, 1.3, panWeight.value),
+        zIndex: input.held > 0 ? eLayers.grabbedChip : input.zIndex || 0,
+        radialOffsetX: fLerp(input.radialOffsetX || 0, 0, panWeight.value),
+      };
+    },
+  };
+
+  const shadowModifier: tAttributeModifier = {
+    modID: 2,
+    deps: [panWeight, vPanX.shared, vPanY.shared],
+    modifier: (input: tAttributeMap) => {
+      "worklet";
+      const x = -0.25 + input.translateX / dimensions.width;
+      const y = -0.5 + input.translateY / dimensions.height;
+      return {
+        ...input,
+        shadowX: fLerp(input.shadowX || 0, x * 10, panWeight.value),
+        shadowY: fLerp(input.shadowY || 0, y * 10, panWeight.value),
+        shadowRadius: fLerp(input.shadowRadius || 3, 6, panWeight.value),
+        shadowOpacity: fLerp(input.shadowOpacity || 0.5, 0.9, panWeight.value),
+      };
+    },
+  };
+  useEffect(() => {
+    actor.addModifier(flipModifier);
+    actor.addModifier(panMod);
+    actor.addModifier(shadowModifier);
+    registerChipActor(id, actor, [paintA, paintB]);
+    return () => {
+      actor.removeModifier(flipModifier.modID);
+      actor.removeModifier(panMod.modID);
+      actor.removeModifier(shadowModifier.modID);
+      unregisterChipActor(id);
+    };
+  }, []);
+
   /// T R A N S F O R M ///
-  flag = "#f0f";
+
   const animatedStyle = useAnimatedStyle(() => {
     return actor.get((attributes) => {
       const output = {
@@ -377,8 +344,9 @@ export const PaintChip = ({
   const highlightAngle =
     Math.atan2(startPosition.y, -startPosition.x) -
     (vGrabbed.state ? 22 / 7 : 44 / 7 - rotateZ);
+
   /// R E N D E R ///
-  flag = "#00f";
+
   return (
     <Animated.View
       style={[

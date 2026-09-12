@@ -13,7 +13,7 @@ import { BlurView } from "expo-blur";
 import { tVerse } from "../utils/Verse";
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
-export function DropScreen() {
+export default function DropScreen() {
   const { vBuckets, vDropScreen } = useBucketContext();
   const bucketComps = useMemo(
     () =>

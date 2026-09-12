@@ -32,10 +32,9 @@ import {
   useDerivedValue,
 } from "react-native-reanimated";
 import { BrandFilter } from "../ColorWheels/BrandFilter";
-import { BGGradient } from "../ColorWheels/BGGradient";
 import { useChipContext } from "../Chips/ChipContext";
 
-export function ColorSeasons({
+export default function ColorSeasons({
   radii = [0, 375],
   ring = 5,
   chord = 4,

@@ -22,7 +22,7 @@ export type tTintSelector = tRadialObject & {
 export function TintSelector({
   ring = 6,
   chord = 4,
-  arcLength = 30,
+  arcLength = 5.5 / 7,
   rotationR = 22 / 7,
   radii = [150, 300],
   vPanPos,
@@ -35,29 +35,22 @@ export function TintSelector({
   const context = useRadialContext();
   const { origin, wAngleToChord, wChordToAngle, wUpdateState } = context;
   const lastAngle = useSharedValue(vPanPos?.value.angle ?? 0);
-  const fOnEnter = () => {
-    "worklet";
-    let nearestSectorAngle = wChordToAngle(
-      wAngleToChord(vPanPos.value.angle, arcLength, chord, rotationR),
-      arcLength,
-      chord,
-      rotationR,
-    );
-    if (nearestSectorAngle !== lastAngle.value) {
-      vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
-    }
-  };
 
   useAnimatedReaction(
-    () => vPanState.value,
-    (state) => {
-      if (state == "enter" || state == "tap" || state == "release") {
-        fOnEnter();
+    () => vPanPos?.value.angle,
+    (angle) => {
+      let nearestSectorAngle = wChordToAngle(
+        wAngleToChord(vPanPos.value.angle, arcLength, chord, rotationR),
+        arcLength,
+        chord,
+        rotationR,
+      );
+      vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
+      if (nearestSectorAngle !== lastAngle.value) {
         wUpdateState();
-        vPanState.value = "leave";
+        lastAngle.value = nearestSectorAngle;
       }
     },
-    [],
   );
 
   useEffect(() => {
@@ -65,7 +58,7 @@ export function TintSelector({
     registerZone({
       id,
       radii,
-      arcLength: (arcLength * (chord - 1)) / chord,
+      arcLength,
       rotationR,
       origin,
       vPanPos,

@@ -1,12 +1,13 @@
 9/9: Extracted Harmonizer Pages into the main driver and integrated it with the UserContext
+9/10: Brand filter, fix undertone Camera
+9/11: haptics, fix reColor Camera
 Next:
-brand filter in chip selector
+
 intro/outro transitions
-haptics
-fix reColor Camera
-fix undertone Camera
+settings
 harmonizer to undertone
 chips out of sync
+tutorials
 paywalls
 Revenue Cat
 Screenshots

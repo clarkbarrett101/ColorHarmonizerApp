@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { fCLARColorToRGB, tBrand, tCLARColor, tPaint } from "../utils/CLAcolor";
-
 import { ColorWheel } from "../ColorWheels/ColorWheel";
 import { TintSelector } from "../ColorWheels/TintSelector";
 import { Dimensions, View } from "react-native";
-import PanManager from "../Contexts/PanManager";
 import {
   RadialContext,
   wDefaultAngleToChord,
@@ -16,7 +14,6 @@ import {
   useSharedValue,
 } from "react-native-reanimated";
 import { ColorChipFan } from "../Chips/ChipStack";
-import { scheduleOnRN } from "react-native-worklets";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { eChipSizes } from "../Chips/PaintChip";
 import { useVerse } from "../utils/Verse";
@@ -35,6 +32,7 @@ type tColorSelector = tRadialObject & {
   chromaArcRotation?: [number, number];
   lightnessArcRotation?: [number, number];
 };
+
 export default function ColorSelector({
   wheelCenter = 22 / 7,
   radii = [50, 230],
@@ -85,8 +83,10 @@ export default function ColorSelector({
     };
   }, []);
 
-  const { vAccentC, vAccentAR, vAccentL } = useUserContext();
+  const { vAccentC, vAccentAR, vAccentL, vColorModel } = useUserContext();
+
   /// C L AR  C O L O R ///
+
   const dChroma = useDerivedValue(() => {
     let c =
       (vChromaPanPos.value.angle -
@@ -125,9 +125,6 @@ export default function ColorSelector({
       vAccentL.shared.value = clar[1];
     },
   );
-
-  /// C A L L B A C K S ///
-  const { vColorModel } = useUserContext();
   const chromaModifier: tAttributeModifier = {
     modID: 0,
     deps: [dChroma, dLuma, dAngleR, vColorModel.shared],
@@ -173,6 +170,7 @@ export default function ColorSelector({
         blue,
       };
     },
+    /// C A L L B A C K S ///
   };
   function fNearestColor(clar: tCLARColor): tCLARColor {
     "worklet";
@@ -274,15 +272,14 @@ export default function ColorSelector({
           />
         </RadialContext>
       </View>
-      <PanManager zIndex={eLayers.chipHand}>
-        <BrandFilter
-          vBrand={vBrand}
-          radius={50}
-          totalArcLength={3 / 7}
-          mainRotationR={11 / 7}
-          origin={[Dimensions.get("window").width - 60, 75]}
-        />
-      </PanManager>
+      <BrandFilter
+        vBrand={vBrand}
+        radius={50}
+        layer={eLayers.buckets}
+        totalArcLength={2.5 / 7}
+        mainRotationR={11 / 7}
+        origin={[Dimensions.get("window").width - 60, 75]}
+      />
       <ColorChipFan
         targetColor={vTargetColor.state}
         targetNumber={9}

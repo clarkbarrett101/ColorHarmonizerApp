@@ -30,9 +30,8 @@ import {
   useDerivedValue,
 } from "react-native-reanimated";
 import { BrandFilter } from "./BrandFilter";
-import { BGGradient } from "./BGGradient";
 
-export function ColorMixer({
+export default function ColorMixer({
   radii = [0, 400],
   ring = 5,
   chord = 6,

@@ -23,6 +23,7 @@ import { SectorGroup } from "../Radials/SectorGroup";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tVerse, useVerse } from "../utils/Verse";
 import { BlurScreen } from "../Buckets/DropScreen";
+import { fTextWrapSVG } from "../Buttons/Tutorial";
 
 type tPanEvent = "enter" | "leave" | "drag" | "tap" | "release";
 export type tBrandFilter = {
@@ -74,7 +75,6 @@ export const BrandFilter = (props: tBrandFilter) => {
     () => collapseAnim.value > 0.5,
     (v) => {
       vBlur.dispatch(v);
-      console.log("Blur state changed:", v);
     },
   );
 
@@ -202,34 +202,18 @@ export const BrandFilter = (props: tBrandFilter) => {
         radii: [radius * 0.2, radius * 1.2],
       };
       let brandString = (brands[i] as string).split(/[\s-]/);
-      const text = (
-        <Text
-          key={i}
-          fontFamily="Outfit"
-          fontSize={18}
-          textAnchor="middle"
-          fontWeight={2000}
-          opacity={0.65}
-          fill={i / (brands.length - 1) > 0.5 ? "white" : "black"}
-          verticalAlign={0.1}
-          transform={[
-            { rotate: `${adjustedRotation}rad` },
-            { translateY: radius * 0.6 },
-          ]}
-          pointerEvents="none"
-        >
-          {brandString.map((line, index) => (
-            <TSpan
-              key={index}
-              x={0}
-              dy={brandString.length > 1 ? (index === 0 ? -8 : 16) : 0}
-              pointerEvents="none"
-            >
-              {line}
-            </TSpan>
-          ))}
-        </Text>
-      );
+      const text = fTextWrapSVG(brandString, radius * 0.7, radius * 0.65, {
+        fontFamily: "Outfit",
+        fontSize: 18,
+        textAnchor: "middle",
+        fontWeight: 2000,
+        opacity: 0.65,
+        fill: i / (brands.length - 1) > 0.5 ? "white" : "black",
+        transform: [{ rotate: `${adjustedRotation}rad` }],
+        verticalAlign: "middle",
+        alignmentBaseline: "middle",
+      } as React.ComponentProps<typeof Text>);
+
       const sectorGroup: tSectorGroup = {
         arcLength: totalArcLength,
         chord: 0,

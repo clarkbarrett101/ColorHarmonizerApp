@@ -31,7 +31,7 @@ import { SweepDisplay } from "../Buttons/SweepDisplay";
 import { useVerse } from "../utils/Verse";
 import { ChipFan, ChipRow, ColorChipFan } from "./ChipStack";
 
-export function PaletteLibrary({
+export default function PaletteLibrary({
   radii = [50, 300],
   origin = [
     Dimensions.get("window").width + radii[0] * 0.5,

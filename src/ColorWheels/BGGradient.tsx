@@ -11,7 +11,7 @@ import { fCLARColorToString } from "../utils/CLAcolor";
 import { eLayers, ePages, useUserContext } from "../Contexts/UserContext";
 import { use, useEffect } from "react";
 
-export function BGGradient() {
+export default function BGGradient() {
   const { vColorModel, vAccentAR, vAccentC, vAccentL, vSelected, vPage } =
     useUserContext();
   const vPageRelay = useVerseRelay(vPage);

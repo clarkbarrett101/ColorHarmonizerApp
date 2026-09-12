@@ -11,7 +11,7 @@ import { ColorScheme, fGetHarmonies } from "./ColorScheme";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 
-export function SchemeSelector({
+export default function SchemeSelector({
   arcLength = 20 / 7,
   radii = [200, 350],
   origin = [

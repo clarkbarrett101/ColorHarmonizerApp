@@ -16,7 +16,7 @@ import { BrandFilter } from "../ColorWheels/BrandFilter";
 import { useChipContext } from "../Chips/ChipContext";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 
-export function SchemeChipSelector({
+export default function SchemeChipSelector({
   origin = [
     Dimensions.get("window").width,
     Dimensions.get("window").height / 2,
@@ -35,7 +35,8 @@ export function SchemeChipSelector({
     deps: [],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      if (input.id > eLayers.chipHand - 10 || input.held) {
+
+      if (input.id > eLayers.chipHand - 10 || input.held > 0) {
         return input;
       }
       const multiplier = vSelectedRelay?.shared.value.length < 4 ? 0.9 : 0.8;

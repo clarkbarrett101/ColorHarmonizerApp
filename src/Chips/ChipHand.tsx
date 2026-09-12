@@ -26,12 +26,12 @@ export type tChipHand = tRadialObject & {
   holdRadius?: number;
 };
 
-export const ChipHand = ({
+export default function ChipHand({
   radii = [80, 80],
   rotationR = -6 / 7,
   arcLength = 11 / 7,
   holdRadius = 150,
-}: tChipHand) => {
+}: tChipHand) {
   const startAngle = rotationR + arcLength / 2;
   const selectVerse = useVerse(-1);
   const {
@@ -301,4 +301,4 @@ export const ChipHand = ({
       </View>
     </>
   );
-};
+}

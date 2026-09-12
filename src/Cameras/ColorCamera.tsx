@@ -38,10 +38,10 @@ import {
 } from "react-native-svg";
 import { PetalBox } from "../Buttons/PetalBox";
 import { scheduleOnRN } from "react-native-worklets";
-import { Tutorial } from "../Buttons/Tutorial";
+import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 import { Thermo } from "./Thermo";
 
-export function ColorCamera({
+export default function ColorCamera({
   radii = [160, 320],
   chord = 24,
   arcLength = 43.9 / 7,
@@ -65,6 +65,7 @@ export function ColorCamera({
   const { vColorModel, vAccentAR, vAccentC } = useUserContext();
   const SCREEN_WIDTH = Dimensions.get("window").width;
   const SCREEN_HEIGHT = Dimensions.get("window").height;
+
   useEffect(() => {
     const interval = setInterval(() => {
       let angle = wDefaultChordToAngle(
@@ -177,6 +178,8 @@ export function ColorCamera({
     fontFamily: "Outfit",
     textAnchor: "middle",
     fill: "rgba(0,0,0,0.5)",
+    alignmentBaseline: "middle",
+    verticalAlign: "middle",
   };
   return (
     <>
@@ -212,9 +215,9 @@ export function ColorCamera({
               `${vThermoMode.state ? "Calibrate " : "Confirm"} Tint`,
               "Temperature",
             ],
+            fontSize * 2,
+            -fontSize * 1.8,
             { ...textProps, fontSize: fontSize - 4 },
-            fontSize,
-            -40,
           )}
           <Circle cx="0" cy="-80" r="40" fill="url(#radGrad)" opacity="0.5" />
           <Path
@@ -227,10 +230,9 @@ export function ColorCamera({
           />
         </G>
       </PetalBox>
-      {vThermoMode.state && (
+      {!vThermoMode.state && (
         <>
           <HarmonizerWheel origin={origin} draggable={false} radii={radii} />
-
           <PetalBox
             origin={[50, Dimensions.get("window").height / 2]}
             radii={[20, 50]}
@@ -256,17 +258,15 @@ export function ColorCamera({
             rotationR={-11 / 7}
           >
             <G transform={[{ rotate: 11 / 7 + "rad" }]}>
-              {fTextWrapSVG(
-                ["Light", "Temp"],
-                { ...textProps, fontSize: fontSize - 2 },
-                fontSize,
-                -fontSize / 2 - 30,
-              )}
+              {fTextWrapSVG(["Light", "Temp"], fontSize * 2, -fontSize * 1.8, {
+                ...textProps,
+                fontSize: fontSize - 2,
+              })}
             </G>
           </PetalBox>
         </>
       )}
-      {!vThermoMode.state && (
+      {vThermoMode.state && (
         <>
           <Tutorial
             width={300}
@@ -282,9 +282,9 @@ export function ColorCamera({
                   "calibrate to the color temperature",
                   "of the light in the scene.",
                 ],
+                fontSize * 8,
+                fontSize * 6,
                 { ...textProps, fill: "white" },
-                fontSize + 5,
-                50,
               )}
             </G>
           </Tutorial>
@@ -315,24 +315,3 @@ half4 main(float2 pos) {
   return color;
 }
 `;
-
-function fTextWrapSVG(
-  lines: string[],
-  props: React.ComponentProps<typeof Text>,
-  lineHeight: number,
-  startY = 0,
-) {
-  return (
-    <>
-      {lines.map((line, index) => (
-        <Text
-          key={`${line}-${index}`}
-          {...props}
-          y={startY + index * lineHeight}
-        >
-          {line}
-        </Text>
-      ))}
-    </>
-  );
-}

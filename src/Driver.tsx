@@ -1,27 +1,36 @@
-import { View } from "react-native";
-import { LightThermometer } from "./Cameras/LightThermometer";
-import React, { Profiler, ReactNode, useEffect } from "react";
+import React, { Profiler, ReactNode } from "react";
 import type { ePages } from "./Contexts/UserContext";
 import PanManager from "./Contexts/PanManager";
 import UserContext from "./Contexts/UserContext";
 import BucketContext from "./Buckets/BucketContext";
 import SoundContext from "./Contexts/SoundContext";
-import { ChipHand } from "./Chips/ChipHand";
-import { Menu } from "./Menu";
-import { DropScreen } from "./Buckets/DropScreen";
-import { ColorCamera } from "./Cameras/ColorCamera";
-import { WallPaintCam } from "./Cameras/WallPaintCam";
-import { ColorMixer } from "./ColorWheels/ColorMixer";
-import ColorSelector from "./ColorWheels/ColorSelector";
-import { useVerse } from "./utils/Verse";
-import { PaletteLibrary } from "./Chips/PaletteLibrary";
-import { ColorSeasons } from "./ColorWheels/ColorSeasons";
-import { MenuButton } from "./Buckets/MenuButton";
 import ChipContext from "./Chips/ChipContext";
-import { BGGradient } from "./ColorWheels/BGGradient";
-import { SchemeChipSelector } from "./Harmonizer/ChipSelector";
-import { SchemeSelector } from "./Harmonizer/SchemeSelector";
+import MenuButton from "./Buckets/MenuButton";
+import ChipHand from "./Chips/ChipHand";
+import Menu from "./Menu";
+import DropScreen from "./Buckets/DropScreen";
+import ColorCamera from "./Cameras/ColorCamera";
+import WallPaintCam from "./Cameras/WallPaintCam";
+import ColorMixer from "./ColorWheels/ColorMixer";
+import ColorSelector from "./ColorWheels/ColorSelector";
+import PaletteLibrary from "./Chips/PaletteLibrary";
+import ColorSeasons from "./ColorWheels/ColorSeasons";
+import BGGradient from "./ColorWheels/BGGradient";
 import { HarmonizerWheel } from "./Harmonizer/HarmonizerWheel";
+import SchemeChipSelector from "./Harmonizer/ChipSelector";
+import SchemeSelector from "./Harmonizer/SchemeSelector";
+import { useVerse } from "./utils/Verse";
+
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from "react-native-reanimated";
+
+// This is the default configuration
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false, // Reanimated runs in strict mode by default
+});
 
 const Driver = () => {
   const vPage = useVerse<ePages>("Menu");
@@ -35,16 +44,11 @@ const Driver = () => {
     "Undertone Camera": <ColorCamera />,
     "Color Harmonizer": <HarmonizerWheel />,
     "Palette Library": <PaletteLibrary />,
-    "Light Thermometer": <LightThermometer />,
     "Scheme Selector": <SchemeSelector />,
     "Chip Selector": <SchemeChipSelector />,
   };
   function fShouldShowBGGradient(page: ePages) {
-    return (
-      page !== "Undertone Camera" &&
-      page !== "ReColor Camera" &&
-      page !== "Light Thermometer"
-    );
+    return page !== "Undertone Camera" && page !== "ReColor Camera";
   }
   return (
     <Profiler

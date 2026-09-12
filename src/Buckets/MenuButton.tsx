@@ -6,7 +6,7 @@ import { fCLARColorToString } from "../utils/CLAcolor";
 import Animated, { useAnimatedProps } from "react-native-reanimated";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-export function MenuButton({ onPress }: { onPress: () => void }) {
+export default function MenuButton({ onPress }: { onPress: () => void }) {
   const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
   const animatedProps = useAnimatedProps(() => ({
     fill: fCLARColorToString(

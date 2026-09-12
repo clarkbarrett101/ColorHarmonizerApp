@@ -93,9 +93,15 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
   useEffect(() => {
     attributes.value = { ...defaultAttributes, ...initialAttributes };
   }, [initialAttributes]);
+  function defaultModifier(input: tAttributeMap): tAttributeMap {
+    "worklet";
+    return {
+      ...input,
+      alpha: 1,
+    };
+  }
   const modifiers = useSharedValue<{ [key: number]: wModifier }>({});
   const deps = useRef<SharedValue<any>[]>([]).current;
-
   function addModifier(attributeModifier: tAttributeModifier) {
     scheduleOnUI(() => {
       //Must be on the UI thread
@@ -128,6 +134,15 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
       }
     });
   }
+  useEffect(() => {
+    const mods = modifiers.value;
+    if (!mods[100]) {
+      addModifier({
+        modID: 100,
+        modifier: defaultModifier,
+      });
+    }
+  }, []);
   /**
    * The get uses an intermediary callback so that animatedStyle will recognize the dependencies
    * @param callback the function that is finally takes the modified attributes and decides how they are implemented
@@ -148,7 +163,6 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
 
     let modifiedAttributes: tAttributeMap = { ...attributes.value };
     for (let id in modifiers.value) {
-      modifiedAttributes.alpha = 1;
       const modifier = modifiers.value[id];
       modifiedAttributes = modifier(modifiedAttributes);
     }

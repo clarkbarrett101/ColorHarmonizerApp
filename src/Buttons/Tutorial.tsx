@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { View } from "react-native";
 import React, { useState } from "react";
 import {
   Circle,
@@ -7,6 +7,7 @@ import {
   RadialGradient,
   Stop,
   Svg,
+  Text,
 } from "react-native-svg";
 import { eLayers } from "../Contexts/UserContext";
 import { usePanHitBox, tPanHitBox } from "./PanHitBox";
@@ -80,5 +81,28 @@ export function Tutorial({
     </Svg>
   ) : (
     <></>
+  );
+}
+export function fTextWrapSVG(
+  lines: string[],
+  totalHeight: number,
+  startY = 0,
+  props: React.ComponentProps<typeof Text>,
+) {
+  return (
+    <>
+      {lines.map((line, index) => (
+        <Text
+          key={`${line}-${index}`}
+          {...props}
+          y={
+            startY +
+            (index + 0.5 - lines.length / 2) * (totalHeight / lines.length)
+          }
+        >
+          {line}
+        </Text>
+      ))}
+    </>
   );
 }

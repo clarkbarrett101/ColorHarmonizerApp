@@ -35,7 +35,7 @@ export function PetalBox({
     return {
       ...group,
       children: Array.isArray(children) ? children : [children],
-      sectorGroupID: layer,
+      layer,
     };
   }
   const mColorModifier: tAttributeModifier = {

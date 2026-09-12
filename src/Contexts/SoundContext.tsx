@@ -121,17 +121,12 @@ export default function SoundContext({ children }: { children: ReactNode }) {
   const harpBuffers = useRef<Record<number, AudioBuffer | null>>({}).current;
   const paintsPresent = useRef<Record<string, tPaint[]>>({}).current;
   const masterGain = useRef<GainNode>(audioContext.createGain()).current;
-  const chordsPlaying = useRef<number>(0);
   const sfxBuffers = useRef<Record<eSFX, AudioBuffer | null>>({
     fan: null,
     grab: null,
     drop: null,
   }).current;
   const ready = useRef<boolean>(false);
-
-  function fUpdateChordsPlaying(delta: number) {
-    chordsPlaying.current = Math.max(0, chordsPlaying.current + delta);
-  }
 
   function fStartChord(color: tCLARColor, harp: boolean = false): tChordReturn {
     if (!color || !ready.current) return () => {};
@@ -319,6 +314,13 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     const buffer = sfxBuffers[sfx];
 
     if (buffer) {
+      let haptic =
+        sfx === "grab"
+          ? Haptics.ImpactFeedbackStyle.Rigid
+          : Haptics.ImpactFeedbackStyle.Soft;
+
+      Haptics.impactAsync(haptic);
+
       const source = audioContext.createBufferSource();
       source.buffer = buffer;
       source.detune.value = 600 * (Math.random() - 0.5);

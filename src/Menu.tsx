@@ -25,7 +25,7 @@ const allPages: ePages[] = [
   "Color Seasons",
 ];
 
-export function Menu({
+export default function Menu({
   radii = [200, 500],
   rotationR = 22 / 7,
   arcLength = 9 / 7,

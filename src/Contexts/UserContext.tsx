@@ -1,7 +1,6 @@
 import React, {
   createContext,
   ReactNode,
-  RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -9,15 +8,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  fGetRandomPalette,
-  tCLARColor,
-  tColorModel,
-  tPaint,
-  tPalette,
-} from "../utils/CLAcolor";
-import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
-import { tActor } from "../utils/Actor";
+import { tColorModel, tPaint, tPalette } from "../utils/CLAcolor";
+import { tVerse, useVerse } from "../utils/Verse";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const eLayers = {
@@ -41,7 +33,6 @@ export type ePages =
   | "Color Seasons"
   | "Color Harmonizer"
   | "Palette Library"
-  | "Light Thermometer"
   | "Scheme Selector"
   | "Chip Selector";
 

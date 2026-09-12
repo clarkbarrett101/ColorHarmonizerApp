@@ -36,7 +36,7 @@ import { ReplacementMeter } from "./ReplacementMeter";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-export function WallPaintCam() {
+export default function WallPaintCam() {
   const { hasPermission, requestPermission } = useCameraPermission();
   if (!hasPermission) {
     requestPermission();

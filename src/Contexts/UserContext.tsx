@@ -117,19 +117,23 @@ export default function UserContext({
       }
     });
   }, []);
+
   useEffect(() => {
     storePalette();
   }, [userPalette]);
+
   const addPaint = useCallback((paint: tPaint, index?: number) => {
     setUserPalette((prev) => {
       if (index !== undefined) {
         const newPalette = { ...prev };
+        console.log("Inserting paint at index:", index, "paint:", paint);
         newPalette.paints.splice(index, 0, paint);
         return newPalette;
       }
       return { ...prev, paints: [...prev.paints, paint] };
     });
   }, []);
+
   const removePaint = useCallback((paint: tPaint) => {
     setUserPalette((prev) => {
       const newPalette = { ...prev };

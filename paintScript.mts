@@ -195,9 +195,16 @@ fs.writeFile(
   },
 );
 */
-
+function hexToRgb(hex) {
+  const bigint = parseInt(hex.replace("#", ""), 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return [r, g, b];
+}
 import masterList from "./src/masterList.mjs";
-import { fRGBToYUV, fRGBToCLARColor } from "./src/utils/CLAcolor.js";
+import pantoneColorsList from "./pantone-numbers.json" with { type: "json" };
+import { fRGBToYUV, fRGBToCLARColor } from "./src/utils/CLAcolor.ts";
 import fs from "fs";
 const clarColors = new Array(44).fill([0, 0]);
 masterList.map((item) => {
@@ -210,20 +217,17 @@ masterList.map((item) => {
   }
   item.yuv = [y, u, v];
   item.clar = { c, l, ar };
-  let by = Math.abs(ar / (2 * Math.PI) - 0.75);
-  if (by > 0.5) {
-    by = 1 - by;
-  }
-  by /= 0.5;
-  let depth = c / 0.2;
-  let winterScore = (1 - by) * depth * (1 - l);
-  let summerScore = (1 - by) * (1 - depth) * l;
-  let autumnScore = by * (1 - depth) * (1 - l);
-  let springScore = by * depth * l;
-  item.psaw = [springScore, summerScore, autumnScore, winterScore];
-
   clarColors.push(item);
 });
+pantoneColorsList.map((item) => {
+  let hex = item.hex;
+  let [r, g, b] = hexToRgb(hex);
+  let [y, u, v] = fRGBToYUV([r, g, b]);
+  let { c, l, ar } = fRGBToCLARColor([r, g, b]);
+  item.yuv = [y, u, v];
+  item.clar = { c, l, ar };
+});
+
 clarColors.sort(
   (a, b) =>
     (a.clar.ar - b.clar.ar) * 100 +
@@ -269,7 +273,7 @@ asJson(clarColors);
 
 function asJson(colors) {
   const jsonString = JSON.stringify(colors, null, 2);
-  fs.writeFile(`./src/ts/clarColors.json`, jsonString, "utf8", (err) => {
+  fs.writeFile(`./src/clarColors2.json`, jsonString, "utf8", (err) => {
     if (err) {
       console.error("Error writing file:", err);
     } else {

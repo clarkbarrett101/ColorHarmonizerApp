@@ -19,6 +19,7 @@ export type tSector = tRadialObject & {
 export type tSectorGroup = tSector & {
   sectors?: tSector[];
   children?: ReactNode[];
+  opacity?: number;
 };
 export const fMakeSectorPath = (
   radii: [number, number],

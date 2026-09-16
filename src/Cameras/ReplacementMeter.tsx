@@ -51,9 +51,9 @@ export function ReplacementMeter({
       "worklet";
       if (pos === "enter" || pos === "tap") {
         if (vPanPos.shared.value.radius < length / 2) {
-          setThreshold(-0.01);
+          setThreshold(-0.1);
         } else {
-          setThreshold(0.01);
+          setThreshold(0.1);
         }
         vPanState.shared.value = "leave";
       }
@@ -70,6 +70,7 @@ export function ReplacementMeter({
         rotationR={0 / 7}
         layer={layer - 10}
         arcLength={3 / 7}
+        opacity={0.75}
       >
         <Path
           transform={[{ translateX: 95 }, { scale: 0.7 }]}
@@ -85,6 +86,7 @@ export function ReplacementMeter({
         rotationR={22 / 7}
         arcLength={3 / 7}
         layer={layer - 10}
+        opacity={0.75}
       >
         <Path
           transform={[{ translateX: 95 }, { scale: -0.7 }]}

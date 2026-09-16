@@ -1,13 +1,18 @@
 9/9: Extracted Harmonizer Pages into the main driver and integrated it with the UserContext
 9/10: Brand filter, fix undertone Camera
-9/11: haptics, fix reColor Camera
+9/11: Implemented Haptics and reconfigured recolor cam. 
+9/12: Seasons Decor
+9/13: Color Mixer
 Next:
-
+mixer algo
+platforms
+wheels
 intro/outro transitions
 settings
 harmonizer to undertone
 chips out of sync
 tutorials
+export palette
 paywalls
 Revenue Cat
 Screenshots

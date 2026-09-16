@@ -336,7 +336,33 @@ function fDistances(testColor: tCLARColor): tColorMap<number> {
     grey: fDistanceBetween(testColor, refColors.grey, false),
   };
 }
-
+const refYUV = {
+  red: fCLARColorToYUV(refColors.red, "RYGB"),
+  yellow: fCLARColorToYUV(refColors.yellow, "RYGB"),
+  blue: fCLARColorToYUV(refColors.blue, "RYGB"),
+  white: fCLARColorToYUV(refColors.white, "RYGB"),
+  black: fCLARColorToYUV(refColors.black, "RYGB"),
+  grey: fCLARColorToYUV(refColors.grey, "RYGB"),
+};
+function fDistYUV(
+  yuvA: [number, number, number],
+  yuvB: [number, number, number],
+): number {
+  const dy = yuvA[0] - yuvB[0];
+  const du = yuvA[1] - yuvB[1];
+  const dv = yuvA[2] - yuvB[2];
+  return Math.sqrt(dy * dy + du * du + dv * dv);
+}
+function fDistancesYUV(testYUV: [number, number, number]): tColorMap<number> {
+  return {
+    red: fDistYUV(testYUV, refYUV.red),
+    yellow: fDistYUV(testYUV, refYUV.yellow),
+    blue: fDistYUV(testYUV, refYUV.blue),
+    white: fDistYUV(testYUV, refYUV.white),
+    black: fDistYUV(testYUV, refYUV.black),
+    grey: fDistYUV(testYUV, refYUV.grey),
+  };
+}
 export function fClosestColors(
   targetColor: tPaint,
   brand?: tBrand,
@@ -352,12 +378,13 @@ export function fClosestColors(
     black: undefined,
   };
 
-  const targetScores = fDistances(targetColor.clar);
+  const targetScores = fDistancesYUV(targetColor.yuv);
+  console.log("Target scores:", targetScores);
 
   for (let rank of rankedColors) {
     const paint = clarColorsList[rank.index];
     const dis = fDistanceBetween(paint.clar, targetColor.clar);
-    const paintScores = fDistances(paint.clar);
+    const paintScores = fDistancesYUV(paint.yuv);
     if (!colorMap.grey && paintScores.grey < targetScores.grey) {
       colorMap.grey = paint;
       console.log(

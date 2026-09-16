@@ -6,33 +6,24 @@ import {
   fGetRandomPaint,
   refColors,
   tBrand,
-  tCLARColor,
   tColorMap,
   tPaint,
 } from "../utils/CLAcolor";
-import {
-  RadialContext,
-  wDefaultAngleToChord,
-  wDefaultChordToAngle,
-} from "../Radials/RadialContext";
+import { RadialContext } from "../Radials/RadialContext";
 import { RadialGraphic } from "../Radials/RadialGraphic";
 import { useVerse } from "../utils/Verse";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { ChipFan } from "../Chips/ChipStack";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tRadialObject, tSectorGroup } from "../Radials/SectorTypes";
 import { useBucketContext } from "../Buckets/BucketContext";
 import { eChipSizes, PaintChip } from "../Chips/PaintChip";
-import {
-  withTiming,
-  useSharedValue,
-  useDerivedValue,
-} from "react-native-reanimated";
+import { withTiming, useSharedValue } from "react-native-reanimated";
 import { BrandFilter } from "./BrandFilter";
 
 export default function ColorMixer({
-  radii = [0, 400],
+  radii = [0, Dimensions.get("window").width * 0.9],
   ring = 5,
   chord = 6,
   arcLength = 13 / 7,
@@ -50,6 +41,16 @@ export default function ColorMixer({
     4: "grey",
     5: "black",
   };
+  const colorHex = [
+    "#000000",
+    "#888888",
+    "#ffffff",
+    "#0000ff",
+    "#ffff00",
+    "#ff0000",
+  ];
+
+  const { vColorModel, vAccentAR, vAccentL, vAccentC } = useUserContext();
   const colors = { ...refColors };
   const vBrand = useVerse<tBrand>("All Brands");
   const vTargetColor = useVerse<tPaint>(fGetRandomPaint());
@@ -74,6 +75,9 @@ export default function ColorMixer({
     rotationAnim.value = withTiming(1, { duration: 500 });
   }, []);
   useEffect(() => {
+    vAccentAR.dispatch(vTargetColor.state.clar.ar);
+    vAccentL.dispatch(vTargetColor.state.clar.l);
+    vAccentC.dispatch(vTargetColor.state.clar.c);
     if (sideA) {
       paintsB.current = colorMaptoArray(
         fClosestColors(vTargetColor.state, vBrand.state),
@@ -91,17 +95,10 @@ export default function ColorMixer({
   const fSectorGroupModifier = (sectorGroup: tSectorGroup) => {
     return {
       ...sectorGroup,
-      zIndex: eLayers.colorMixer,
+      layer: eLayers.colorMixer,
     };
   };
-  const colorHex = [
-    "#000000",
-    "#888888",
-    "#ffffff",
-    "#0000ff",
-    "#ffff00",
-    "#ff0000",
-  ];
+
   function fLerp(a: number, b: number, t: number): number {
     "worklet";
     return a * (1 - t) + b * t;
@@ -120,7 +117,6 @@ export default function ColorMixer({
       };
     },
   };
-  const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 1,
     deps: [vTargetColor.shared, vColorModel.shared],
@@ -141,29 +137,8 @@ export default function ColorMixer({
       };
     },
   };
-  /*
-  const { registerModifier, unregisterModifier } = useUserContext();
-  const chipMod: tAttributeModifier = {
-    modID: 30,
-    deps: [rotationAnim],
-    modifier: (input: tAttributeMap) => {
-      "worklet";
-      if (input.id > eLayers.chipFan + 50 || input.id < eLayers.chipFan) {
-        return input;
-      }
-      const r = fLerp(22 / 7, input.rotateZ, rotationAnim.value);
-      return {
-        ...input,
-        rotateZ: r,
-        translateY: Math.cos(r) * radii[1] + origin[1],
-        translateX: Math.sin(r) * radii[1] + origin[0],
-      };
-    },
-  };
-*/
   const { registerBucket, unregisterBucket } = useBucketContext();
   useEffect(() => {
-    //registerModifier(chipMod);
     registerBucket({
       origin: [
         Dimensions.get("window").width - 100,
@@ -179,7 +154,6 @@ export default function ColorMixer({
     });
     return () => {
       unregisterBucket("" + 20);
-      //unregisterModifier(chipMod.modID);
     };
   }, []);
 
@@ -197,9 +171,10 @@ export default function ColorMixer({
           style={{
             position: "absolute",
             shadowColor: "black",
-            shadowOffset: { width: 0, height: -5 },
-            shadowOpacity: 0.5,
-            shadowRadius: 10,
+            shadowOffset: { width: -5, height: 5 },
+            shadowOpacity: 0.75,
+            shadowRadius: 5,
+            zIndex: eLayers.colorMixer,
           }}
         >
           <RadialGraphic
@@ -225,20 +200,17 @@ export default function ColorMixer({
         sideA={sideA}
         arcLength={arcLength}
         rotationR={rotationR}
-        radius={radii[1] * 0.75}
+        radius={radii[1] * 0.8}
         groupLayer={eLayers.chipFan}
       />
       <BrandFilter
         vBrand={vBrand}
         radius={50}
-        origin={[origin[0] - radii[1] * 0.1, origin[1] + 200]}
+        origin={[origin[0] - radii[1] * 0.15, origin[1] - 250]}
         mainRotationR={11 / 7}
-        totalArcLength={3 / 7}
+        totalArcLength={2.5 / 7}
         layer={eLayers.chipHand}
       />
     </>
   );
 }
-/*
-   
-      */

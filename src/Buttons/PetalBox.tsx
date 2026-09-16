@@ -14,11 +14,13 @@ export type tPetalBox = tRadialObject & {
   dL?: SharedValue<number>;
   dAR?: SharedValue<number>;
   mTransformModifier?: tAttributeModifier;
+  opacity?: number;
 };
 export function PetalBox({
   origin,
   rotationR = 0,
   layer = 0,
+  opacity = 1,
   dC,
   dL,
   dAR,
@@ -36,6 +38,7 @@ export function PetalBox({
       ...group,
       children: Array.isArray(children) ? children : [children],
       layer,
+      opacity,
     };
   }
   const mColorModifier: tAttributeModifier = {
@@ -52,6 +55,7 @@ export function PetalBox({
         red: r,
         green: g,
         blue: b,
+        alpha: opacity,
       };
     },
   };

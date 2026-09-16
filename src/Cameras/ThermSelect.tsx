@@ -1,10 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  fCLARColorToRGB,
-  fYUVToCLARColor,
-  fYUVToRGB,
-  tBrand,
-} from "../utils/CLAcolor";
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { Text } from "react-native-svg";
@@ -18,12 +12,12 @@ import { useRadialContext, RadialContext } from "../Radials/RadialContext";
 import { tSector, tSectorGroup } from "../Radials/SectorTypes";
 import { SectorGroup } from "../Radials/SectorGroup";
 import { scheduleOnRN } from "react-native-worklets";
-import { eLayers, useUserContext } from "../Contexts/UserContext";
+import { eLayers } from "../Contexts/UserContext";
 import { kelvin_table, tTemp } from "./KelvinTemp";
-import { PetalBox } from "../Buttons/PetalBox";
+import { usePanHitBox } from "../Buttons/PanHitBox";
 
 export type tThermSelect = {
-  size?: number;
+  radius?: number;
   tempK: number;
   setTemp: (temp: tTemp) => void;
   mainRotationR?: number;
@@ -38,9 +32,7 @@ export const ThermSelect = (props: tThermSelect) => {
   const origin = props.origin || ctx.origin || [0, 0];
   const totalArcLength = props.arcLength || ctx.totalArcLength || 44 / 7;
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
-  const radius = props.size ? props.size : 40;
-  const vPanPos = useSharedValue({ angle: 0, radius: 0 });
-  const vPanState = useSharedValue<ePanEvent>("leave");
+  const radius = props.radius ? props.radius : 40;
   const vActive = useSharedValue(1);
   const vSelection = useSharedValue(0);
   useEffect(() => {
@@ -53,61 +45,56 @@ export const ThermSelect = (props: tThermSelect) => {
         closestIndex = i;
       }
     }
-
-    console.log(
-      "ThermSelect initialIndex",
-      closestIndex,
-      "for tempK",
-      props.tempK,
-    );
-    if (closestIndex >= 0) {
-      vPanPos.value = { angle: 0, radius: closestIndex * radius };
-    }
   }, [props.tempK]);
-  useAnimatedReaction(
-    () => vPanState.value,
-    (state) => {
-      if (state === "release" || state === "tap") {
-        if (vActive.value > 0) {
-          vActive.value = withTiming(0, { duration: 200 });
-        } else {
-          vActive.value = withTiming(1, { duration: 200 });
+  const dActive = useDerivedValue(() => 1 - vActive.value, []);
+  usePanHitBox({
+    id: "" + origin[0] + origin[1],
+    shape: "capsule",
+    priority: 10,
+    origin: [origin[0], origin[1] + radius / 2],
+    arcLength: totalArcLength,
+    radii: [radius * 0.7, radius * temps.length],
+    capsuleMod: dActive,
+    rotationR: mainRotationR,
+    fOnUpdate: (state, pos) => {
+      "worklet";
+      console.log("Pan update", state.value, vActive.value);
+      if (vActive.value < 0.5) {
+        if (state.value == "drag") {
+          const index = Math.round(pos.value.radius / radius);
+          if (
+            index >= 0 &&
+            index < temps.length &&
+            index !== vSelection.value
+          ) {
+            vSelection.value = index;
+            scheduleOnRN(props.setTemp, temps[index]);
+          }
         }
-        vPanState.value = "leave";
+        if (state.value == "release" || state.value == "tap") {
+          const index = Math.round(pos.value.radius / radius);
+          if (
+            index >= 0 &&
+            index < temps.length &&
+            index !== vSelection.value
+          ) {
+            vSelection.value = index;
+            scheduleOnRN(props.setTemp, temps[index]);
+          }
+          vActive.value = withTiming(1, { duration: 500 });
+          state.value = "leave";
+        }
+      } else {
+        if (state.value == "enter" || state.value == "tap") {
+          vActive.value = withTiming(0, { duration: 500 });
+          if (state.value == "tap") {
+            state.value = "leave";
+          }
+        }
       }
     },
-    [],
-  );
-  useAnimatedReaction(
-    () => vPanPos.value,
-    (v) => {
-      console.log("ThermSelect PanPos", v);
-      const index = Math.round(v.radius / radius);
-      if (index >= 0 && index < temps.length) {
-        vSelection.value = index;
-        scheduleOnRN(props.setTemp, temps[index]);
-      }
-    },
-    [],
-  );
-  const { registerHitBox: registerZone, unregisterHitBox: unregisterZone } =
-    usePanManager();
-  useEffect(() => {
-    registerZone({
-      id: "" + origin[0] + origin[1],
-      shape: "capsule",
-      priority: 10,
-      origin: [origin[0], origin[1] - (radius * (temps.length - 3)) / 2],
-      arcLength: totalArcLength,
-      radii: [radius * 0.7, radius * temps.length],
-      rotationR: mainRotationR,
-      vPanState,
-      vPanPos,
-    });
-    return () => {
-      unregisterZone("" + origin[0] + origin[1]);
-    };
-  }, []);
+  });
+
   function fLerp(a: number, b: number, t: number) {
     "worklet";
     return a + (b - a) * t;
@@ -117,17 +104,11 @@ export const ThermSelect = (props: tThermSelect) => {
     deps: [vSelection, vActive],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const rot = fLerp(11 / 7, 0 / 7, vActive.value);
-      const x = fLerp(
-        (1 + input.ring - temps.length / 2) * radius,
-        input.translateX,
-        vActive.value,
-      );
+      const x = fLerp(input.ring * radius, input.translateX, vActive.value);
       const selected = vSelection.value === input.ring;
 
       return {
         ...input,
-        rotateZ: rot,
         translateX: x,
         scaleX: selected ? 1.1 : 1,
         scaleY: selected ? 1.1 : 1,
@@ -213,4 +194,6 @@ const paths = {
     "M51-87C98-92 142-76 165-36Q196-110 134-134 66-154 50-87ZM-95-120C-143-120-181-84-181-39V-39A78 78 0 00-177-17L-175-8-184-6C-197-3-208 2-215 8-222 15-226 22-226 29V29C-226 37-220 46-210 53-199 60-184 65-167 65-159 65-150 64-142 61L-138 60-134 63C-117 77-84 87-49 87-35 87-21 86-8 83L0 81 3 88C11 107 38 122 70 122 90 122 108 116 120 107 133 98 140 87 140 75 140 75 140 74 140 74L139 64 149 65C152 65 156 65 159 65 182 65 203 61 218 55 225 53 230 49 234 46 237 44 238 41 238 40 238 39 237 37 234 34 232 32 227 29 221 26 209 20 190 16 169 15L159 15 161 4A44 44 0 00162-5C162-23 151-40 132-53 112-67 84-75 53-75 33-75 13-71-5-64L-13-61-16-69C-29-100-60-120-95-120H-95Z",
   x: "M5 10 10 5 5 0 10-5 5-10 0-5-5-10-10-5-5 0-10 5-5 10 0 5 5 10M15 0A1 1 0 01-15 0 1 1 0 0115 0",
   plus: "M-3 10 3 10 3 3 10 3 10-3 3-3 3-10-3-10-3-3-10-3-10 3-3 3-3 10M15 0A1 1 45 01-15 0 1 1 45 0115 0",
+  camera:
+    "M93 32H78L69 18H32l-9 14H9c-6 0-7 3-7 7V75c0 5 4 7 9 7H93c4 0 7-4 7-8V40c0-3-1-8-7-8zm3 43c0 1-2 3-3 3H9c-2 0-3-1-3-3V39c0-2 2-3 3-3h18l8-13h31l6 10 2 3H93c2 0 3 3 3 3v36zM51 32c-12 0-22 10-22 22s10 22 22 22 22-10 22-22-10-22-22-22zm0 38c-9 0-16-7-16-16s7-16 16-16 16 7 16 16-7 16-16 16z",
 };

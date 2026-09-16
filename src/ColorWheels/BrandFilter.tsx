@@ -49,7 +49,7 @@ export const BrandFilter = (props: tBrandFilter) => {
   const origin = props.origin || ctx.origin || [0, 0];
   const totalArcLength = props.totalArcLength || ctx.totalArcLength || 11 / 7;
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
-  const { vAccentC, vAccentL, vAccentAR } = useUserContext();
+  const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
   const collapseAnim = useSharedValue(0);
   const radius = props.radius || 50;
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
@@ -81,10 +81,19 @@ export const BrandFilter = (props: tBrandFilter) => {
   useAnimatedReaction(
     () => vPanState.value,
     (state) => {
-      if (state === "tap" || state === "release" || state === "enter") {
-        fToggle();
-        if (state === "tap") {
-          state = "leave";
+      if (collapseAnim.value < 0.5) {
+        if (state === "tap" || state === "enter") {
+          fToggle();
+          if (state === "tap") {
+            state = "leave";
+          }
+        }
+      } else {
+        if (state === "tap" || state === "release") {
+          fToggle();
+          if (state === "tap") {
+            state = "leave";
+          }
         }
       }
     },
@@ -153,17 +162,47 @@ export const BrandFilter = (props: tBrandFilter) => {
   });
 
   const compGesture = useSimultaneousGestures(tap, pan);
-  const { vColorModel } = useUserContext();
   const mColorModifier: tAttributeModifier = {
     modID: 0,
-    deps: [vAccentAR.shared, vAccentC.shared, vColorModel.shared],
+    deps: [
+      vAccentAR.shared,
+      vAccentC.shared,
+      vColorModel.shared,
+      vAccentL.shared,
+    ],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const rdc = Math.pow(0.1, 1 / Math.max(brands.length - 1, 1));
-      const rdl = Math.pow(0.3, 1 / Math.max(brands.length - 1, 1));
-      let l = Math.pow(rdl, input.ring);
-      let c = Math.pow(rdc, input.ring) * vAccentC.shared.value;
-      let ar = vAccentAR.shared.value - 2 / 7 + (input.chord / 12) * (4 / 7);
+      const topC = vAccentC.shared.value ** (1 / 2);
+      const topL = vAccentL.shared.value ** (1 / 2);
+      const bottomC = vAccentC.shared.value ** 2;
+      const bottomL = vAccentL.shared.value ** 2;
+
+      const rdc = Math.pow(bottomC, topC / Math.max(brands.length - 1, 1));
+      const rdl = Math.pow(bottomL, topL / Math.max(brands.length - 1, 1));
+
+      let l = Math.pow(rdl, input.ring) * topL;
+      let c = Math.pow(rdc, input.ring) * topC;
+      console.log(
+        "id:",
+        input.ring,
+        "rdc:",
+        rdc.toFixed(2),
+        "rdl:",
+        rdl.toFixed(2),
+        "l:",
+        l.toFixed(2),
+        "c:",
+        c.toFixed(2),
+        "topC:",
+        topC.toFixed(2),
+        "topL:",
+        topL.toFixed(2),
+        "bottomC:",
+        bottomC.toFixed(2),
+        "bottomL:",
+        bottomL.toFixed(2),
+      );
+      let ar = vAccentAR.shared.value;
       const [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return {
         ...input,
@@ -185,13 +224,12 @@ export const BrandFilter = (props: tBrandFilter) => {
         translateX: x,
         zIndex:
           brands.length - Math.abs(selection.value - input.ring) + props.layer,
-        shadowRadius:
-          input.shadowRadius *
-          (input.ring === selection.value ? 1 : collapseAnim.value),
+        shadowRadius: collapseAnim.value * 3,
       };
     },
   };
   const adjustedRotation = Math.round(mainRotationR / (11 / 7)) * (-11 / 7);
+
   const sectors = useCallback(() => {
     const group = [];
     for (let i = 0; i < brands.length; i++) {
@@ -202,18 +240,17 @@ export const BrandFilter = (props: tBrandFilter) => {
         radii: [radius * 0.2, radius * 1.2],
       };
       let brandString = (brands[i] as string).split(/[\s-]/);
-      const text = fTextWrapSVG(brandString, radius * 0.7, radius * 0.65, {
+      const text = fTextWrapSVG(brandString, 32, radius * 0.55, {
         fontFamily: "Outfit",
-        fontSize: 18,
+        fontSize: 16,
         textAnchor: "middle",
-        fontWeight: 2000,
+        fontWeight: "bold",
         opacity: 0.65,
         fill: i / (brands.length - 1) > 0.5 ? "white" : "black",
         transform: [{ rotate: `${adjustedRotation}rad` }],
         verticalAlign: "middle",
         alignmentBaseline: "middle",
       } as React.ComponentProps<typeof Text>);
-
       const sectorGroup: tSectorGroup = {
         arcLength: totalArcLength,
         chord: 0,
@@ -237,10 +274,7 @@ export const BrandFilter = (props: tBrandFilter) => {
     const minY = Math.min(origin[1], endY) - radius;
     const maxX = Math.max(origin[0], endX) + radius;
     const maxY = Math.max(origin[1], endY) + radius;
-
     return {
-      borderWidth: 1,
-      borderRadius: radius,
       left: minX,
       top: minY,
       width: Math.max(1, maxX - minX),
@@ -274,7 +308,18 @@ export const BrandFilter = (props: tBrandFilter) => {
           mainRotationR,
         }}
       >
-        {sectors()}
+        <View
+          style={{
+            position: "absolute",
+            shadowColor: "black",
+            shadowOffset: { width: -3, height: 3 },
+            shadowOpacity: 0.5,
+            shadowRadius: 3,
+            zIndex: eLayers.buckets,
+          }}
+        >
+          {sectors()}
+        </View>
       </RadialContext>
     </>
   );

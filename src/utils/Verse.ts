@@ -83,7 +83,6 @@ export function useVerseRelay<type>(
       const next = callbackRef.current ? callbackRef.current(value) : value;
       setLocalState((prev) => (Object.is(prev, next) ? prev : next));
     });
-    dispatch();
     return () => {
       unsubscribe?.();
     };

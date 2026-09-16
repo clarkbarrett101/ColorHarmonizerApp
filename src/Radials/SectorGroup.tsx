@@ -22,6 +22,7 @@ export const SectorGroup = ({
   origin = [0, 0],
   radii = [20, 200],
   layer,
+  opacity = 1,
 }: tSectorGroup) => {
   const actor = useActor({
     ring,
@@ -99,6 +100,7 @@ export const SectorGroup = ({
         style={{
           margin: -radii?.[1],
           zIndex: 5,
+          opacity: opacity,
         }}
       >
         {sectors?.map((sector, index) => (

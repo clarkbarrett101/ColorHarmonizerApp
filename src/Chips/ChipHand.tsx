@@ -1,5 +1,5 @@
 import { View, Dimensions } from "react-native";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
@@ -31,7 +31,10 @@ export default function ChipHand({
   rotationR = -6 / 7,
   arcLength = 11 / 7,
   holdRadius = 150,
+  origin = [30, Dimensions.get("window").height * 0.95],
 }: tChipHand) {
+  /// O N  M O U N T ///
+
   const startAngle = rotationR + arcLength / 2;
   const selectVerse = useVerse(-1);
   const {
@@ -46,13 +49,31 @@ export default function ChipHand({
   const { userPalette, addPaint, removePaint } = useUserContext();
   const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
   const { fStartChord, fPlaySFX } = useSoundContext();
-  const origin = useMemo<[number, number]>(
-    () => [30, Dimensions.get("window").height * 0.95],
-    [],
-  );
   const touching = useVerse(false);
   const slowAngle = useSharedValue(0);
   const panWeight = useSharedValue(0);
+  const chord = useRef<tChordReturn | null>(null);
+  useEffect(() => {
+    if (
+      selectVerse.state > -1 &&
+      selectVerse.state < userPalette.paints.length
+    ) {
+      chord.current?.(0);
+      chord.current = fStartChord?.(userPalette.paints[selectVerse.state].clar);
+    }
+  }, [selectVerse.state]);
+  useEffect(() => {
+    if (touching.state) {
+      console.log("Start Chord");
+    } else {
+      chord.current?.(0);
+      chord.current = null;
+      console.log("Stop Chord");
+    }
+  }, [touching.state]);
+
+  /// P A N  G E S T U R E ///
+
   const pan = usePanGesture({
     minDistance: 0,
     onBegin: (event) => {
@@ -112,9 +133,8 @@ export default function ChipHand({
     },
   });
 
-  const dPanx = useDerivedValue(() => {
-    return vPanX.shared.value;
-  });
+  /// M O D I F I E R S ///
+
   const dPany = useDerivedValue(() => {
     return vPanY.shared.value - 30;
   });
@@ -133,7 +153,7 @@ export default function ChipHand({
   const handPanModifier = fLerpModifierFactory(
     11,
     {
-      translateX: dPanx,
+      translateX: vPanX.shared,
       translateY: dPany,
       rotateZ: dRotation,
       scaleX: dScale,
@@ -206,9 +226,15 @@ export default function ChipHand({
       unregisterModifier(handPanId);
     };
   }, []);
+
+  /// B U C K E T S ///
+
   const addPaintCallback = useCallback(
     (paint: tPaint) => {
-      addPaint(paint, selectVerse.shared.value);
+      addPaint(
+        paint,
+        selectVerse.shared.value > 0 ? selectVerse.shared.value : undefined,
+      );
     },
     [addPaint],
   );
@@ -218,25 +244,6 @@ export default function ChipHand({
     },
     [removePaint],
   );
-  const chord = useRef<tChordReturn | null>(null);
-  useEffect(() => {
-    if (
-      selectVerse.state > -1 &&
-      selectVerse.state < userPalette.paints.length
-    ) {
-      chord.current?.(0);
-      chord.current = fStartChord?.(userPalette.paints[selectVerse.state].clar);
-    }
-  }, [selectVerse.state]);
-  useEffect(() => {
-    if (touching.state) {
-      console.log("Start Chord");
-    } else {
-      chord.current?.(0);
-      chord.current = null;
-      console.log("Stop Chord");
-    }
-  }, [touching.state]);
 
   useEffect(() => {
     registerBucket({
@@ -268,6 +275,9 @@ export default function ChipHand({
       unregisterBucket("" + 22);
     };
   }, []);
+
+  ///R E N D E R ///
+
   return (
     <>
       <ChipFan

@@ -11,8 +11,8 @@ export default function MenuButton({ onPress }: { onPress: () => void }) {
   const animatedProps = useAnimatedProps(() => ({
     fill: fCLARColorToString(
       {
-        c: 1,
-        l: 0.5,
+        c: vAccentC.shared.value ** (1 / 2),
+        l: vAccentL.shared.value * (1 / 2),
         ar: vAccentAR.shared.value,
       },
       vColorModel.shared.value,
@@ -30,6 +30,10 @@ export default function MenuButton({ onPress }: { onPress: () => void }) {
         width: 50,
         height: 50,
         zIndex: eLayers.dropScreen - 1,
+        shadowColor: "black",
+        shadowOffset: { width: -2, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 2,
       }}
       onTouchStart={onPress}
     >

@@ -25,6 +25,8 @@ import {
   configureReanimatedLogger,
   ReanimatedLogLevel,
 } from "react-native-reanimated";
+import Button from "./Buttons/Button";
+import { Paths } from "./utils/Paths";
 
 // This is the default configuration
 configureReanimatedLogger({
@@ -69,13 +71,16 @@ const Driver = () => {
               {fShouldShowBGGradient(vPage.state) && <BGGradient />}
               <DropScreen />
               {vPage.state !== "Menu" && (
-                <MenuButton
+                <Button
+                  size={50}
+                  origin={[50, 75]}
+                  path={Paths.menu}
                   onPress={() => {
                     vPage.dispatch("Menu");
                   }}
                 />
               )}
-              <PanManager drawSectors>{pageMap[vPage.state]}</PanManager>
+              <PanManager>{pageMap[vPage.state]}</PanManager>
 
               <ChipHand />
             </BucketContext>

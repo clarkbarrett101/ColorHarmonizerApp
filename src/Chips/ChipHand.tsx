@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
-import { useVerse } from "../utils/Verse";
+import { useVerse, useVerseRelay } from "../utils/Verse";
 import { eChipSizes } from "./PaintChip";
 import { useBucketContext } from "../Buckets/BucketContext";
 import {
@@ -46,7 +46,8 @@ export default function ChipHand({
     registerModifier,
     unregisterModifier,
   } = useChipContext();
-  const { userPalette, addPaint, removePaint } = useUserContext();
+  const { vUserPalette, addPaint, removePaint } = useUserContext();
+  const vUserPaletteRelay = useVerseRelay(vUserPalette);
   const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
   const { fStartChord, fPlaySFX } = useSoundContext();
   const touching = useVerse(false);
@@ -56,10 +57,12 @@ export default function ChipHand({
   useEffect(() => {
     if (
       selectVerse.state > -1 &&
-      selectVerse.state < userPalette.paints.length
+      selectVerse.state < vUserPalette.shared.value.paints.length
     ) {
       chord.current?.(0);
-      chord.current = fStartChord?.(userPalette.paints[selectVerse.state].clar);
+      chord.current = fStartChord?.(
+        vUserPalette.shared.value.paints[selectVerse.state].clar,
+      );
     }
   }, [selectVerse.state]);
   useEffect(() => {
@@ -79,6 +82,9 @@ export default function ChipHand({
     onBegin: (event) => {
       "worklet";
       console.log("Hand Activate");
+      if (vUserPalette.shared.value.paints.length === 0) {
+        return;
+      }
       vPanX.shared.value = event.absoluteX;
       vPanY.shared.value = event.absoluteY;
       const angle = Math.atan2(
@@ -86,7 +92,8 @@ export default function ChipHand({
         event.absoluteX - origin[0],
       );
       const index = Math.round(
-        (1 - (startAngle - angle) / arcLength) * userPalette.paints.length -
+        (1 - (startAngle - angle) / arcLength) *
+          vUserPalette.shared.value.paints.length -
           0.5,
       );
       holdChip(eLayers.chipHand + index);
@@ -96,6 +103,9 @@ export default function ChipHand({
     },
     onUpdate: (event) => {
       "worklet";
+      if (vUserPalette.shared.value.paints.length === 0) {
+        return;
+      }
       vPanX.shared.value = event.absoluteX;
       vPanY.shared.value = event.absoluteY;
 
@@ -106,7 +116,8 @@ export default function ChipHand({
       );
 
       const index = Math.round(
-        (1 - (startAngle - angle) / arcLength) * userPalette.paints.length -
+        (1 - (startAngle - angle) / arcLength) *
+          vUserPalette.shared.value.paints.length -
           0.5,
       );
       const distance = Math.sqrt(
@@ -282,7 +293,7 @@ export default function ChipHand({
     <>
       <ChipFan
         groupLayer={eLayers.chipHand}
-        paintsA={userPalette.paints}
+        paintsA={vUserPaletteRelay.state.paints}
         size={"default"}
         radius={radii[0]}
         origin={origin}

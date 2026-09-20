@@ -8,7 +8,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { tColorModel, tPaint, tPalette } from "../utils/CLAcolor";
+import {
+  fGetRandomPalette,
+  tColorModel,
+  tPaint,
+  tPalette,
+} from "../utils/CLAcolor";
 import { tVerse, useVerse } from "../utils/Verse";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -42,8 +47,7 @@ export type tPage = {
 };
 
 export type tUserContext = {
-  userPalette: tPalette;
-  setUserPalette?: React.Dispatch<React.SetStateAction<tPalette>>;
+  vUserPalette?: tVerse<tPalette>;
   addPaint: (paint: tPaint, index?: number) => void;
   removePaint: (paint: tPaint) => void;
   paintsPresent?: tPaint[];
@@ -56,7 +60,7 @@ export type tUserContext = {
 };
 
 export const Context = createContext<tUserContext>({
-  userPalette: null,
+  vUserPalette: null,
   addPaint: () => {},
   removePaint: () => {},
   paintsPresent: [],
@@ -82,18 +86,18 @@ export default function UserContext({
   const vAccentL = useVerse<number>(1);
   const vAccentAR = useVerse<number>(0);
   const vSelected = useRef(useVerse<number[]>([])).current;
-  const [userPalette, setUserPalette] = useState<tPalette>({
-    paints: [],
-    name: Math.random().toString(36).substring(2, 7),
-  });
+  const vUserPalette = useVerse<tPalette>({ paints: [], name: "" });
   const loadPalette = async () => {
     try {
       const value = await AsyncStorage.getItem("userPalette");
       if (value !== null) {
-        console.log("data:" + value);
-        return JSON.parse(value);
+        let palette = JSON.parse(value);
+        palette = CleanPalette(palette);
+        return palette;
       } else {
         console.log("setting empty data");
+        const palette = CleanPalette(fGetRandomPalette(5));
+        vUserPalette.dispatch(palette);
         let pal = await storePalette();
         return pal;
       }
@@ -103,9 +107,9 @@ export default function UserContext({
   };
   const storePalette = async () => {
     try {
-      const jsonValue = JSON.stringify(userPalette);
+      const jsonValue = JSON.stringify(vUserPalette.shared.value);
       await AsyncStorage.setItem("userPalette", jsonValue);
-      return userPalette;
+      return vUserPalette.shared.value;
     } catch (e) {
       console.log(e);
     }
@@ -113,38 +117,40 @@ export default function UserContext({
   useEffect(() => {
     loadPalette().then((pal) => {
       if (pal) {
-        setUserPalette(pal);
+        vUserPalette.dispatch(pal);
       }
     });
   }, []);
 
   useEffect(() => {
     storePalette();
-  }, [userPalette]);
+  }, [vUserPalette.state]);
 
-  const addPaint = useCallback((paint: tPaint, index?: number) => {
-    setUserPalette((prev) => {
-      if (index !== undefined) {
-        const newPalette = { ...prev };
-        console.log("Inserting paint at index:", index, "paint:", paint);
-        newPalette.paints.splice(index, 0, paint);
-        return newPalette;
-      }
-      return { ...prev, paints: [...prev.paints, paint] };
-    });
-  }, []);
+  const addPaint = useCallback(
+    (paint: tPaint) => {
+      let newPalette = vUserPalette.shared.value;
+      newPalette.paints.push(paint);
+      vUserPalette.dispatch(CleanPalette(newPalette));
+    },
+    [vUserPalette.state],
+  );
 
-  const removePaint = useCallback((paint: tPaint) => {
-    setUserPalette((prev) => {
-      const newPalette = { ...prev };
-      newPalette.paints = newPalette.paints.filter((p) => p !== paint);
-      return newPalette;
-    });
-  }, []);
+  const removePaint = useCallback(
+    (paint: tPaint) => {
+      let newPalette = vUserPalette.shared.value;
+      newPalette.paints = newPalette.paints.filter((p) => p.hex !== paint.hex);
+      console.log(
+        "Removing paint:",
+        newPalette.paints.map((p) => p.name),
+      );
+      vUserPalette.dispatch(CleanPalette(newPalette));
+    },
+    [vUserPalette.state],
+  );
 
   const contextValue = useMemo(
     () => ({
-      userPalette,
+      vUserPalette,
       addPaint,
       removePaint,
       vColorModel,
@@ -152,12 +158,20 @@ export default function UserContext({
       vAccentAR,
       vAccentC,
       vAccentL,
-      setUserPalette,
       vSelected,
       vPage,
     }),
-    [userPalette],
+    [],
   );
 
   return <Context.Provider value={contextValue}>{children}</Context.Provider>;
+}
+export function CleanPalette(palette: tPalette): tPalette {
+  "worklet";
+  const pal = { ...palette };
+  pal.paints = pal.paints.filter((p) => p !== null && p !== undefined);
+  if (pal.paints.length > 0) {
+    pal.paints.sort((a, b) => a.clar.l - b.clar.l);
+  }
+  return pal;
 }

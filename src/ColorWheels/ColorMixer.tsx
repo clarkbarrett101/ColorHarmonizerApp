@@ -14,13 +14,15 @@ import { RadialGraphic } from "../Radials/RadialGraphic";
 import { useVerse } from "../utils/Verse";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { ChipFan } from "../Chips/ChipStack";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tRadialObject, tSectorGroup } from "../Radials/SectorTypes";
 import { useBucketContext } from "../Buckets/BucketContext";
 import { eChipSizes, PaintChip } from "../Chips/PaintChip";
 import { withTiming, useSharedValue } from "react-native-reanimated";
 import { BrandFilter } from "./BrandFilter";
+import { Text, TextProps, TSpan } from "react-native-svg";
+import { Tutorial } from "../Buttons/Tutorial";
 
 export default function ColorMixer({
   radii = [0, Dimensions.get("window").width * 0.9],
@@ -63,12 +65,12 @@ export default function ColorMixer({
     arg.reverse();
     return arg;
   }
-  const paintsA = useRef<tPaint[]>(
-    colorMaptoArray(fClosestColors(vTargetColor.state, vBrand.state)),
+  const closestColors = useMemo(
+    () => colorMaptoArray(fClosestColors(vTargetColor.state, vBrand.state)),
+    [],
   );
-  const paintsB = useRef<tPaint[]>(
-    colorMaptoArray(fClosestColors(vTargetColor.state, vBrand.state)),
-  );
+  const paintsA = useRef<tPaint[]>([]);
+  const paintsB = useRef<tPaint[]>([]);
   const [sideA, setSideA] = useState(true);
   const rotationAnim = useSharedValue(0);
   useEffect(() => {
@@ -156,7 +158,15 @@ export default function ColorMixer({
       unregisterBucket("" + 20);
     };
   }, []);
-
+  const textProps: TextProps = {
+    x: 300,
+    y: 200,
+    textAnchor: "middle",
+    alignmentBaseline: "middle",
+    fill: "white",
+    fontFamily: "Outfit",
+    fontSize: 16,
+  };
   return (
     <>
       <RadialContext
@@ -211,6 +221,39 @@ export default function ColorMixer({
         totalArcLength={2.5 / 7}
         layer={eLayers.chipHand}
       />
+      <Tutorial
+        height={400}
+        width={600}
+        origin={[Dimensions.get("window").width / 2, origin[1]]}
+        infoIconOrigin={[origin[0] - 50, origin[1] + 175]}
+        infoIconSize={50}
+      >
+        <Text {...textProps} dy={-60}>
+          Drag in a paint for colors that are more:
+        </Text>
+        <Text {...textProps} dy={-30} dx={-30}>
+          <TSpan fill={"rgb(255, 100, 100)"}>Red </TSpan>
+          <TSpan fill={"rgb(255, 255, 100)"}> Yellow</TSpan>
+          <TSpan fill={"rgb(100, 100, 255)"}>Blue</TSpan>
+        </Text>
+        <Text {...textProps} fill={"rgb(255, 255, 255)"} dy={30}>
+          <TSpan fill={"rgb(255, 255, 255)"} dx={-20}>
+            White
+          </TSpan>
+          <TSpan fill={"rgb(150, 150, 150)"} dx={5}>
+            Gray
+          </TSpan>
+          <TSpan fill={"rgb(0, 0, 0)"} dx={10}>
+            Black
+          </TSpan>
+        </Text>
+        <Text {...textProps} dy={60}>
+          Then drag the new ones
+        </Text>
+        <Text {...textProps} dy={80}>
+          back to repeat the process
+        </Text>
+      </Tutorial>
     </>
   );
 }

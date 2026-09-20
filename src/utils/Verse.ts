@@ -29,7 +29,12 @@ export function useVerse<type>(init: type): tVerse<type> {
    */
   const dispatch = useCallback((value?: type) => {
     "worklet";
-    if (value !== undefined && Object.is(value, shared.value)) return;
+    if (
+      value !== undefined &&
+      Object.is(value, shared.value) &&
+      Object.is(value, state)
+    )
+      return;
     const newValue = value !== undefined ? value : shared.value;
     shared.value = newValue;
     scheduleOnRN(_setState, newValue);

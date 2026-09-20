@@ -153,9 +153,11 @@ export default function PanManager({
       } else {
         const maxRadius = zone.radii[1];
         const rotationR = zone.rotationR || 0;
-        const zoneArcLength = Math.min(zone.arcLength, 22 / 7);
+        const zoneArcLength = zone.arcLength ?? 22 / 7;
         const angles = [
-          rotationR - zoneArcLength / 2,
+          rotationR - zoneArcLength * 0.5,
+          rotationR - zoneArcLength * 0.25,
+          rotationR + zoneArcLength * 0.25,
           rotationR + zoneArcLength / 2,
           rotationR,
         ];

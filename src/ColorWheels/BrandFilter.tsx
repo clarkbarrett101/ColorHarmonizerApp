@@ -43,6 +43,7 @@ export const BrandFilter = (props: tBrandFilter) => {
     "Sherwin Williams",
     "PPG",
     "Valspar",
+    "Pantone",
   ];
   const ctx = useRadialContext();
   const vBlur = useVerse(false);
@@ -55,11 +56,13 @@ export const BrandFilter = (props: tBrandFilter) => {
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const vPanState = useSharedValue<tPanEvent>("leave");
   const vInZone = useSharedValue(false);
+  const totalRadius = radius * (brands.length - 1);
   const selection = useDerivedValue(() => {
     "worklet";
     const ring = Math.floor(
-      (vPanPos.value.radius / (brands.length * radius)) * brands.length,
+      (vPanPos.value.radius / totalRadius) * (brands.length - 1),
     );
+    console.log("Selection ring:", vPanPos.value, "ring:", ring);
     return ring;
   }, []);
 
@@ -68,6 +71,7 @@ export const BrandFilter = (props: tBrandFilter) => {
     collapseAnim.value = withTiming(collapseAnim.value === 0 ? 1 : 0, {
       duration: 500,
     });
+    console.log(brands[selection.value]);
     props.vBrand.dispatch(brands[selection.value]);
   };
 
@@ -172,36 +176,16 @@ export const BrandFilter = (props: tBrandFilter) => {
     ],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const topC = vAccentC.shared.value ** (1 / 2);
-      const topL = vAccentL.shared.value ** (1 / 2);
+      const topC = vAccentC.shared.value ** 0.5;
+      const topL = vAccentL.shared.value * 0.4 + 0.6;
       const bottomC = vAccentC.shared.value ** 2;
-      const bottomL = vAccentL.shared.value ** 2;
+      const bottomL = vAccentL.shared.value * 0.5;
 
       const rdc = Math.pow(bottomC, topC / Math.max(brands.length - 1, 1));
       const rdl = Math.pow(bottomL, topL / Math.max(brands.length - 1, 1));
 
       let l = Math.pow(rdl, input.ring) * topL;
       let c = Math.pow(rdc, input.ring) * topC;
-      console.log(
-        "id:",
-        input.ring,
-        "rdc:",
-        rdc.toFixed(2),
-        "rdl:",
-        rdl.toFixed(2),
-        "l:",
-        l.toFixed(2),
-        "c:",
-        c.toFixed(2),
-        "topC:",
-        topC.toFixed(2),
-        "topL:",
-        topL.toFixed(2),
-        "bottomC:",
-        bottomC.toFixed(2),
-        "bottomL:",
-        bottomL.toFixed(2),
-      );
       let ar = vAccentAR.shared.value;
       const [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return {
@@ -240,13 +224,13 @@ export const BrandFilter = (props: tBrandFilter) => {
         radii: [radius * 0.2, radius * 1.2],
       };
       let brandString = (brands[i] as string).split(/[\s-]/);
-      const text = fTextWrapSVG(brandString, 32, radius * 0.55, {
+      const text = fTextWrapSVG(brandString, 32, [0, radius * 0.55], {
         fontFamily: "Outfit",
         fontSize: 16,
         textAnchor: "middle",
-        fontWeight: "bold",
-        opacity: 0.65,
-        fill: i / (brands.length - 1) > 0.5 ? "white" : "black",
+        opacity: 0.8,
+        fontWeight: 300,
+        fill: i / (brands.length - 1) > 0.4 ? "white" : "black",
         transform: [{ rotate: `${adjustedRotation}rad` }],
         verticalAlign: "middle",
         alignmentBaseline: "middle",

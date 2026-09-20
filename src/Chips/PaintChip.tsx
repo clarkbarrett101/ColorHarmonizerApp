@@ -321,14 +321,6 @@ export const PaintChip = ({
 
   const zStyle = useAnimatedStyle(() => {
     const style = actor.get((attributes) => {
-      if (attributes.held > 0) {
-        console.log(
-          "held chip",
-          attributes.id,
-          attributes.held,
-          attributes.zIndex,
-        );
-      }
       return {
         zIndex: attributes.zIndex || 0,
         shadowOffset: {

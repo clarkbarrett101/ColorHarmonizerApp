@@ -4,19 +4,23 @@ import {
   Circle,
   Defs,
   Ellipse,
+  Path,
   RadialGradient,
   Stop,
   Svg,
   Text,
 } from "react-native-svg";
-import { eLayers } from "../Contexts/UserContext";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { usePanHitBox, tPanHitBox } from "./PanHitBox";
-import { useVerse } from "../utils/Verse";
+import { tVerse, useVerse } from "../utils/Verse";
+import { fCLARColorToString } from "../utils/CLAcolor";
 export type tTutorial = {
   children?: React.ReactNode | React.ReactNode[];
   height: number;
   width: number;
   origin: [number, number];
+  infoIconOrigin?: [number, number];
+  infoIconSize?: number;
   layer?: number;
   params?: {};
 };
@@ -27,66 +31,80 @@ export function Tutorial({
   origin,
   layer = eLayers.superMax,
   params,
+  infoIconOrigin = [0, 0],
+  infoIconSize = 100,
 }: tTutorial) {
   const vActive = useVerse(true);
-  const diameter = Math.max(width, height);
-  usePanHitBox({
-    id: "Tutorial" + origin,
-    radii: [0, Math.min(width, height) / 2],
-    rotationR: 0,
-    origin,
-    arcLength: 43 / 7,
-    fOnUpdate: (state, pos) => {
-      "worklet";
-      if (state.value == "tap" || state.value == "release") {
-        vActive.dispatch(!vActive.shared.value);
-        state.value = "leave";
-      }
-    },
-  });
-  return vActive.state ? (
-    <Svg
-      height={height}
-      width={width}
-      {...params}
-      style={{
-        position: "absolute",
-        top: origin[1] - height / 2,
-        left: origin[0] - width / 2,
-        zIndex: layer,
-      }}
-      viewBox={`0 0 ${width} ${height}`}
-    >
-      <Defs>
-        <RadialGradient
-          cx={width / 2}
-          cy={height / 2}
-          rx={width / 2}
-          ry={height / 2}
-          id="grad"
-          gradientUnits="userSpaceOnUse"
+  return (
+    <>
+      {" "}
+      {vActive.state && (
+        <Svg
+          height={height}
+          width={width}
+          {...params}
+          style={{
+            position: "absolute",
+            top: origin[1] - height / 2,
+            left: origin[0] - width / 2,
+            zIndex: layer,
+          }}
+          viewBox={`0 0 ${width} ${height}`}
+          onTouchEnd={() => {
+            vActive.dispatch(!vActive.state);
+          }}
         >
-          <Stop stopColor={"black"} offset={0} stopOpacity={0.7} />
-          <Stop stopColor={"black"} stopOpacity={0} offset={1} />
-        </RadialGradient>
-      </Defs>
-      <Ellipse
-        cx={width / 2}
-        cy={height / 2}
-        rx={width / 2}
-        ry={height / 2}
-        fill="url(#grad)"
-      />
-      {children}
-    </Svg>
-  ) : (
-    <></>
+          <Defs>
+            <RadialGradient
+              cx={width / 2}
+              cy={height / 2}
+              rx={width / 2}
+              ry={height / 2}
+              id="grad"
+              gradientUnits="userSpaceOnUse"
+            >
+              <Stop stopColor={"black"} offset={0} stopOpacity={1} />
+              <Stop stopColor={"black"} stopOpacity={0} offset={1} />
+            </RadialGradient>
+          </Defs>
+          <Ellipse
+            cx={width / 2}
+            cy={height / 2}
+            rx={width / 2}
+            ry={height / 2}
+            fill="url(#grad)"
+          />
+          {children}
+        </Svg>
+      )}
+      <Svg
+        height={infoIconSize}
+        width={infoIconSize}
+        style={{
+          position: "absolute",
+          top: infoIconOrigin[1] - infoIconSize / 2,
+          left: infoIconOrigin[0] - infoIconSize / 2,
+          zIndex: layer,
+          shadowColor: "black",
+          shadowOffset: { width: -2, height: 2 },
+          shadowOpacity: 0.5,
+          shadowRadius: 3,
+        }}
+        viewBox="-60 -60 120 120"
+        onTouchEnd={() => {
+          vActive.dispatch(!vActive.state);
+        }}
+      >
+        <Circle cx={0} cy={0} r={60} fill={"black"} opacity={0.5} />
+        <Path d={infoIconPath} fill="white" />
+      </Svg>
+    </>
   );
 }
 export function fTextWrapSVG(
   lines: string[],
   totalHeight: number,
-  startY = 0,
+  origin = [0, 0],
   props: React.ComponentProps<typeof Text>,
 ) {
   return (
@@ -96,9 +114,10 @@ export function fTextWrapSVG(
           key={`${line}-${index}`}
           {...props}
           y={
-            startY +
+            origin[1] +
             (index + 0.5 - lines.length / 2) * (totalHeight / lines.length)
           }
+          x={origin[0]}
         >
           {line}
         </Text>
@@ -106,3 +125,5 @@ export function fTextWrapSVG(
     </>
   );
 }
+const infoIconPath =
+  "M0 49A1 1 0 000-50 1 1 0 000 49M0-42A1 1 0 010 42 1 1 0 010-42ZM0-36A1 1 90 000-19 1 1 90 000-36M3-14a5 5 0 015 5v39a5 5 0 01-5 5h-6a5 5 0 01-5-5v-39a5 5 0 015-5Z";

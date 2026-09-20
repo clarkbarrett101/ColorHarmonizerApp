@@ -25,8 +25,8 @@ export default function BGGradient() {
       return [
         fCLARColorToString(
           {
-            c: vAccentC.shared.value * 0.5,
-            l: vAccentL.shared.value * 0.5 + 0.5,
+            c: vAccentC.shared.value ** 0.5,
+            l: vAccentL.shared.value ** 0.5,
             ar: vAccentAR.shared.value,
           },
           vColorModel.shared.value,
@@ -76,7 +76,7 @@ export default function BGGradient() {
         <Rect
           x={0}
           y={0}
-          width={Dimensions.get("window").width * 2}
+          width={Dimensions.get("window").width}
           height={Dimensions.get("window").height}
         >
           <SweepGradient
@@ -88,8 +88,7 @@ export default function BGGradient() {
             start={90}
             end={270}
           />
-          <Shadow dx={5} dy={12} blur={25} color={shadow} inner />
-          <Shadow dx={-12} dy={-5} blur={25} color={shadow} inner />
+          <Shadow dx={5} dy={0} blur={25} color={shadow} inner />
         </Rect>
       </Canvas>
     </View>

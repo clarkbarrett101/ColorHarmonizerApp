@@ -36,7 +36,8 @@ import {
   vec,
 } from "@shopify/react-native-skia";
 import { CurvedText } from "../Buttons/CurvedText";
-import { Svg } from "react-native-svg";
+import { Svg, Text, TextProps, TSpan } from "react-native-svg";
+import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 export default function ColorSeasons({
   radii = [0, 300],
   ring = 5,
@@ -80,9 +81,7 @@ export default function ColorSeasons({
     );
     return arg;
   }
-  const paints = useRef<tPaint[]>(
-    colorMaptoArray(fGetSeasonColors(vTargetColor.state.clar, vBrand.state)),
-  );
+  const paints = useRef<tPaint[]>([]);
 
   useEffect(() => {
     vAccentAR.dispatch(vTargetColor.state.clar.ar);
@@ -92,8 +91,6 @@ export default function ColorSeasons({
       fGetSeasonColors(vTargetColor.state.clar, vBrand.state),
     );
     sideA ? setSideA(false) : setSideA(true);
-    rotationAnim.value = 0;
-    rotationAnim.value = withTiming(1, { duration: 500 });
   }, [vTargetColor.state, vBrand.state]);
 
   function fLerp(a: number, b: number, t: number): number {
@@ -174,13 +171,14 @@ export default function ColorSeasons({
     registerModifier(chipMod);
     registerBucket({
       origin: [Dimensions.get("window").width - 100, origin[1]],
-      radii: [radii[1] * 0.2, radii[1] * 0.3],
-      rotationR: -11 / 7,
+      radii: [radii[1] * 0.3, radii[1] * 0.4],
+      rotationR: 0,
       callback: (paint) => {
         vTargetColor.dispatch(paint);
       },
       targetLayerRange: [eLayers.chipFan - 10, eLayers.chipHand + 100],
       id: 20,
+      icon: "search",
     });
     return () => {
       unregisterBucket("" + 20);
@@ -189,6 +187,16 @@ export default function ColorSeasons({
   }, []);
 
   /// R E N D E R ///
+
+  const textProps: TextProps = {
+    x: 300,
+    y: 200,
+    textAnchor: "middle",
+    alignmentBaseline: "middle",
+    fill: "white",
+    fontFamily: "Outfit",
+    fontSize: 16,
+  };
 
   return (
     <>
@@ -200,7 +208,6 @@ export default function ColorSeasons({
           mTransformModifier,
         }}
       >
-        {" "}
         <View
           style={{
             position: "absolute",
@@ -245,7 +252,7 @@ export default function ColorSeasons({
         radius={55}
         origin={[origin[0] - radii[1] * 0.2, origin[1] - 250]}
         mainRotationR={11 / 7}
-        totalArcLength={2.25 / 7}
+        totalArcLength={2 / 7}
         layer={eLayers.buckets}
       />
       <SeasonGradient
@@ -261,12 +268,13 @@ export default function ColorSeasons({
           Dimensions.get("window").width + 40,
           Dimensions.get("window").height / 2 - 50,
         ]}
-        layer={eLayers.superMax}
+        layer={eLayers.chipFan}
         rotationR={-0.65}
         arcLength={2}
         radii={[100, 440]}
         fontSize={30}
         color="white"
+        convex={true}
       />
       <CurvedText
         text="Autumn"
@@ -274,12 +282,13 @@ export default function ColorSeasons({
           Dimensions.get("window").width + 40,
           Dimensions.get("window").height / 2 - 50,
         ]}
-        layer={eLayers.superMax}
+        layer={eLayers.chipFan}
         rotationR={-0.3}
         arcLength={2}
         radii={[100, 440]}
         fontSize={30}
         color="white"
+        convex={true}
       />
       <CurvedText
         text="Summer"
@@ -287,12 +296,13 @@ export default function ColorSeasons({
           Dimensions.get("window").width + 40,
           Dimensions.get("window").height / 2 - 50,
         ]}
-        layer={eLayers.superMax}
+        layer={eLayers.chipFan}
         rotationR={0.07}
         arcLength={2}
         radii={[100, 440]}
         fontSize={30}
         color="white"
+        convex={true}
       />
       <CurvedText
         text="Spring"
@@ -300,13 +310,43 @@ export default function ColorSeasons({
           Dimensions.get("window").width + 40,
           Dimensions.get("window").height / 2 - 50,
         ]}
-        layer={eLayers.superMax}
+        layer={eLayers.chipFan}
         rotationR={0.47}
         arcLength={2}
         radii={[100, 445]}
         fontSize={30}
         color="white"
+        convex={true}
       />
+      <Tutorial
+        height={400}
+        width={600}
+        origin={[Dimensions.get("window").width / 2, origin[1]]}
+        infoIconOrigin={[origin[0] - 50, origin[1] + 175]}
+        infoIconSize={50}
+      >
+        <Text {...textProps} dy={-60}>
+          Drag in a paint for colors that are more:
+        </Text>
+        <Text {...textProps} fill="rgb(255, 225, 0)" dy={-30} dx={-30}>
+          Spring (warm and bright)
+        </Text>
+        <Text {...textProps} dy={-10} fill={"rgb(175, 255, 255)"} dx={-15}>
+          Summer (cool and light)
+        </Text>
+        <Text {...textProps} dy={10} fill={"rgb(200, 125, 50)"} dx={15}>
+          Autumn (warm and muted)
+        </Text>
+        <Text {...textProps} dy={30} fill={"rgb(100, 100, 255)"} dx={30}>
+          Winter (cool and deep)
+        </Text>
+        <Text {...textProps} dy={60}>
+          Then drag the new ones
+        </Text>
+        <Text {...textProps} dy={80}>
+          back to repeat the process
+        </Text>
+      </Tutorial>
     </>
   );
 }

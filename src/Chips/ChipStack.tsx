@@ -14,7 +14,7 @@ import { useSoundContext } from "../Contexts/SoundContext";
 import { View } from "react-native";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { tVerse } from "../utils/Verse";
-const clarColorsList: tPaint[] = require("../clarColors.json");
+const clarColorsList: tPaint[] = require("../clarColors3.json");
 
 export type tChipFan = {
   arcLength: number;
@@ -92,20 +92,23 @@ export const ColorChipFan = ({
   const [paintsB, setPaintsB] = useState<tPaint[]>([]);
   const [sideABuffer, setSideABuffer] = useState(sideA);
   const lastColor = useSharedValue<tCLARColor>(targetColor);
+  const lastBrand = useSharedValue<tBrand>(brand);
+
   const { fAddPaintsToPresent } = useSoundContext();
 
   function fNearestColors() {
+    console.log("brand", brand, "sideA", sideA);
     const foundColors = findColors(targetColor, targetNumber, brand);
     const foundPaints = foundColors.map(
       (color) => clarColorsList[color.index!],
     );
     lastColor.value = targetColor;
+    lastBrand.value = brand;
     if (!sideA) {
       setPaintsB(foundPaints);
     } else {
       setPaintsA(foundPaints);
     }
-
     setSideABuffer(sideA);
   }
   useEffect(() => {
@@ -116,14 +119,15 @@ export const ColorChipFan = ({
     if (
       targetColor.c !== lastColor.value.c ||
       targetColor.l !== lastColor.value.l ||
-      targetColor.ar !== lastColor.value.ar
+      targetColor.ar !== lastColor.value.ar ||
+      brand !== lastBrand.value
     ) {
       fNearestColors();
     }
   }, [sideA]);
   useEffect(() => {
     fNearestColors();
-  }, [targetNumber, brand]);
+  }, []);
   return (
     <ChipFan
       paintsA={paintsA}

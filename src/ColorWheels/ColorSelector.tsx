@@ -228,8 +228,14 @@ export default function ColorSelector({
       "Dispatching color",
       vTargetColor.shared.value,
       "to chip selector",
+      "vSideA.shared.value",
+      vSideA.shared.value,
     );
   }
+  useEffect(() => {
+    console.log("vBrand.state changed", vBrand.state);
+    wUpdateState();
+  }, [vBrand.state]);
 
   /// R E N D E R ///
   return (

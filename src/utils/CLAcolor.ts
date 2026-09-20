@@ -1,7 +1,7 @@
 import React from "react";
 import { Dimensions } from "react-native";
 
-const clarColorsList: tPaint[] = require("../clarColors.json");
+const clarColorsList: tPaint[] = require("../clarColors3.json");
 export function fGetRandomPaint(): tPaint {
   const randomIndex = Math.floor(Math.random() * clarColorsList.length);
   const paint = clarColorsList[randomIndex];
@@ -30,13 +30,20 @@ export function fGetRandomPalette(size: number): tPalette {
   paints.sort((a, b) => a.clar.l - b.clar.l);
   return { name: `Random Palette ${Math.floor(Math.random() * 1000)}`, paints };
 }
-
+export type MixingColors =
+  | "red"
+  | "yellow"
+  | "blue"
+  | "white"
+  | "grey"
+  | "black";
 export type tBrand =
   | "Behr"
   | "Benjamin Moore"
   | "Sherwin Williams"
   | "PPG"
   | "Valspar"
+  | "Pantone"
   | "All Brands";
 
 export type tCLARColor = {
@@ -51,15 +58,12 @@ const CLArBlue: tCLARColor = { ar: 33 / 7, c: 0.7, l: 0.1 };
 const CLArWhite: tCLARColor = { c: 0, l: 1, ar: 0 };
 const CLArGrey: tCLARColor = { c: 0, l: 0.5, ar: 0 };
 const CLArBlack: tCLARColor = { c: 0, l: 0, ar: 0 };
+const CLArSpring: tCLARColor = { ar: 11 / 7, c: 0.9, l: 0.9 };
+const CLArSummer: tCLARColor = { ar: 35 / 7, c: 0.2, l: 0.9 };
+const CLArAutumn: tCLARColor = { ar: 8 / 7, c: 0.2, l: 0.2 };
+const CLArWinter: tCLARColor = { ar: 33 / 7, c: 0.8, l: 0.2 };
 
-export type tColorMap<type> = {
-  red?: type;
-  yellow?: type;
-  blue?: type;
-  white?: type;
-  grey?: type;
-  black?: type;
-};
+export type tColorMap<type> = Record<MixingColors, type>;
 
 export const refColors: tColorMap<tCLARColor> = {
   red: CLArRed,
@@ -227,17 +231,27 @@ export function fColorLerp(
   colorA: tCLARColor,
   colorB: tCLARColor,
   t: number,
+  minMaxC: [number, number] = [0.1, 0.9],
 ): tCLARColor {
   "worklet";
-  const c = Math.min(colorA.c + (colorB.c - colorA.c) * t, 0.7);
-  const l = Math.max(Math.min(colorA.l + (colorB.l - colorA.l) * t, 0.9), 0.1);
+  const c = Math.min(colorA.c + (colorB.c - colorA.c) * t, minMaxC[1]);
+  const l = Math.max(
+    Math.min(colorA.l + (colorB.l - colorA.l) * t, minMaxC[1]),
+    minMaxC[0],
+  );
 
   const diff = Math.atan2(
     Math.sin(colorB.ar - colorA.ar),
     Math.cos(colorB.ar - colorA.ar),
   );
-  const ar = colorA.ar + diff * t;
+  const ar = Math.atan2(
+    Math.sin(colorA.ar + diff * t),
+    Math.cos(colorA.ar + diff * t),
+  );
   return { c, l, ar };
+}
+function fArrayLerp(argA: number[], argB: number[], t: number): number[] {
+  return argA.map((val, index) => val + (argB[index] - val) * t);
 }
 
 export type tPaint = {
@@ -280,6 +294,7 @@ export const fRandomPaints = (count: number) => {
 
 type tPaintRank = {
   index: number;
+  brand?: tBrand;
   distance: number;
 };
 
@@ -289,6 +304,14 @@ export function findColors(
   brand: tBrand = "All Brands",
   colorModel: tColorModel = "RYGB",
 ) {
+  console.log("Finding colors for", {
+    c,
+    l,
+    ar,
+    targetNumber,
+    brand,
+    colorModel,
+  });
   const [y, u, v] = fCLARColorToYUV({ c, l, ar }, colorModel);
   let paintRanks: tPaintRank[] = [];
   for (let i = 0; i < clarColorsList.length; i++) {
@@ -296,17 +319,49 @@ export function findColors(
     if (brand !== "All Brands" && paintColor.brand !== brand) {
       continue;
     }
-    const dy = paintColor.yuv[0] - y;
-    const du = paintColor.yuv[1] - u;
-    const dv = paintColor.yuv[2] - v;
-    const distance = Math.sqrt(dy * dy + du * du + dv * dv);
+    if (
+      paintColor.clar.c === c &&
+      paintColor.clar.l === l &&
+      paintColor.clar.ar === ar
+    ) {
+      continue;
+    }
+    const [py, pu, pv] = fRGBToYUV(paintColor.rgb);
+    const dy = py - y;
+    const du = pu - u;
+    const dv = pv - v;
+    let distance = Math.sqrt(dy * dy + du * du + dv * dv);
+
     paintRanks.push({
       index: i,
+      brand: paintColor.brand,
       distance,
     });
   }
   paintRanks.sort((a, b) => a.distance - b.distance);
-  if (targetNumber > 0) paintRanks = paintRanks.slice(0, targetNumber);
+  if (targetNumber > 0) {
+    if (brand == "All Brands") {
+      paintRanks = paintRanks.slice(0, 100);
+      let brandCounts: Record<string, number> = {};
+      for (let j = 0; j < paintRanks.length; j++) {
+        const rank = paintRanks[j];
+
+        if (rank.brand in brandCounts) {
+          brandCounts[rank.brand]++;
+        } else {
+          brandCounts[rank.brand] = 1;
+        }
+        rank.distance *= brandCounts[rank.brand];
+      }
+      paintRanks.sort((a, b) => a.distance - b.distance);
+    }
+
+    paintRanks = paintRanks.slice(0, targetNumber);
+  }
+  console.log(
+    "Final paint ranks:",
+    paintRanks.map((rank) => rank.brand),
+  );
   return paintRanks;
 }
 
@@ -318,24 +373,57 @@ function fDistanceBetween(
   const dc = colorA.c - colorB.c;
   const dl = colorA.l - colorB.l;
   const diff = ar
-    ? (1 + colorA.c + colorB.c) *
-      Math.atan2(
+    ? Math.atan2(
         Math.sin(colorB.ar - colorA.ar),
         Math.cos(colorB.ar - colorA.ar),
-      )
+      ) /
+      (22 / 7)
     : 0;
   return Math.sqrt(dc * dc + dl * dl + diff * diff);
 }
-function fDistances(testColor: tCLARColor): tColorMap<number> {
+function fDistanceArray(
+  colorA: tCLARColor,
+  colorB: tCLARColor,
+  ar = true,
+): [number, number, number, number] {
+  let dc = Math.round(Math.abs(colorA.c - colorB.c) * 100) / 100;
+  let dl = Math.round(Math.abs(colorA.l - colorB.l) * 100) / 100;
+  let diff = ar
+    ? Math.atan2(
+        Math.sin(colorB.ar - colorA.ar),
+        Math.cos(colorB.ar - colorA.ar),
+      ) /
+      (22 / 7)
+    : 0;
+  diff = Math.round(Math.abs(diff) * 100) / 100;
+  const total = dc + dl + diff;
+  return [dc, dl, diff, total];
+}
+function fDistanceArrayYUV(
+  yuvA: [number, number, number],
+  yuvB: [number, number, number],
+): [number, number, number, number] {
+  let dy = Math.round(Math.abs(yuvA[0] - yuvB[0]) * 100) / 100;
+  let du = Math.round(Math.abs(yuvA[1] - yuvB[1]) * 100) / 100;
+
+  let dv = Math.round(Math.abs(yuvA[2] - yuvB[2]) * 100) / 100;
+
+  const total = dy + du + dv;
+  return [dy, du, dv, total];
+}
+function fDistances(
+  testColor: tPaint,
+): tColorMap<[number, number, number, number]> {
   return {
-    red: fDistanceBetween(testColor, refColors.red),
-    yellow: fDistanceBetween(testColor, refColors.yellow),
-    blue: fDistanceBetween(testColor, refColors.blue),
-    white: fDistanceBetween(testColor, refColors.white, false),
-    black: fDistanceBetween(testColor, refColors.black, false),
-    grey: fDistanceBetween(testColor, refColors.grey, false),
+    red: fDistanceArray(testColor.clar, refColors.red),
+    yellow: fDistanceArray(testColor.clar, refColors.yellow),
+    blue: fDistanceArray(testColor.clar, refColors.blue),
+    white: fDistanceArrayYUV(fRGBToYUV(testColor.rgb), [1, 0, 0]),
+    black: fDistanceArrayYUV(fRGBToYUV(testColor.rgb), [0, 0, 0]),
+    grey: fDistanceArrayYUV(fRGBToYUV(testColor.rgb), [0.5, 0, 0]),
   };
 }
+
 const refYUV = {
   red: fCLARColorToYUV(refColors.red, "RYGB"),
   yellow: fCLARColorToYUV(refColors.yellow, "RYGB"),
@@ -363,11 +451,48 @@ function fDistancesYUV(testYUV: [number, number, number]): tColorMap<number> {
     grey: fDistYUV(testYUV, refYUV.grey),
   };
 }
+function fScorePaints(targetColor: tPaint, brand?: tBrand) {
+  const targetScores = fDistances(targetColor);
+  let paintRanks: tPaintRank[] = [];
+  for (let i = 0; i < clarColorsList.length; i++) {
+    const paintColor = clarColorsList[i];
+    if (brand !== "All Brands" && paintColor.brand !== brand) {
+      continue;
+    }
+    const distances = fDistances(paintColor);
+    for (const colorKey of Object.keys(distances) as (keyof tColorMap<
+      [number, number, number, number]
+    >)[]) {
+      let distance = distances[colorKey][3];
+      for (let i = 0; i < 3; i++) {
+        if (distances[colorKey][i] > targetScores[colorKey][i]) {
+          distance *= 1.5;
+        }
+      }
+      paintRanks.push({
+        index: i,
+        distance,
+      });
+    }
+    paintRanks.sort((a, b) => a.distance - b.distance);
+    return paintRanks;
+  }
+}
 export function fClosestColors(
   targetColor: tPaint,
   brand?: tBrand,
 ): tColorMap<tPaint> {
+  const colorPriority: (keyof tColorMap<tPaint>)[] = [
+    "red",
+    "yellow",
+    "blue",
+    "white",
+    "grey",
+    "black",
+  ];
+
   let rankedColors = findColors(targetColor.clar, -1, brand);
+  const targetScores = fDistances(targetColor);
   console.log("Ranked colors:", rankedColors.length);
   let colorMap: tColorMap<tPaint> = {
     red: undefined,
@@ -377,68 +502,81 @@ export function fClosestColors(
     grey: undefined,
     black: undefined,
   };
-
-  const targetScores = fDistancesYUV(targetColor.yuv);
-  console.log("Target scores:", targetScores);
-
+  const lerpRed = fYUVToCLARColor(
+    fArrayLerp(targetColor.yuv, refYUV.red, 0.1) as [number, number, number],
+    "RYGB",
+  );
+  const lerpYellow = fYUVToCLARColor(
+    fArrayLerp(targetColor.yuv, refYUV.yellow, 0.1) as [number, number, number],
+    "RYGB",
+  );
+  const lerpBlue = fYUVToCLARColor(
+    fArrayLerp(targetColor.yuv, refYUV.blue, 0.1) as [number, number, number],
+    "RYGB",
+  );
+  const lerpWhite = fYUVToCLARColor(
+    fArrayLerp(targetColor.yuv, refYUV.white, 0.1) as [number, number, number],
+    "RYGB",
+  );
+  const lerpGrey = fYUVToCLARColor(
+    fArrayLerp(targetColor.yuv, refYUV.grey, 0.1) as [number, number, number],
+    "RYGB",
+  );
+  const lerpBlack = fYUVToCLARColor(
+    fArrayLerp(targetColor.yuv, refYUV.black, 0.1) as [number, number, number],
+    "RYGB",
+  );
+  const lerps = {
+    red: lerpRed,
+    yellow: lerpYellow,
+    blue: lerpBlue,
+    white: lerpWhite,
+    grey: lerpGrey,
+    black: lerpBlack,
+  };
+  for (const colorKey of colorPriority) {
+    const ranks = findColors(lerps[colorKey], 2, brand);
+    if (clarColorsList[ranks[0].index] == targetColor) {
+      colorMap[colorKey] = clarColorsList[ranks[1].index];
+    } else {
+      colorMap[colorKey] = clarColorsList[ranks[0].index];
+    }
+  }
+  console.log("Color map after initial lerp assignment:", colorMap);
+  return colorMap;
   for (let rank of rankedColors) {
     const paint = clarColorsList[rank.index];
-    const dis = fDistanceBetween(paint.clar, targetColor.clar);
-    const paintScores = fDistancesYUV(paint.yuv);
-    if (!colorMap.grey && paintScores.grey < targetScores.grey) {
-      colorMap.grey = paint;
-      console.log(
-        "Found more grey:",
-        paint.name,
-        paint.clar,
-        paintScores.grey,
-        dis,
-      );
+    if (
+      paint.rgb[0] == targetColor.rgb[0] &&
+      paint.rgb[1] == targetColor.rgb[1] &&
+      paint.rgb[2] == targetColor.rgb[2]
+    )
       continue;
-    }
-    if (!colorMap.yellow && paintScores.yellow < targetScores.yellow) {
-      colorMap.yellow = paint;
-      console.log("Found more yellow:", paint.name, paintScores.yellow, dis);
-      continue;
-    }
-    if (!colorMap.red && paintScores.red < targetScores.red) {
-      colorMap.red = paint;
-      console.log("Found more red:", paint.name, paintScores.red, dis);
-      continue;
-    }
-    if (!colorMap.blue && paintScores.blue < targetScores.blue) {
-      colorMap.blue = paint;
-      console.log("Found more blue:", paint.name, paintScores.blue, dis);
-      continue;
-    }
-    if (!colorMap.white && paintScores.white < targetScores.white) {
-      colorMap.white = paint;
-      console.log(
-        "Found more white:",
-        paint.name,
-        paint.clar,
-        paintScores.white,
-        dis,
-      );
-      continue;
-    }
-    if (!colorMap.black && paintScores.black < targetScores.black) {
-      colorMap.black = paint;
-      console.log(
-        "Found more black:",
-        paint.name,
-        paint.clar,
-        paintScores.black,
-        dis,
-      );
-      continue;
+    const paintScores = fDistances(paint);
+
+    for (const colorKey of colorPriority) {
+      if (colorMap[colorKey]) continue;
+      if (paintScores[colorKey][3] < targetScores[colorKey][3]) {
+        colorMap[colorKey] = paint;
+        console.log(
+          `Found more ${colorKey}:`,
+          paint.name,
+          paintScores[colorKey],
+          targetScores[colorKey],
+        );
+        break;
+      }
     }
   }
 
-  for (let i in colorMap) {
-    if (colorMap[i] === undefined) {
-      console.log(rankedColors[0]);
-      colorMap[i] = clarColorsList[rankedColors[0].index];
+  for (const colorKey of colorPriority) {
+    if (colorMap[colorKey] === undefined) {
+      console.log(
+        `Filling missing ${colorKey} with top ranked color:`,
+        rankedColors[0],
+      );
+      colorMap[colorKey] =
+        clarColorsList[findColors(refColors[colorKey], -1, brand)[0].index];
     }
   }
   return colorMap;
@@ -453,22 +591,25 @@ export type tSeasonMap<type> = {
 
 export function fGetSeasons(testColor: tCLARColor): tSeasonMap<number> {
   let { c, l, ar } = testColor;
-  let by = Math.abs(ar / (2 * Math.PI) - 0.75);
-  if (by > 0.5) {
-    by = 1 - by;
-  }
-  by /= 0.5;
-  by = Math.round(by * 100) / 100;
+  let dar =
+    Math.atan2(
+      Math.sin(ar - (Math.PI * 3) / 2),
+      Math.cos(ar - (Math.PI * 3) / 2),
+    ) / Math.PI;
+
   let depth = c ** 0.5;
+  dar = (dar + 1) / 2;
+  dar = Math.round(dar * 100) / 100;
+
   l = l ** 2;
   depth = Math.round(depth * 100) / 100;
-  let winterScore = depth * (1 - l);
+  let winterScore = depth * (1 - l) * (1 - dar);
   winterScore = Math.round(winterScore * 100) / 100;
-  let summerScore = (1 - depth) * l;
+  let summerScore = (1 - depth) * l * (1 - dar);
   summerScore = Math.round(summerScore * 100) / 100;
-  let autumnScore = (1 - depth) * (1 - l);
+  let autumnScore = (1 - depth) * (1 - l) * dar;
   autumnScore = Math.round(autumnScore * 100) / 100;
-  let springScore = depth * l;
+  let springScore = depth * l * dar;
   springScore = Math.round(springScore * 100) / 100;
   return {
     spring: springScore,
@@ -489,55 +630,39 @@ export function fGetSeasonColors(
     autumn: undefined,
     winter: undefined,
   };
-  const rankedColors = findColors(testColor, -1, brand);
-  for (let rank of rankedColors) {
-    const paint = clarColorsList[rank.index];
-    const paintSeasons = fGetSeasons(paint.clar);
-    if (!seasonColors.spring && paintSeasons.spring > seasons.spring) {
-      seasonColors.spring = paint;
+  const lerpSpring = fColorLerp(testColor, CLArSpring, 0.2);
+  const lerpSummer = fColorLerp(testColor, CLArSummer, 0.2);
+  const lerpAutumn = fColorLerp(testColor, CLArAutumn, 0.2);
+  const lerpWinter = fColorLerp(testColor, CLArWinter, 0.2);
+  const lerps = {
+    spring: lerpSpring,
+    summer: lerpSummer,
+    autumn: lerpAutumn,
+    winter: lerpWinter,
+  };
+  //  const rankedColors = findColors(testColor, -1, brand);
+  for (let season in seasonColors) {
+    const paintRanks = findColors(lerps[season], 2, brand);
+    if (clarColorsList[paintRanks[0].index].clar !== testColor) {
+      seasonColors[season] = clarColorsList[paintRanks[0].index];
       console.log(
-        "Found more spring:",
-        paint.name,
-        paintSeasons.spring,
-        seasons.spring,
+        `Selected ${season} color:`,
+        clarColorsList[paintRanks[0].index],
+        `Distance to test color:`,
+        fDistanceBetween(testColor, clarColorsList[paintRanks[0].index].clar),
       );
-      continue;
-    }
-    if (!seasonColors.summer && paintSeasons.summer > seasons.summer) {
-      seasonColors.summer = paint;
-      console.log(
-        "Found more summer:",
-        paint.name,
-        paintSeasons.summer,
-        seasons.summer,
-      );
-      continue;
-    }
-    if (!seasonColors.autumn && paintSeasons.autumn > seasons.autumn) {
-      seasonColors.autumn = paint;
-      console.log(
-        "Found more autumn:",
-        paint.name,
-        paintSeasons.autumn,
-        seasons.autumn,
-      );
-      continue;
-    }
-    if (!seasonColors.winter && paintSeasons.winter > seasons.winter) {
-      seasonColors.winter = paint;
-      console.log(
-        "Found more winter:",
-        paint.name,
-        paintSeasons.winter,
-        seasons.winter,
-      );
-      continue;
+    } else {
+      seasonColors[season] = clarColorsList[paintRanks[1].index];
     }
   }
-  for (let i in seasonColors) {
-    if (seasonColors[i] === undefined) {
-      console.log(rankedColors[0]);
-      seasonColors[i] = clarColorsList[rankedColors[0].index];
+  for (let season in seasonColors) {
+    if (seasonColors[season] === undefined) {
+      console.log(
+        `Filling missing ${season} with top ranked color:`,
+        clarColorsList[findColors(testColor, -1, brand)[0].index],
+      );
+      seasonColors[season] =
+        clarColorsList[findColors(testColor, -1, brand)[0].index];
     }
   }
   return seasonColors;

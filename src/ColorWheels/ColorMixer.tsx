@@ -231,26 +231,32 @@ export default function ColorMixer({
         <Text {...textProps} dy={-60}>
           Drag in a paint for colors that are more:
         </Text>
-        <Text {...textProps} dy={-30} dx={-30}>
-          <TSpan fill={"rgb(255, 100, 100)"}>Red </TSpan>
-          <TSpan fill={"rgb(255, 255, 100)"}> Yellow</TSpan>
-          <TSpan fill={"rgb(100, 100, 255)"}>Blue</TSpan>
+        <Text {...textProps}>
+          <TSpan {...textProps} fill={"rgb(255, 100, 100)"} dx={-50} dy={-30}>
+            Red
+          </TSpan>
+          <TSpan {...textProps} fill={"rgb(255, 255, 100)"} dx={0} dy={-30}>
+            Yellow
+          </TSpan>
+          <TSpan {...textProps} fill={"rgb(100, 100, 255)"} dx={50} dy={-30}>
+            Blue
+          </TSpan>
         </Text>
-        <Text {...textProps} fill={"rgb(255, 255, 255)"} dy={30}>
-          <TSpan fill={"rgb(255, 255, 255)"} dx={-20}>
+        <Text {...textProps} fill={"rgb(255, 255, 255)"}>
+          <TSpan {...textProps} fill={"rgb(255, 255, 255)"} dx={-50}>
             White
           </TSpan>
-          <TSpan fill={"rgb(150, 150, 150)"} dx={5}>
+          <TSpan {...textProps} fill={"rgb(175, 175, 175)"} dx={0}>
             Gray
           </TSpan>
-          <TSpan fill={"rgb(0, 0, 0)"} dx={10}>
+          <TSpan {...textProps} fill={"rgb(100, 100, 100)"} dx={50}>
             Black
           </TSpan>
         </Text>
-        <Text {...textProps} dy={60}>
+        <Text {...textProps} dy={40}>
           Then drag the new ones
         </Text>
-        <Text {...textProps} dy={80}>
+        <Text {...textProps} dy={60}>
           back to repeat the process
         </Text>
       </Tutorial>

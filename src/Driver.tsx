@@ -5,9 +5,9 @@ import UserContext from "./Contexts/UserContext";
 import BucketContext from "./Buckets/BucketContext";
 import SoundContext from "./Contexts/SoundContext";
 import ChipContext from "./Chips/ChipContext";
-import MenuButton from "./Buckets/MenuButton";
 import ChipHand from "./Chips/ChipHand";
 import Menu from "./Menu";
+import ColorSearch from "./ColorWheels/ColorSearch";
 import DropScreen from "./Buckets/DropScreen";
 import ColorCamera from "./Cameras/ColorCamera";
 import WallPaintCam from "./Cameras/WallPaintCam";
@@ -27,6 +27,7 @@ import {
 } from "react-native-reanimated";
 import Button from "./Buttons/Button";
 import { Paths } from "./utils/Paths";
+import { rotate } from "@shopify/react-native-skia";
 
 // This is the default configuration
 configureReanimatedLogger({
@@ -48,6 +49,7 @@ const Driver = () => {
     "Palette Library": <PaletteLibrary />,
     "Scheme Selector": <SchemeSelector />,
     "Chip Selector": <SchemeChipSelector />,
+    "Color Search": <ColorSearch />,
   };
   function fShouldShowBGGradient(page: ePages) {
     return page !== "Undertone Camera" && page !== "ReColor Camera";

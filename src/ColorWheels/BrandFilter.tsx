@@ -68,11 +68,16 @@ export const BrandFilter = (props: tBrandFilter) => {
 
   const fToggle = () => {
     "worklet";
-    collapseAnim.value = withTiming(collapseAnim.value === 0 ? 1 : 0, {
-      duration: 500,
-    });
-    console.log(brands[selection.value]);
-    props.vBrand.dispatch(brands[selection.value]);
+    if (collapseAnim.value === 0) {
+      collapseAnim.value = withTiming(1, {
+        duration: 500,
+      });
+    } else {
+      collapseAnim.value = withTiming(0, {
+        duration: 500,
+      });
+      props.vBrand.dispatch(brands[selection.value]);
+    }
   };
 
   useAnimatedReaction(
@@ -269,17 +274,23 @@ export const BrandFilter = (props: tBrandFilter) => {
   return (
     <>
       <Animated.View
-        style={{
-          position: "absolute",
-          zIndex: eLayers.superMax,
-        }}
+        style={[
+          {
+            position: "absolute",
+            zIndex: eLayers.superMax,
+          },
+          gestureBoundsStyle,
+        ]}
         pointerEvents="box-none"
       >
-        <Animated.View style={[{ position: "absolute" }, gestureBoundsStyle]}>
-          <GestureDetector gesture={compGesture}>
-            <View style={{ width: "100%", height: "100%" }} />
-          </GestureDetector>
-        </Animated.View>
+        <GestureDetector gesture={compGesture}>
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+            }}
+          />
+        </GestureDetector>
       </Animated.View>
       <BlurScreen vActive={vBlur} layer={props.layer - 1} />
       <RadialContext

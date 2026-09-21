@@ -23,6 +23,7 @@ const allPages: ePages[] = [
   "Color Wheel",
   "Color Mixer",
   "Color Seasons",
+  "Color Search",
 ];
 
 export default function Menu({
@@ -38,7 +39,7 @@ export default function Menu({
 }: tRadialObject) {
   const { registerHitBox, unregisterHitBox } = usePanManager();
   const { vPage } = useUserContext();
-  const vPanPos = useSharedValue({ angle: 22 / 7, radius: 0 });
+  const vPanPos = useSharedValue({ angle: 21 / 7, radius: 0 });
   const vPanState = useSharedValue<ePanEvent>("enter");
   const vSlowAngle = useSharedValue<number>(0);
   useEffect(() => {

@@ -39,7 +39,8 @@ export type ePages =
   | "Color Harmonizer"
   | "Palette Library"
   | "Scheme Selector"
-  | "Chip Selector";
+  | "Chip Selector"
+  | "Color Search";
 
 export type tPage = {
   vTransition: tVerse<number>;

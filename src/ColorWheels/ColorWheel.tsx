@@ -46,6 +46,7 @@ function ColorWheel({
   const secondColor = useVerse(null);
   vSecondColor = vSecondColor || secondColor;
   const transitionA = useSharedValue(0);
+  const turnAnim = useSharedValue(0);
   transitionAnim = transitionAnim || transitionA;
   const { origin, wAngleToChord, wChordToAngle, wUpdateState } =
     useRadialContext();
@@ -93,7 +94,7 @@ function ColorWheel({
       let chords = chord;
       const chordLength = (2 * arcLength) / chords;
       let startRotation = wChordToAngle(input.chord, arcLength, chords, 0);
-      let rotation = input.rotateZ + -vAccentAR.shared.value;
+      let rotation = input.rotateZ - vAccentAR.shared.value;
       const selectedSector = wAngleToChord(
         vAccentAR.shared.value,
         arcLength,
@@ -134,15 +135,16 @@ function ColorWheel({
       0,
     );
     let nearestSectorAngle = wChordToAngle(nearestSector, arcLength, chord, 0);
-    vAccentAR.shared.value = withTiming(nearestSectorAngle);
+    vAccentAR.shared.value = withTiming(
+      nearestSectorAngle,
+      { duration: 500 },
+      wUpdateState,
+    );
     console.log(
       "Wheel leaving, rotating to nearest sector",
       nearestSector,
       nearestSectorAngle,
     );
-    if (wUpdateState) {
-      wUpdateState();
-    }
   };
   const fOnTap = useCallback(() => {
     "worklet";

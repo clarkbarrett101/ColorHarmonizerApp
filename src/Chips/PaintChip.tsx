@@ -444,3 +444,66 @@ export const PaintChip = ({
     </Animated.View>
   );
 };
+export function PaintChipPlaceholder({
+  size,
+  paintA,
+  origin,
+  chipID,
+  text,
+  rotationR,
+  onPress,
+}: tPaintChip & { text?: string; onPress?: () => void }) {
+  /// R E N D E R ///
+  const paint = paintA;
+  return (
+    <Svg
+      viewBox={`-16 -12 32 24`}
+      style={{
+        position: "absolute",
+        top: origin[1] - eChipSizes[size][1] / 2,
+        left: origin[0] - eChipSizes[size][0] / 2,
+        width: eChipSizes[size][0],
+        height: eChipSizes[size][1],
+        transform: [{ scaleY: 1 }, { rotate: `${rotationR}rad` }],
+        zIndex: chipID[0] + chipID[1],
+        shadowColor: "#000",
+        shadowOpacity: 0.7,
+        shadowRadius: 5,
+        shadowOffset: { width: 0, height: 2 },
+      }}
+      onPress={onPress}
+    >
+      <Defs>
+        <LinearGradient id="grad" x1={`50%`} y1={`0%`} x2={`50%`} y2={`100%`}>
+          <Stop offset="0%" stopColor="#fff" stopOpacity=".2" />
+          <Stop
+            offset="50%"
+            stopColor={paint?.hex || "transparent"}
+            stopOpacity="0"
+          />
+          <Stop offset="100%" stopColor="#000" stopOpacity=".1" />
+        </LinearGradient>
+      </Defs>
+      <G>
+        <Path
+          d="M-16-8C-8-12 8-12 16-8V8C8 12-8 12-16 8Z"
+          fill={paint?.hex || "transparent"}
+        />
+        <Path d="M-16-8C-8-12 8-12 16-8V8C8 12-8 12-16 8Z" fill="url(#grad)" />
+        <Path
+          d="M-15-7C-4-11 4-11 15-7V7C4 11-4 11-15 7Z"
+          fill={paint?.hex || "transparent"}
+        />
+      </G>
+      <Text
+        fontSize="5"
+        fill={paint?.clar.l > 0.5 ? "#000" : "#fff"}
+        fontWeight={500}
+        textAnchor="middle"
+        alignmentBaseline="middle"
+      >
+        {text}
+      </Text>
+    </Svg>
+  );
+}

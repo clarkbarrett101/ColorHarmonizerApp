@@ -304,7 +304,3 @@ export default function ColorSelector({
     </>
   );
 }
-/*
-    
-             
-      */

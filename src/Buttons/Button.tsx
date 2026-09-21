@@ -3,6 +3,7 @@ import { Circle, Path, Svg } from "react-native-svg";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { fCLARColorToString } from "../utils/CLAcolor";
 import Animated, { useAnimatedProps } from "react-native-reanimated";
+import { CurvedText, TextCircle, tTextCircle } from "./CurvedText";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -12,6 +13,7 @@ export type tButton = {
   size?: number;
   origin?: [number, number];
   viewRadius?: number;
+  textCircle?: tTextCircle;
 };
 export default function Button({
   onPress,
@@ -19,6 +21,7 @@ export default function Button({
   size = 50,
   origin = [20, 40],
   viewRadius = 25,
+  textCircle,
 }: tButton) {
   const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
   const animatedProps = useAnimatedProps(() => ({
@@ -57,6 +60,7 @@ export default function Button({
         animatedProps={animatedProps}
       />
       <AnimatedPath d={path} fill="white" />
+      <TextCircle {...textCircle} />
     </Svg>
   );
 }

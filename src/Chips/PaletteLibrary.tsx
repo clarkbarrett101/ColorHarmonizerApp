@@ -2,7 +2,7 @@ import { Dimensions } from "react-native";
 import React, { useEffect } from "react";
 import { usePanManager } from "../Contexts/PanManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fCLARColorToString, tPalette } from "../utils/CLAcolor";
+import { fAverageColor, fCLARColorToString, tPalette } from "../utils/CLAcolor";
 import { CleanPalette, eLayers, useUserContext } from "../Contexts/UserContext";
 import { fLerpModifierFactory, tAttributeModifier } from "../utils/Actor";
 import { useChipContext } from "./ChipContext";
@@ -50,7 +50,7 @@ export default function PaletteLibrary({
   const vStartAngle = useSharedValue(0);
   const dragStartAngle = useSharedValue(0);
   const vRotationROffset = useSharedValue(0);
-  const { vUserPalette } = useUserContext();
+  const { vUserPalette, vAccentC, vAccentL, vAccentAR } = useUserContext();
   const vSelection = useVerse<number>(0);
   const sideA = useVerse<boolean>(true);
   const archLength = useDerivedValue(() => {
@@ -133,6 +133,10 @@ export default function PaletteLibrary({
   }
   useEffect(() => {
     sideA.dispatch(!sideA.shared.value);
+    const avgColor = fAverageColor(vPalettes.state[vSelection.state].paints);
+    vAccentAR.dispatch(avgColor.ar);
+    vAccentC.dispatch(avgColor.c);
+    vAccentL.dispatch(avgColor.l);
   }, [vSelection.state]);
 
   useAnimatedReaction(
@@ -284,6 +288,23 @@ export default function PaletteLibrary({
         size={100}
         origin={[100, 150]}
         viewRadius={80}
+        textCircle={{
+          topText: "Use",
+          radii: [50, 70],
+          topTextProps: {
+            fontSize: 25,
+            fill: "white",
+            fontFamily: "Outfit",
+            letterSpacing: 1,
+          },
+          bottomText: "Palette",
+          bottomTextProps: {
+            fontSize: 20,
+            fill: "white",
+            fontFamily: "Outfit",
+            letterSpacing: 4,
+          },
+        }}
       />
       {vUserPalette.shared.value.paints.length > 0 && (
         <Button
@@ -300,6 +321,23 @@ export default function PaletteLibrary({
         size={100}
         origin={[300, Dimensions.get("window").height - 150]}
         viewRadius={50}
+        textCircle={{
+          topText: "Delete",
+          radii: [35, 45],
+          topTextProps: {
+            fontSize: 14,
+            fill: "white",
+            fontFamily: "Outfit",
+            letterSpacing: 1,
+          },
+          bottomText: "Palette",
+          bottomTextProps: {
+            fontSize: 13,
+            fill: "white",
+            fontFamily: "Outfit",
+            letterSpacing: 4,
+          },
+        }}
       />
       {vPalettes.state.length > 0 &&
         vPalettes.state.map((palette, index) => (

@@ -1,6 +1,7 @@
 import { View, Text } from "react-native";
 import React, { useEffect } from "react";
-import { Easing } from "react-native-reanimated";
+import { usePanManager } from "../Contexts/PanManager";
+import { Easing, useAnimatedReaction } from "react-native-reanimated";
 import {
   Canvas,
   Rect,
@@ -18,12 +19,21 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+import { useVerse } from "../utils/Verse";
 export function SweepDisplay({
   origin,
   radii,
   layer,
   opacity,
 }: tRadialObject & { opacity?: number }) {
+  const vActive = useVerse<boolean>(true);
+  const { vTouched } = usePanManager();
+  useAnimatedReaction(
+    () => vTouched.shared.value,
+    (touched) => {
+      vActive.shared.value = !touched;
+    },
+  );
   const rAnim = useSharedValue(0);
   useEffect(() => {
     rAnim.value = withRepeat(

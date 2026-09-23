@@ -26,7 +26,11 @@ export default function SchemeSelector({
   useEffect(() => {
     schemes.dispatch(fGetHarmonies(vSelectedRelay?.state));
   }, [vSelectedRelay?.state]);
-
+  const { vAccentC, vAccentL } = useUserContext();
+  useEffect(() => {
+    vAccentC.dispatch(0.25);
+    vAccentL.dispatch(0.9);
+  }, []);
   usePanHitBox({
     id: "schemeSelector",
     origin,

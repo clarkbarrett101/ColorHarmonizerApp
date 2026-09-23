@@ -134,6 +134,7 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
       }
     });
   }
+
   useEffect(() => {
     const mods = modifiers.value;
     if (!mods[100]) {

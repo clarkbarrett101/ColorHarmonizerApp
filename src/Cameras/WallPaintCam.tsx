@@ -1,3 +1,4 @@
+import type { TextProps } from "react-native-svg";
 import {
   Camera,
   useCameraDevice,
@@ -33,7 +34,6 @@ import { useVerse, useVerseRelay } from "../utils/Verse";
 import { PetalButton } from "../Buttons/PetalButton";
 import { PaintChip } from "../Chips/PaintChip";
 import { ReplacementMeter } from "./ReplacementMeter";
-import React from "react";
 import {
   Defs,
   LinearGradient,
@@ -45,8 +45,9 @@ import {
   Text,
 } from "react-native-svg";
 import { PetalBox } from "../Buttons/PetalBox";
-import { fTextWrapSVG } from "../Buttons/Tutorial";
+import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 import { useDerivedValue } from "react-native-reanimated";
+import React from "react";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -153,9 +154,43 @@ export default function WallPaintCam() {
   const dAR = useDerivedValue(() => vTargetTemp.shared.value.ar);
   const dC = useDerivedValue(() => vTargetTemp.shared.value.c);
   const dL = useDerivedValue(() => 1);
-
+  const fontSize = 16;
+  const textProps: React.ComponentProps<typeof Text> = {
+    fontSize,
+    fontFamily: "Outfit",
+    textAnchor: "middle",
+    fill: "rgba(0,0,0,0.5)",
+    alignmentBaseline: "middle",
+    verticalAlign: "middle",
+  };
   return (
     <>
+      <Tutorial
+        width={350}
+        height={300}
+        origin={[SCREEN_WIDTH / 2 + 50, SCREEN_HEIGHT / 2 - 200]}
+        infoIconOrigin={[SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2 - 50]}
+        infoIconSize={50}
+        maxOpacity={0.8}
+      >
+        <G>
+          {fTextWrapSVG(
+            [
+              "Point the camera at a surface",
+              "and drag a paint to change its color.",
+              "",
+              "Adjust the color tint to simulate",
+              "different lighting conditions.",
+              "",
+              "Adjust the replacement level",
+              "to recolor more or less.",
+            ],
+            fontSize * 12,
+            [175, 150],
+            { ...textProps, fill: "white" },
+          )}
+        </G>
+      </Tutorial>
       <ThermSelect
         mainRotationR={11 / 7}
         radius={35}

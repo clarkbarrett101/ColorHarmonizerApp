@@ -271,7 +271,7 @@ function ColorWheel({
       }}
     >
       <RadialGraphic />
-      {
+      {vSecondColor.state !== null && (
         <RadialContext
           value={{
             mColorModifier: secondColorModifier,
@@ -283,7 +283,7 @@ function ColorWheel({
         >
           <RadialGraphic />
         </RadialContext>
-      }
+      )}
     </RadialContext>
   );
 }

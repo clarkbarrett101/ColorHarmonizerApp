@@ -178,10 +178,6 @@ export function ChipRow({ id, paints, grouped, ...radialProps }: tChipRow) {
         position: "absolute",
         left: 0,
         top: 0,
-        shadowColor: "#000",
-        shadowOffset: { width: -2, height: 2 },
-        shadowOpacity: 0.5,
-        shadowRadius: 3,
         zIndex: id,
       }}
     >

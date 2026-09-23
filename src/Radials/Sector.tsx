@@ -41,7 +41,7 @@ export const Sector = (props: tSector) => {
     return () => {
       actor.removeModifier(mColorModifier.modID);
     };
-  }, [mColorModifier]);
+  }, []);
   const animatedProps = useAnimatedProps(() => {
     "worklet";
     return actor.get((attributes) => {

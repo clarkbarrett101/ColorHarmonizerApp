@@ -8,6 +8,7 @@ import {
   useDerivedValue,
   useSharedValue,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useEffect, useState } from "react";
 import {
@@ -87,12 +88,18 @@ export default function ColorCamera({
         dampingRatio: 0.2,
       });
       vAccentC.shared.value = vCamColor.shared.value.c ** 0.5;
-      vAccentAR.shared.value = angle;
-      if (!vThermoMode.shared.value) {
+      vAccentAR.shared.value = withSpring(angle, {
+        duration: 0.9,
+        dampingRatio: 0.2,
+      });
+      if (vThermoMode.shared.value) {
         vTemp.dispatch();
       }
     }, 1000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      collectGarbage?.();
+    };
   }, []);
 
   function frameProcessor(frame: DrawableFrame) {
@@ -188,7 +195,9 @@ export default function ColorCamera({
         postProcessor={frameProcessor}
         shaderCode={shaderCode}
         uniforms={{ targetWhiteRGB: vTemp.state.rgb.map((c) => c / 255) }}
+        fps={8}
       />
+
       <PetalBox
         origin={[50, SCREEN_HEIGHT / 2 + 100]}
         radii={[20, 110]}
@@ -212,11 +221,11 @@ export default function ColorCamera({
         <G transform={[{ rotate: 11 / 7 + "rad" }]}>
           {fTextWrapSVG(
             [
-              `${vThermoMode.state ? "Calibrate " : "Confirm"} Tint`,
+              `${vThermoMode.state ? "Confirm" : "Calibrate"} Tint`,
               "Temperature",
             ],
             fontSize * 2,
-            -fontSize * 1.8,
+            [0, -30],
             { ...textProps, fontSize: fontSize - 4 },
           )}
           <Circle cx="0" cy="-80" r="40" fill="url(#radGrad)" opacity="0.5" />
@@ -232,6 +241,32 @@ export default function ColorCamera({
       </PetalBox>
       {!vThermoMode.state && (
         <>
+          <Tutorial
+            width={400}
+            height={200}
+            origin={[SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 250]}
+            infoIconOrigin={[SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2 - 100]}
+            infoIconSize={50}
+            maxOpacity={0.8}
+          >
+            <G transform={[{ translateX: 200 }, { translateY: 0 }]}>
+              {fTextWrapSVG(
+                [
+                  "Point the camera at a surface",
+                  " to find its undertone color.",
+                  "",
+                  "Select two colors to see possible",
+                  "harmonious color schemes.",
+                  "",
+                  "Calibrate the tint temperature",
+                  "to compensate for lighting color.",
+                ],
+                fontSize * 8,
+                [0, 100],
+                { ...textProps, fill: "white" },
+              )}
+            </G>
+          </Tutorial>
           <HarmonizerWheel origin={origin} draggable={false} radii={radii} />
           <PetalBox
             origin={[50, Dimensions.get("window").height / 2]}
@@ -258,7 +293,7 @@ export default function ColorCamera({
             rotationR={-11 / 7}
           >
             <G transform={[{ rotate: 11 / 7 + "rad" }]}>
-              {fTextWrapSVG(["Light", "Temp"], fontSize * 2, -fontSize * 1.8, {
+              {fTextWrapSVG(["Light", "Temp"], fontSize * 2, [0, -30], {
                 ...textProps,
                 fontSize: fontSize - 2,
               })}
@@ -272,6 +307,9 @@ export default function ColorCamera({
             width={300}
             height={200}
             origin={[SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 250]}
+            maxOpacity={0.8}
+            infoIconOrigin={[50, SCREEN_HEIGHT / 2 - 100]}
+            infoIconSize={50}
           >
             <G transform={[{ translateX: 150 }, { translateY: 0 }]}>
               {fTextWrapSVG(
@@ -280,10 +318,10 @@ export default function ColorCamera({
                   "Point the camera at a neutral white",
                   "surface (like a sheet of paper) to",
                   "calibrate to the color temperature",
-                  "of the light in the scene.",
+                  "of the lights in your environment.",
                 ],
                 fontSize * 8,
-                fontSize * 6,
+                [0, 100],
                 { ...textProps, fill: "white" },
               )}
             </G>
@@ -315,3 +353,7 @@ half4 main(float2 pos) {
   return color;
 }
 `;
+function collectGarbage() {
+  "worklet";
+  globalThis.gc;
+}

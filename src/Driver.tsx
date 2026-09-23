@@ -1,4 +1,4 @@
-import React, { Profiler, ReactNode } from "react";
+import React, { Profiler, ReactNode, useEffect, useRef } from "react";
 import type { ePages } from "./Contexts/UserContext";
 import PanManager from "./Contexts/PanManager";
 import UserContext from "./Contexts/UserContext";
@@ -28,7 +28,7 @@ import {
 import Button from "./Buttons/Button";
 import { Paths } from "./utils/Paths";
 import { rotate } from "@shopify/react-native-skia";
-
+import { View } from "react-native";
 // This is the default configuration
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -38,6 +38,11 @@ configureReanimatedLogger({
 const Driver = () => {
   const vPage = useVerse<ePages>("Menu");
   const vTransition = useVerse<number>(0);
+  const hardReset = useRef(0);
+  useEffect(() => {
+    hardReset.current += 1;
+    console.log("Hard reset count:", hardReset.current);
+  }, [vPage.state]);
   const pageMap: Record<ePages, ReactNode> = {
     Menu: <Menu />,
     "ReColor Camera": <WallPaintCam />,
@@ -55,22 +60,22 @@ const Driver = () => {
     return page !== "Undertone Camera" && page !== "ReColor Camera";
   }
   return (
-    <Profiler
-      id="Driver"
-      onRender={(id, phase, actualDuration, baseDuration) => {
-        console.log("Driver Rendered", {
-          id,
-          phase,
-          actualDuration,
-          baseDuration,
-        });
-      }}
-    >
-      <ChipContext>
-        <UserContext vPage={vPage}>
-          <SoundContext>
-            <BucketContext>
-              {fShouldShowBGGradient(vPage.state) && <BGGradient />}
+    <ChipContext>
+      <UserContext vPage={vPage}>
+        <SoundContext>
+          <BucketContext>
+            {fShouldShowBGGradient(vPage.state) && <BGGradient />}
+
+            <View
+              style={{
+                flex: 1,
+                shadowColor: "black",
+                shadowOffset: { width: -10, height: 10 },
+                shadowOpacity: 0.25,
+                shadowRadius: 5,
+                zIndex: 20,
+              }}
+            >
               <DropScreen />
               {vPage.state !== "Menu" && (
                 <Button
@@ -83,13 +88,12 @@ const Driver = () => {
                 />
               )}
               <PanManager>{pageMap[vPage.state]}</PanManager>
-
               <ChipHand />
-            </BucketContext>
-          </SoundContext>
-        </UserContext>
-      </ChipContext>
-    </Profiler>
+            </View>
+          </BucketContext>
+        </SoundContext>
+      </UserContext>
+    </ChipContext>
   );
 };
 

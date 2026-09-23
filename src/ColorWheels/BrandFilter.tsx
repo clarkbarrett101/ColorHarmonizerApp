@@ -213,7 +213,7 @@ export const BrandFilter = (props: tBrandFilter) => {
         translateX: x,
         zIndex:
           brands.length - Math.abs(selection.value - input.ring) + props.layer,
-        shadowRadius: collapseAnim.value * 3,
+        shadowOpacity: collapseAnim.value * 3,
       };
     },
   };
@@ -309,7 +309,7 @@ export const BrandFilter = (props: tBrandFilter) => {
             shadowColor: "black",
             shadowOffset: { width: -3, height: 3 },
             shadowOpacity: 0.5,
-            shadowRadius: 3,
+            shadowRadius: 5,
             zIndex: eLayers.buckets,
           }}
         >

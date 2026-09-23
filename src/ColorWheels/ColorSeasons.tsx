@@ -208,27 +208,13 @@ export default function ColorSeasons({
           mTransformModifier,
         }}
       >
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: eLayers.colorMixer,
-            shadowOffset: { width: 5, height: 5 },
-            shadowOpacity: 0.5,
-            shadowRadius: 5,
-          }}
-        >
-          <RadialGraphic
-            ring={ring}
-            chord={chord}
-            arcLength={arcLength}
-            rotationR={rotationR}
-            fSectorGroupModifier={fSectorGroupModifier}
-          />
-        </View>
+        <RadialGraphic
+          ring={ring}
+          chord={chord}
+          arcLength={arcLength}
+          rotationR={rotationR}
+          fSectorGroupModifier={fSectorGroupModifier}
+        />
       </RadialContext>
       <PaintChip
         paintA={vTargetColor.state}

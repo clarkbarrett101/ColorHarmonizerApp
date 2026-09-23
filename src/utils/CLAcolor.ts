@@ -409,12 +409,32 @@ export function fAverageColor(colors: tPaint[]): tCLARColor {
     totalAR += color.clar.ar;
   }
   const count = Math.max(colors.length, 1);
+  const avgAR = totalAR / count;
+  let closestAR = 22 / 7;
+
+  for (let i = 0; i < colors.length; i++) {
+    const ar = colors[i].clar.ar;
+    const ardiff = Math.atan2(Math.cos(ar - avgAR), Math.sin(ar - avgAR));
+    if (Math.abs(ardiff) < Math.abs(closestAR)) {
+      closestAR = ar;
+    }
+  }
+
   return {
     c: totalC / count,
     l: totalL / count,
-    ar: totalAR / count,
+    ar: closestAR,
   };
 }
+
+export function fToList(paints: tPaint[]) {
+  let list = "";
+  for (const paint of paints) {
+    list += `{Name: ${paint.name ?? ""}, Brand: ${paint.brand ?? ""}, Label: ${paint.label ?? ""} RGB: ${paint.rgb ?? ""}},\n`;
+  }
+  return list;
+}
+
 export function fClosestColors(
   targetColor: tPaint,
   brand?: tBrand,

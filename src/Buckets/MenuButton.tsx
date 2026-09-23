@@ -29,10 +29,6 @@ export default function MenuButton({ onPress }: { onPress: () => void }) {
         width: 50,
         height: 50,
         zIndex: eLayers.dropScreen - 1,
-        shadowColor: "black",
-        shadowOffset: { width: -2, height: 2 },
-        shadowOpacity: 0.5,
-        shadowRadius: 2,
       }}
       onTouchStart={onPress}
     >

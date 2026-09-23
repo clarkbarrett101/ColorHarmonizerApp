@@ -23,6 +23,7 @@ export type tTutorial = {
   infoIconSize?: number;
   layer?: number;
   params?: {};
+  maxOpacity?: number;
 };
 export function Tutorial({
   children,
@@ -30,6 +31,7 @@ export function Tutorial({
   width,
   origin,
   layer = eLayers.superMax,
+  maxOpacity = 1,
   params,
   infoIconOrigin = [0, 0],
   infoIconSize = 100,
@@ -63,7 +65,7 @@ export function Tutorial({
               id="grad"
               gradientUnits="userSpaceOnUse"
             >
-              <Stop stopColor={"black"} offset={0} stopOpacity={1} />
+              <Stop stopColor={"black"} offset={0} stopOpacity={maxOpacity} />
               <Stop stopColor={"black"} stopOpacity={0} offset={1} />
             </RadialGradient>
           </Defs>
@@ -85,10 +87,6 @@ export function Tutorial({
           top: infoIconOrigin[1] - infoIconSize / 2,
           left: infoIconOrigin[0] - infoIconSize / 2,
           zIndex: layer,
-          shadowColor: "black",
-          shadowOffset: { width: -2, height: 2 },
-          shadowOpacity: 0.5,
-          shadowRadius: 3,
         }}
         viewBox="-60 -60 120 120"
         onTouchEnd={() => {

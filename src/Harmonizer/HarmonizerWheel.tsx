@@ -41,7 +41,12 @@ export function HarmonizerWheel({
 }: tRadialObject & { draggable?: boolean }) {
   const chordLength = arcLength / chord;
 
-  const { vAccentAR, vSelected, vPage, vColorModel } = useUserContext();
+  const { vAccentAR, vSelected, vPage, vColorModel, vAccentC, vAccentL } =
+    useUserContext();
+  useEffect(() => {
+    vAccentC.dispatch(0.5);
+    vAccentL.dispatch(0.9);
+  }, []);
   const vPageRelay = useVerseRelay(vPage);
   console.log(vPageRelay.state, vPage.shared.value);
   const { registerBucket, unregisterBucket } = useBucketContext();

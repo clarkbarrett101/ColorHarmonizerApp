@@ -43,7 +43,7 @@ export const SectorGroup = ({
     return () => {
       actor.removeModifier(mTransformModifier.modID);
     };
-  }, [mTransformModifier]);
+  }, []);
 
   const animatedProps = useAnimatedProps(() => {
     "worklet";
@@ -73,8 +73,7 @@ export const SectorGroup = ({
         shadowRadius: attributes.shadowRadius || 0,
         shadowOpacity: attributes.shadowOpacity || 0,
         shadowColor:
-          "#" +
-          (attributes.shadowColor?.toString(16).padStart(6, "0") || "000000"),
+          "#" + (attributes.shadowColor?.toString(16).padStart(6, "0") || null),
       };
     });
     return style;

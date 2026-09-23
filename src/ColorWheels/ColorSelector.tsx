@@ -21,6 +21,7 @@ import { useBucketContext } from "../Buckets/BucketContext";
 import { tAttributeModifier } from "../utils/Actor";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { BrandFilter } from "../ColorWheels/BrandFilter";
+import { SweepDisplay } from "../Buttons/SweepDisplay";
 
 type tColorSelector = tRadialObject & {
   wheelCenter?: number;
@@ -53,7 +54,7 @@ export default function ColorSelector({
   const vTargetColor = useVerse<tCLARColor>({
     c: 0.5,
     l: 0.5,
-    ar: 0,
+    ar: 33 / 7,
   });
   const vBrand = useVerse<tBrand>("All Brands");
   const vChromaPanPos = useSharedValue({
@@ -174,46 +175,37 @@ export default function ColorSelector({
   };
   function fNearestColor(clar: tCLARColor): tCLARColor {
     "worklet";
-    clar.ar = wDefaultChordToAngle(
-      wDefaultAngleToChord(clar.ar, 44 / 7, 24, 0),
+    const color = { ...clar };
+    color.ar = wDefaultChordToAngle(
+      wDefaultAngleToChord(color.ar, 44 / 7, 24, 0),
       44 / 7,
       24,
       0,
     );
-    clar.l = wDefaultAngleToChord(
-      wDefaultChordToAngle(
-        lightnessArcRotation[1] -
-          lightnessArcRotation[0] / 2 +
-          lightnessArcRotation[0] * (1 - clar.l),
-        lightnessArcRotation[0],
-        litDimensions[1],
-        lightnessArcRotation[1],
-      ),
-      lightnessArcRotation[0],
-      litDimensions[1],
-      lightnessArcRotation[1],
-    );
-    clar.c = wDefaultChordToAngle(
-      wDefaultAngleToChord(
-        chromaArcRotation[1] -
-          chromaArcRotation[0] / 2 +
-          chromaArcRotation[0] * clar.c,
-        chromaArcRotation[0],
-        chromaDimensions[1],
-        chromaArcRotation[1],
-      ),
-      chromaArcRotation[0],
-      chromaDimensions[1],
-      chromaArcRotation[1],
-    );
-    return clar;
+    color.l = Math.floor(color.l * litDimensions[1]) / (litDimensions[1] - 1);
+    color.c =
+      Math.floor(color.c * chromaDimensions[1]) / (chromaDimensions[1] - 1);
+    return color;
   }
 
   const fOnDrop = useCallback((paint: tPaint) => {
     const clar = fNearestColor(paint.clar);
     vAccentAR.shared.value = clar.ar;
-    vLightnessPanPos.value = { angle: clar.l, radius: radii[1] };
-    vChromaPanPos.value = { angle: clar.c, radius: radii[1] };
+    vLightnessPanPos.value = {
+      angle:
+        clar.l * lightnessArcRotation[0] +
+        lightnessArcRotation[1] -
+        lightnessArcRotation[0] / 2,
+      radius: radii[1],
+    };
+    vChromaPanPos.value = {
+      angle:
+        clar.c * chromaArcRotation[0] +
+        chromaArcRotation[1] -
+        chromaArcRotation[0] / 2,
+      radius: radii[1],
+    };
+    wUpdateState();
   }, []);
 
   function wUpdateState() {
@@ -240,44 +232,48 @@ export default function ColorSelector({
   /// R E N D E R ///
   return (
     <>
-      <View>
-        <RadialContext
-          value={{
-            radii,
-            origin,
-            wUpdateState,
-          }}
-        >
-          <TintSelector
-            key={`Lightness Selector`}
-            arcLength={lightnessArcRotation[0]}
-            rotationR={lightnessArcRotation[1]}
-            ring={litDimensions[0]}
-            chord={litDimensions[1]}
-            radii={[radii[1] - 50, radii[1] + 75]}
-            vPanPos={vLightnessPanPos}
-            colorModifier={lightnessModifier}
-          />
-          <TintSelector
-            key={`Chroma Selector`}
-            arcLength={chromaArcRotation[0]}
-            rotationR={chromaArcRotation[1]}
-            ring={chromaDimensions[0]}
-            chord={chromaDimensions[1]}
-            radii={[radii[1] - 50, radii[1] + 75]}
-            vPanPos={vChromaPanPos}
-            colorModifier={chromaModifier}
-          />
-          <ColorWheel
-            radii={radii}
-            ring={5}
-            chord={24}
-            wheelCenter={wheelCenter}
-            draggable={true}
-            offsetLevel={50}
-          />
-        </RadialContext>
-      </View>
+      <RadialContext
+        value={{
+          radii,
+          origin,
+          wUpdateState,
+        }}
+      >
+        <TintSelector
+          key={`Lightness Selector`}
+          arcLength={lightnessArcRotation[0]}
+          rotationR={lightnessArcRotation[1]}
+          ring={litDimensions[0]}
+          chord={litDimensions[1]}
+          radii={[radii[1] - 50, radii[1] + 75]}
+          vPanPos={vLightnessPanPos}
+          colorModifier={lightnessModifier}
+        />
+        <TintSelector
+          key={`Chroma Selector`}
+          arcLength={chromaArcRotation[0]}
+          rotationR={chromaArcRotation[1]}
+          ring={chromaDimensions[0]}
+          chord={chromaDimensions[1]}
+          radii={[radii[1] - 50, radii[1] + 75]}
+          vPanPos={vChromaPanPos}
+          colorModifier={chromaModifier}
+        />
+        <ColorWheel
+          radii={radii}
+          ring={5}
+          chord={24}
+          wheelCenter={wheelCenter}
+          draggable={true}
+          offsetLevel={50}
+        />
+      </RadialContext>
+      <SweepDisplay
+        radii={[radii[1] - 100, radii[1] - 50]}
+        origin={origin}
+        layer={eLayers.colorMixer + 50}
+        opacity={0.25}
+      />
       <BrandFilter
         vBrand={vBrand}
         radius={50}

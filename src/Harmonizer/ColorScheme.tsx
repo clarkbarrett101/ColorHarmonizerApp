@@ -1,10 +1,5 @@
-import { View, Text, Dimensions } from "react-native";
-import React, { use, useEffect, useState } from "react";
-import { useSharedValue, useAnimatedReaction } from "react-native-reanimated";
-import { usePanManager, ePanEvent } from "../Contexts/PanManager";
+import React from "react";
 import { tRadialObject } from "../Radials/SectorTypes";
-import { tVerse, useVerse } from "../utils/Verse";
-import { wDefaultAngleToChord } from "../Radials/RadialContext";
 import { ColorFan, tColorFan } from "./ColorFan";
 import { eLayers } from "../Contexts/UserContext";
 import {

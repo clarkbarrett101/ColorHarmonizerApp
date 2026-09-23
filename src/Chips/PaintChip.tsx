@@ -322,6 +322,7 @@ export const PaintChip = ({
   const zStyle = useAnimatedStyle(() => {
     const style = actor.get((attributes) => {
       return {
+        opacity: attributes.alpha || 0,
         zIndex: attributes.zIndex || 0,
         shadowOffset: {
           width: attributes.shadowX || 0,

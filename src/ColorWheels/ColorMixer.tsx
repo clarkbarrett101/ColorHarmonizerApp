@@ -177,24 +177,13 @@ export default function ColorMixer({
           mTransformModifier,
         }}
       >
-        <View
-          style={{
-            position: "absolute",
-            shadowColor: "black",
-            shadowOffset: { width: -5, height: 5 },
-            shadowOpacity: 0.75,
-            shadowRadius: 5,
-            zIndex: eLayers.colorMixer,
-          }}
-        >
-          <RadialGraphic
-            ring={ring}
-            chord={chord}
-            arcLength={arcLength}
-            rotationR={rotationR}
-            fSectorGroupModifier={fSectorGroupModifier}
-          />
-        </View>
+        <RadialGraphic
+          ring={ring}
+          chord={chord}
+          arcLength={arcLength}
+          rotationR={rotationR}
+          fSectorGroupModifier={fSectorGroupModifier}
+        />
       </RadialContext>
       <PaintChip
         paintA={vTargetColor.state}

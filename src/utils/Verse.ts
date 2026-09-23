@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SharedValue, useSharedValue } from "react-native-reanimated";
+import {
+  cancelAnimation,
+  SharedValue,
+  useSharedValue,
+} from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import {
   ISharedValue,
@@ -52,6 +56,12 @@ export function useVerse<type>(init: type): tVerse<type> {
   useEffect(() => {
     listeners.forEach((callback) => callback(state));
   }, [state]);
+  useEffect(() => {
+    return () => {
+      cancelAnimation(shared);
+      listeners.clear();
+    };
+  }, []);
 
   return useMemo(
     () => ({
@@ -84,12 +94,12 @@ export function useVerseRelay<type>(
   }, [state]);
 
   useEffect(() => {
-    const unsubscribe = subscribe?.((value) => {
+    const callback = subscribe?.((value) => {
       const next = callbackRef.current ? callbackRef.current(value) : value;
       setLocalState((prev) => (Object.is(prev, next) ? prev : next));
     });
     return () => {
-      unsubscribe?.();
+      unSubscribe?.(callback);
     };
   }, [subscribe]);
 

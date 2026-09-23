@@ -54,10 +54,6 @@ export function CurvedText({
         height: radii[1] * 2,
         zIndex: layer,
         transform: [{ rotate: `${rotationR}rad` }],
-        shadowColor: color,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 5,
       }}
       viewBox={`${-radii[1] * 1} ${-radii[1] * 1} ${2 * radii[1]} ${2 * radii[1]}`}
       pointerEvents="none"

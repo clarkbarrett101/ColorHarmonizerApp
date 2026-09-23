@@ -27,6 +27,7 @@ export type tThermSelect = {
 };
 const defaultTempList = [3500, 4500, 5500, 6500, 8000, 10000, 12000];
 export const ThermSelect = (props: tThermSelect) => {
+  const hitSlop = 60;
   let temps = (props.tempList || defaultTempList).map((k) => kelvin_table[k]);
   const ctx = useRadialContext();
   const origin = props.origin || ctx.origin || [0, 0];
@@ -51,9 +52,9 @@ export const ThermSelect = (props: tThermSelect) => {
     id: "" + origin[0] + origin[1],
     shape: "capsule",
     priority: 10,
-    origin: [origin[0], origin[1] + radius / 2],
+    origin: [origin[0], origin[1] + radius / 2 - hitSlop],
     arcLength: totalArcLength,
-    radii: [radius * 0.7, radius * temps.length],
+    radii: [radius, radius * temps.length + hitSlop],
     capsuleMod: dActive,
     rotationR: mainRotationR,
     fOnUpdate: (state, pos) => {
@@ -61,7 +62,7 @@ export const ThermSelect = (props: tThermSelect) => {
       console.log("Pan update", state.value, vActive.value);
       if (vActive.value < 0.5) {
         if (state.value == "drag") {
-          const index = Math.round(pos.value.radius / radius);
+          const index = Math.round((pos.value.radius - hitSlop) / radius);
           if (
             index >= 0 &&
             index < temps.length &&
@@ -72,7 +73,7 @@ export const ThermSelect = (props: tThermSelect) => {
           }
         }
         if (state.value == "release" || state.value == "tap") {
-          const index = Math.round(pos.value.radius / radius);
+          const index = Math.round((pos.value.radius - hitSlop) / radius);
           if (
             index >= 0 &&
             index < temps.length &&
@@ -112,12 +113,6 @@ export const ThermSelect = (props: tThermSelect) => {
         translateX: x,
         scaleX: selected ? 1.1 : 1,
         scaleY: selected ? 1.1 : 1,
-        shadowOpacity:
-          vActive.value < 1
-            ? input.shadowOpacity
-            : selected
-              ? input.shadowOpacity
-              : 0,
         zIndex:
           temps.length -
           Math.abs(vSelection.value - input.ring) +

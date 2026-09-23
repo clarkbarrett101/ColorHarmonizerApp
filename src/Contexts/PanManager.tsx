@@ -5,12 +5,16 @@ import {
   useSimultaneousGestures,
   useTapGesture,
 } from "react-native-gesture-handler";
-import { SharedValue, useSharedValue } from "react-native-reanimated";
+import {
+  SharedValue,
+  useAnimatedReaction,
+  useSharedValue,
+} from "react-native-reanimated";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 import { fMakeSectorPath, tRadialObject } from "../Radials/SectorTypes";
 import { Dimensions, Share, View } from "react-native";
 import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
-import { eLayers } from "./UserContext";
+import { eLayers, useUserContext } from "./UserContext";
 import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
 
 export type ePanEvent = "enter" | "leave" | "drag" | "tap" | "release";
@@ -60,6 +64,7 @@ type tPanManager = {
   registerHitBox: (hitbox: tRadialHitBox) => void;
   unregisterHitBox: (id: string) => void;
   calculateBounds: () => void;
+  vTouched: tVerse<boolean>;
 };
 
 const Ctx = React.createContext<tPanManager | null>(null);
@@ -71,6 +76,7 @@ export function usePanManager() {
       registerHitBox: () => {},
       unregisterHitBox: () => {},
       calculateBounds: () => {},
+      vTouched: null,
     };
   }
   return context;
@@ -89,6 +95,14 @@ export default function PanManager({
   const vHitBoxes = useVerse<Record<string, tRadialHitBox>>({});
   const vCurrentHitBox = useVerse<string | null>(null);
   const [layer, setLayer] = useState<number>(zIndex);
+  const vTouched = useVerse<boolean>(false);
+  const { vPage } = useUserContext();
+  useAnimatedReaction(
+    () => vPage.shared.value,
+    (page) => {
+      vTouched.shared.value = false;
+    },
+  );
 
   const vBounds = useVerse<{
     minX: number;
@@ -248,6 +262,7 @@ export default function PanManager({
   };
   const panUpdate = (e: { absoluteX: number; absoluteY: number }) => {
     "worklet";
+    vTouched.shared.value = true;
     let foundZone = false;
     const hitBoxesArray = Object.values(vHitBoxes.shared.value);
     hitBoxesArray.sort((a, b) => (b.priority || 0) - (a.priority || 0));
@@ -363,6 +378,7 @@ export default function PanManager({
         registerHitBox,
         unregisterHitBox,
         calculateBounds,
+        vTouched,
       }}
     >
       {children}

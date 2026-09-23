@@ -59,11 +59,6 @@ export const useChipContext = () => useContext(Context);
 export default function UserContext({ children }: { children: ReactNode }) {
   const allModifiers = useRef<Record<number, tAttributeModifier>>({}).current;
   const allChipActors = useRef<Record<number, tActor>>({}).current;
-  const vSwayTimer = useSharedValue(0);
-  useEffect(() => {
-    vSwayTimer.value = withRepeat(withTiming(1, { duration: 4000 }), -1, true);
-  }, []);
-
   const registerModifier = useCallback(
     (attributeModifier: tAttributeModifier) => {
       const id = attributeModifier.modID;
@@ -72,7 +67,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
         return id;
       }
       allModifiers[id] = attributeModifier;
-      console.log("Registering modifier", Object.keys(allModifiers));
+      console.log("Registering modifier", Object.keys(allModifiers).length);
       for (let chipID in allChipActors) {
         allChipActors[chipID].addModifier(attributeModifier);
       }
@@ -85,10 +80,12 @@ export default function UserContext({ children }: { children: ReactNode }) {
     for (let chipID in allChipActors) {
       allChipActors[chipID].removeModifier(id);
     }
+    console.log("Unregistering modifier", Object.keys(allModifiers));
   }, []);
 
   const registerChipActor = useCallback(
     (chipID: number, entry: tActor, paints: [tPaint, tPaint?]) => {
+      console.log("Registering chip actor", Object.keys(allChipActors));
       allChipActors[chipID] = entry;
       for (let key in allModifiers) {
         const entry = allModifiers[key];
@@ -99,6 +96,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
   );
   const unregisterChipActor = useCallback((chipID: number) => {
     delete allChipActors[chipID];
+    console.log("Unregistering chip actor", Object.keys(allChipActors).length);
   }, []);
 
   const _vPanX = useVerse(0);
@@ -110,6 +108,11 @@ export default function UserContext({ children }: { children: ReactNode }) {
   const vVelocityX = useRef(_vVelocityX).current;
   const vHeldChipID = useRef(_vHeldChipID).current;
   const [heldChipPaint, setHeldChipPaint] = useState<tPaint | null>(null);
+  const vSwayTimer = useSharedValue(0);
+  useEffect(() => {
+    vSwayTimer.value = 0;
+    vSwayTimer.value = withRepeat(withTiming(1, { duration: 10000 }), -1, true);
+  }, []);
 
   const holdChip = useCallback((chipID?: number) => {
     "worklet";

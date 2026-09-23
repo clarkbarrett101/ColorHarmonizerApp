@@ -2,7 +2,12 @@ import { Dimensions } from "react-native";
 import React, { useEffect } from "react";
 import { usePanManager } from "../Contexts/PanManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fAverageColor, fCLARColorToString, tPalette } from "../utils/CLAcolor";
+import {
+  fAverageColor,
+  fCLARColorToString,
+  fToList,
+  tPalette,
+} from "../utils/CLAcolor";
 import { CleanPalette, eLayers, useUserContext } from "../Contexts/UserContext";
 import { fLerpModifierFactory, tAttributeModifier } from "../utils/Actor";
 import { useChipContext } from "./ChipContext";
@@ -22,6 +27,7 @@ import { useVerse } from "../utils/Verse";
 import { ChipFan, ChipRow } from "./ChipStack";
 import { Paths } from "../utils/Paths";
 import Button from "../Buttons/Button";
+import * as Clipboard from "expo-clipboard";
 
 export default function PaletteLibrary({
   radii = [50, 300],
@@ -278,6 +284,11 @@ export default function PaletteLibrary({
     fOnLeave();
   }
 
+  function fClipBoard() {
+    const list = fToList(vUserPalette.shared.value.paints);
+    Clipboard.setStringAsync(list);
+  }
+
   /// R E N D E R
 
   return (
@@ -305,6 +316,13 @@ export default function PaletteLibrary({
             letterSpacing: 4,
           },
         }}
+      />
+      <Button
+        path={Paths.share}
+        onPress={() => fClipBoard()}
+        size={100}
+        origin={[200, 150]}
+        viewRadius={75}
       />
       {vUserPalette.shared.value.paints.length > 0 && (
         <Button

@@ -14,19 +14,18 @@ import { use, useEffect } from "react";
 export default function BGGradient() {
   const { vColorModel, vAccentAR, vAccentC, vAccentL, vSelected, vPage } =
     useUserContext();
-  const vPageRelay = useVerseRelay(vPage);
   const harmonizerPages: ePages[] = [
     "Color Harmonizer",
     "Scheme Selector",
     "Chip Selector",
   ];
   const colors = useDerivedValue(() => {
-    if (!harmonizerPages.includes(vPageRelay?.state)) {
+    if (!harmonizerPages.includes(vPage.shared.value)) {
       return [
         fCLARColorToString(
           {
-            c: vAccentC.shared.value ** 0.5,
-            l: vAccentL.shared.value ** 0.5,
+            c: vAccentC.shared.value ** 1.5,
+            l: vAccentL.shared.value ** 0.25,
             ar: vAccentAR.shared.value,
           },
           vColorModel.shared.value,
@@ -35,8 +34,8 @@ export default function BGGradient() {
     }
 
     const cs = vSelected.shared.value.map((ar, index) => {
-      const c = vAccentC.shared.value;
-      const l = vAccentL.shared.value;
+      const c = vAccentC.shared.value ** 1.5;
+      const l = vAccentL.shared.value ** 0.25;
       return fCLARColorToString({ c, l, ar }, vColorModel.shared.value);
     });
     return cs;

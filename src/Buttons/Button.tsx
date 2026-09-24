@@ -14,6 +14,7 @@ export type tButton = {
   origin?: [number, number];
   viewRadius?: number;
   textCircle?: tTextCircle;
+  layer?: number;
 };
 export default function Button({
   onPress,
@@ -22,6 +23,7 @@ export default function Button({
   origin = [20, 40],
   viewRadius = 25,
   textCircle,
+  layer = eLayers.dropScreen - 1,
 }: tButton) {
   const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
   const animatedProps = useAnimatedProps(() => ({
@@ -45,7 +47,7 @@ export default function Button({
         left: origin[0] - size / 2,
         width: size,
         height: size,
-        zIndex: eLayers.dropScreen - 1,
+        zIndex: layer,
         shadowColor: "black",
         shadowOffset: { width: -2, height: 2 },
         shadowOpacity: 0.5,

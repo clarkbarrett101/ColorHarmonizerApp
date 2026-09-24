@@ -1,4 +1,4 @@
-import { Dimensions, TextInput } from "react-native";
+import { Dimensions, TextInput, Text } from "react-native";
 import {
   fCLARColorToRGB,
   fCLARColorToString,
@@ -17,11 +17,14 @@ import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tAttributeModifier } from "../utils/Actor";
 import { PetalBox } from "../Buttons/PetalBox";
 import { useDerivedValue } from "react-native-reanimated";
-import { PaintChip, PaintChipPlaceholder } from "../Chips/PaintChip";
+import {
+  eChipSizes,
+  PaintChip,
+  PaintChipPlaceholder,
+} from "../Chips/PaintChip";
 import { BrandFilter } from "./BrandFilter";
 import { useVerse, useVerseRelay } from "../utils/Verse";
 import { PetalButton } from "../Buttons/PetalButton";
-import { Text } from "react-native-svg";
 
 export default function ColorSearch({
   radii = [400, 450],
@@ -36,7 +39,7 @@ export default function ColorSearch({
   const paintsA = useRef<tPaint[]>([]);
   const paintsB = useRef<tPaint[]>([]);
   const offset = useRef(0);
-  const vSideA = useVerse<boolean>(true);
+  const vSideA = useVerse<boolean>(false);
   const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
   const vACRelay = useVerseRelay(vAccentC);
   const vALRelay = useVerseRelay(vAccentL);
@@ -80,32 +83,31 @@ export default function ColorSearch({
   }
   function onSubmit() {
     console.log("Updating list with offset:", offset.current);
-    if (!vSideA.state)
+    let avgColor = null;
+    if (!vSideA.shared.value) {
       paintsA.current = allResults.current.slice(
         offset.current,
         offset.current + 9,
       );
-    else
+      avgColor = fAverageColor(paintsA.current);
+    } else {
       paintsB.current = allResults.current.slice(
         offset.current,
         offset.current + 9,
       );
-    vSideA.dispatch(!vSideA.state);
-    const avgColor = fAverageColor(
-      vSideA.state ? paintsA.current : paintsB.current,
-    );
+      avgColor = fAverageColor(paintsB.current);
+    }
+    vSideA.dispatch(!vSideA.shared.value);
     console.log("Average color calculated:", avgColor);
     vAARRelay.dispatch(avgColor.ar);
     vACRelay.dispatch(avgColor.c);
     vALRelay.dispatch(avgColor.l);
   }
-  const totalPaints = vSideA.state
-    ? paintsA.current.length
-    : paintsB.current.length;
 
   useEffect(() => {
     updateList();
   }, [vBrand.state]);
+  useEffect(() => {}, []);
   return (
     <>
       <TextInput
@@ -118,7 +120,7 @@ export default function ColorSearch({
           borderRadius: 20,
           top: origin[1] - textDimensions.height / 2 - 17,
           left: origin[0] - textDimensions.width / 2,
-          zIndex: eLayers.colorMixer + 10,
+          zIndex: eLayers.chipFan,
           position: "absolute",
           paddingHorizontal: 10,
         }}
@@ -135,7 +137,7 @@ export default function ColorSearch({
           borderWidth: 1,
           top: origin[1] - textDimensions.height / 2 + 17,
           left: origin[0] - textDimensions.width / 2,
-          zIndex: eLayers.colorMixer + 10,
+          zIndex: eLayers.chipFan,
           position: "absolute",
           paddingHorizontal: 10,
           borderRadius: 20,
@@ -146,6 +148,25 @@ export default function ColorSearch({
         onChangeText={(text) => setLabel(text)}
         onSubmitEditing={updateList}
       />
+      <Text
+        style={{
+          position: "absolute",
+          top:
+            origin[1] -
+            textDimensions.height / 2 -
+            eChipSizes.grabbed[1] * 0.75,
+          left: origin[0] - textDimensions.width / 2 + 5,
+          zIndex: eLayers.colorMixer + 10,
+          fontSize: 16,
+          fontWeight: "bold",
+          fontFamily: "Outfit",
+          opacity: 0.5,
+          textAlign: "center",
+          textAlignVertical: "center",
+        }}
+      >
+        Total Paints Found:{`\n${allResults.current.length}`}
+      </Text>
       <PaintChipPlaceholder
         paintA={placeHolder()}
         origin={origin}
@@ -154,22 +175,22 @@ export default function ColorSearch({
       />
       <BrandFilter
         origin={[origin[0], origin[1] + 100]}
-        totalArcLength={3 / 7}
-        radius={35}
+        totalArcLength={2 / 7}
+        radius={45}
         vBrand={vBrand}
         mainRotationR={11 / 7}
-        layer={eLayers.colorMixer - 10}
+        layer={eLayers.buckets - 10}
       />
       <ChipFan
         origin={[origin[0] + radii[1] / 2, origin[1]]}
         paintsA={paintsA.current}
         paintsB={paintsB.current}
-        arcLength={Math.min(totalPaints / 4, 11 / 7)}
+        arcLength={11 / 7}
         sideA={vSideA.state}
         radius={radii[1]}
         rotationR={22 / 7}
         groupLayer={eLayers.chipFan}
-        size={totalPaints > 9 ? "small" : "default"}
+        size={"default"}
       />
       {offset.current > 0 && (
         <PaintChipPlaceholder

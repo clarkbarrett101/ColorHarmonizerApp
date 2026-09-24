@@ -51,7 +51,7 @@ import React from "react";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-export default function WallPaintCam() {
+export default function ReColorCam() {
   const { hasPermission, requestPermission } = useCameraPermission();
   if (!hasPermission) {
     requestPermission();

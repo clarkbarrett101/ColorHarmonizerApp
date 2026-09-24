@@ -470,7 +470,7 @@ export function PaintChipPlaceholder({
         shadowColor: "#000",
         shadowOpacity: 0.7,
         shadowRadius: 5,
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: -2, height: 2 },
       }}
       onPress={onPress}
     >

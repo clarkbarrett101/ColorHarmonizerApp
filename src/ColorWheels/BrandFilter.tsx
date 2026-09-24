@@ -18,7 +18,12 @@ import {
 } from "react-native-reanimated";
 import Animated from "react-native-reanimated";
 import { useRadialContext, RadialContext } from "../Radials/RadialContext";
-import { tSector, tSectorGroup } from "../Radials/SectorTypes";
+import {
+  fGetBumpSize,
+  fMakePetalPath,
+  tSector,
+  tSectorGroup,
+} from "../Radials/SectorTypes";
 import { SectorGroup } from "../Radials/SectorGroup";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tVerse, useVerse } from "../utils/Verse";
@@ -56,7 +61,8 @@ export const BrandFilter = (props: tBrandFilter) => {
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const vPanState = useSharedValue<tPanEvent>("leave");
   const vInZone = useSharedValue(false);
-  const totalRadius = radius * (brands.length - 1);
+  const totalRadius =
+    (radius - fGetBumpSize(totalArcLength, radius)) * (brands.length - 1);
   const selection = useDerivedValue(() => {
     "worklet";
     const ring = Math.floor(
@@ -206,40 +212,50 @@ export const BrandFilter = (props: tBrandFilter) => {
     deps: [collapseAnim, selection],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const x = (input.ring * collapseAnim.value - 0.5) * radius;
+      const x =
+        (input.ring * collapseAnim.value - 0.5) *
+        (radius - fGetBumpSize(totalArcLength, radius) / 2);
 
       return {
         ...input,
         translateX: x,
         zIndex:
           brands.length - Math.abs(selection.value - input.ring) + props.layer,
-        shadowOpacity: collapseAnim.value * 3,
+        shadowOpacity: collapseAnim.value * 0.5,
+        shadowRadius: 2,
       };
     },
   };
   const adjustedRotation = Math.round(mainRotationR / (11 / 7)) * (-11 / 7);
 
   const sectors = useCallback(() => {
+    const bumpSize = fGetBumpSize(totalArcLength, radius);
+    console.log(bumpSize);
     const group = [];
     for (let i = 0; i < brands.length; i++) {
       const sector: tSector = {
         arcLength: totalArcLength,
         chord: 0,
         ring: i,
-        radii: [radius * 0.2, radius * 1.2],
+        radii: [bumpSize, radius + bumpSize],
       };
       let brandString = (brands[i] as string).split(/[\s-]/);
-      const text = fTextWrapSVG(brandString, 32, [0, radius * 0.55], {
-        fontFamily: "Outfit",
-        fontSize: 16,
-        textAnchor: "middle",
-        opacity: 0.8,
-        fontWeight: 300,
-        fill: i / (brands.length - 1) > 0.4 ? "white" : "black",
-        transform: [{ rotate: `${adjustedRotation}rad` }],
-        verticalAlign: "middle",
-        alignmentBaseline: "middle",
-      } as React.ComponentProps<typeof Text>);
+      const text = fTextWrapSVG(
+        brandString,
+        32,
+        [0, radius / 2 + bumpSize / 2],
+        {
+          fontFamily: "Outfit",
+          fontSize: 16,
+          textAnchor: "middle",
+          opacity: 0.8,
+          fontWeight: 300,
+          fill: i / (brands.length - 1) > 0.4 ? "white" : "black",
+          transform: [{ rotate: `${adjustedRotation}rad` }],
+          verticalAlign: "middle",
+          alignmentBaseline: "middle",
+        } as React.ComponentProps<typeof Text>,
+      );
       const sectorGroup: tSectorGroup = {
         arcLength: totalArcLength,
         chord: 0,
@@ -301,6 +317,9 @@ export const BrandFilter = (props: tBrandFilter) => {
           mTransformModifier,
           totalArcLength,
           mainRotationR,
+          fPathFunction: (r, a, m) => {
+            return fMakePetalPath(r, a, m, 0, 0.7);
+          },
         }}
       >
         <View
@@ -310,7 +329,7 @@ export const BrandFilter = (props: tBrandFilter) => {
             shadowOffset: { width: -3, height: 3 },
             shadowOpacity: 0.5,
             shadowRadius: 5,
-            zIndex: eLayers.buckets,
+            zIndex: props.layer,
           }}
         >
           {sectors()}

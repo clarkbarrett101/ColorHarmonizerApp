@@ -28,8 +28,8 @@ export default function SchemeSelector({
   }, [vSelectedRelay?.state]);
   const { vAccentC, vAccentL } = useUserContext();
   useEffect(() => {
-    vAccentC.dispatch(0.25);
-    vAccentL.dispatch(0.9);
+    vAccentC.dispatch(0.3);
+    vAccentL.dispatch(0.8);
   }, []);
   usePanHitBox({
     id: "schemeSelector",

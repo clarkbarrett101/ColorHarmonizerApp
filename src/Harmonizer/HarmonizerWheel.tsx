@@ -24,6 +24,7 @@ import { useBucketContext } from "../Buckets/BucketContext";
 import { PetalBox } from "../Buttons/PetalBox";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 import { CurvedText } from "../Buttons/CurvedText";
+import { SweepDisplay } from "../Buttons/SweepDisplay";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 

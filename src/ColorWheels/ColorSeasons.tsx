@@ -36,7 +36,7 @@ import {
   vec,
 } from "@shopify/react-native-skia";
 import { CurvedText } from "../Buttons/CurvedText";
-import { Svg, Text, TextProps, TSpan } from "react-native-svg";
+import { Text, TextProps } from "react-native-svg";
 import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 export default function ColorSeasons({
   radii = [0, 300],
@@ -61,7 +61,7 @@ export default function ColorSeasons({
   const vBrand = useVerse<tBrand>("All Brands");
   const randomPaint = useMemo(() => fGetRandomPaint(), []);
   const vTargetColor = useVerse<tPaint>(randomPaint);
-  const [sideA, setSideA] = useState(true);
+  const [sideA, setSideA] = useState(false);
   const rotationAnim = useSharedValue(0);
   useEffect(() => {
     rotationAnim.value = withTiming(1, { duration: 500 });
@@ -81,16 +81,24 @@ export default function ColorSeasons({
     );
     return arg;
   }
-  const paints = useRef<tPaint[]>([]);
+  const paintsA = useRef<tPaint[]>([]);
+  const paintsB = useRef<tPaint[]>([]);
 
   useEffect(() => {
     vAccentAR.dispatch(vTargetColor.state.clar.ar);
     vAccentC.dispatch(vTargetColor.state.clar.c);
     vAccentL.dispatch(vTargetColor.state.clar.l);
-    paints.current = colorMaptoArray(
-      fGetSeasonColors(vTargetColor.state.clar, vBrand.state),
-    );
-    sideA ? setSideA(false) : setSideA(true);
+    if (sideA) {
+      paintsB.current = colorMaptoArray(
+        fGetSeasonColors(vTargetColor.state.clar, vBrand.state),
+      );
+      setSideA(false);
+    } else {
+      paintsA.current = colorMaptoArray(
+        fGetSeasonColors(vTargetColor.state.clar, vBrand.state),
+      );
+      setSideA(true);
+    }
   }, [vTargetColor.state, vBrand.state]);
 
   function fLerp(a: number, b: number, t: number): number {
@@ -224,8 +232,8 @@ export default function ColorSeasons({
         rotationR={11 / 7}
       />
       <ChipFan
-        paintsA={paints.current}
-        paintsB={paints.current}
+        paintsA={paintsA.current}
+        paintsB={paintsB.current}
         origin={origin}
         sideA={sideA}
         arcLength={arcLength}

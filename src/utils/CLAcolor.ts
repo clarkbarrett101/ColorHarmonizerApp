@@ -400,6 +400,7 @@ export function fDirectColorSearch(params: tColorSearchParams): tPaint[] {
   return list;
 }
 export function fAverageColor(colors: tPaint[]): tCLARColor {
+  "worklet";
   let totalC = 0.5;
   let totalL = 0.5;
   let totalAR = 0;
@@ -430,7 +431,7 @@ export function fAverageColor(colors: tPaint[]): tCLARColor {
 export function fToList(paints: tPaint[]) {
   let list = "";
   for (const paint of paints) {
-    list += `{Name: ${paint.name ?? ""}, Brand: ${paint.brand ?? ""}, Label: ${paint.label ?? ""} RGB: ${paint.rgb ?? ""}},\n`;
+    list += `"${paint.name ?? ""}"\n ${paint.brand ?? ""} (${paint.label ?? ""}) [${paint.hex.toUpperCase() ?? ""}],\n`;
   }
   return list;
 }
@@ -580,3 +581,74 @@ export function fGetSeasonColors(
   }
   return seasonColors;
 }
+export function fDefaultPalettes() {
+  const paintLabels = [
+    ["P100-4", "1241-3", "P550-3", "660C-3", "670A-3"],
+    ["CSP-690", "110F-7", "S-H-120", "P530-7", "1242-7"],
+    ["18-1250", "S-H-390", "1192-7", "2146-10", "2156-10", "2155-10"],
+    ["130B-5", "190B-5", "2025-30", "410B-5", "6903"],
+  ];
+  let palettes = [];
+  for (let i = 0; i < paintLabels.length; i++) {
+    const paints = paintLabels[i].map((label) =>
+      clarColorsList.find((color) => color.label.toString() === label),
+    );
+    for (let j = 0; j < paints.length; j++) {
+      if (!paints[j]) {
+        console.warn(
+          `Paint with label ${paintLabels[i][j]} not found in clarColorsList`,
+        );
+      }
+    }
+    palettes.push({ paints });
+  }
+  console.log("Default palettes:", palettes);
+  return palettes;
+}
+/*
+"Lovers Knot"
+ Behr (P100-4) [#C89CFF],
+"Sweet Dreams"
+ PPG (1241-3) [#9BC7EA],
+"Lavender Cloud"
+ Behr (P550-3) [#BAC3FF],
+"Sweet Petal"
+ Behr (660C-3) [#CFBCF2],
+"Posies"
+ Behr (670A-3) [#E5B3FF],
+
+"Hidden Sapphire"
+ Benjamin Moore (CSP-690) [#033C4F],
+"Deep Garnet"
+ Behr (110F-7) [#482A3F],
+"Antique Ruby"
+ Behr (S-H-120) [#791A46],
+"Tanzanite"
+ Behr (P530-7) [#1A32B6],
+"Suddenly Sapphire"
+ PPG (1242-7) [#1A5897],
+
+"Bombay Brown"
+ Pantone (18-1250) [#9F5130],
+"Italian Olive"
+ Behr (S-H-390) [#6F6E21],
+"Tabasco"
+ PPG (1192-7) [#BF5B3C],
+"Dark Celery"
+ Benjamin Moore (2146-10) [#84882F],
+"Autumn Orange"
+ Benjamin Moore (2156-10) [#C67727],
+"Desert Sunset"
+ Benjamin Moore (2155-10) [#D78B1B],
+
+"Bridesmaid"
+ Behr (130B-5) [#F666B7],
+"Juicy Passionfruit"
+ Behr (190B-5) [#FC6C7A],
+"New Lime"
+ Benjamin Moore (2025-30) [#D3D713],
+"Hidden Meadow"
+ Behr (410B-5) [#B1F02E],
+"Cheerful"
+ Sherwin Williams (6903) [#FFC723],
+*/

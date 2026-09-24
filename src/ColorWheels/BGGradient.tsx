@@ -7,7 +7,7 @@ import {
 import { Dimensions, View } from "react-native";
 import { useDerivedValue } from "react-native-reanimated";
 import { useVerseRelay } from "../utils/Verse";
-import { fCLARColorToString } from "../utils/CLAcolor";
+import { fCLARColorToString, fCLARColorToRGB } from "../utils/CLAcolor";
 import { eLayers, ePages, useUserContext } from "../Contexts/UserContext";
 import { use, useEffect } from "react";
 
@@ -32,12 +32,13 @@ export default function BGGradient() {
         ),
       ];
     }
-
     const cs = vSelected.shared.value.map((ar, index) => {
-      const c = vAccentC.shared.value ** 1.5;
-      const l = vAccentL.shared.value ** 0.25;
-      return fCLARColorToString({ c, l, ar }, vColorModel.shared.value);
+      const c = vAccentC.shared.value;
+      const l = vAccentL.shared.value ** 0.5;
+      const rgb = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
+      return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
     });
+    console.log("vSelected.shared.value:", cs);
     return cs;
   });
   const shadow = useDerivedValue(() => {

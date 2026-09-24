@@ -268,17 +268,11 @@ export default function ColorSelector({
           offsetLevel={50}
         />
       </RadialContext>
-      <SweepDisplay
-        radii={[radii[1] - 100, radii[1] - 50]}
-        origin={origin}
-        layer={eLayers.colorMixer + 50}
-        opacity={0.25}
-      />
       <BrandFilter
         vBrand={vBrand}
-        radius={50}
+        radius={40}
         layer={eLayers.buckets}
-        totalArcLength={2.5 / 7}
+        totalArcLength={2 / 7}
         mainRotationR={11 / 7}
         origin={[Dimensions.get("window").width - 60, 75]}
       />

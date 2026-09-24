@@ -9,8 +9,8 @@ import ChipHand from "./Chips/ChipHand";
 import Menu from "./Menu";
 import ColorSearch from "./ColorWheels/ColorSearch";
 import DropScreen from "./Buckets/DropScreen";
-import ColorCamera from "./Cameras/ColorCamera";
-import WallPaintCam from "./Cameras/WallPaintCam";
+import UndertoneCam from "./Cameras/UndertoneCam";
+import ReColorCam from "./Cameras/ReColorCam";
 import ColorMixer from "./ColorWheels/ColorMixer";
 import ColorSelector from "./ColorWheels/ColorSelector";
 import PaletteLibrary from "./Chips/PaletteLibrary";
@@ -45,11 +45,11 @@ const Driver = () => {
   }, [vPage.state]);
   const pageMap: Record<ePages, ReactNode> = {
     Menu: <Menu />,
-    "ReColor Camera": <WallPaintCam />,
+    "ReColor Camera": <ReColorCam />,
     "Color Wheel": <ColorSelector />,
     "Color Mixer": <ColorMixer />,
     "Color Seasons": <ColorSeasons />,
-    "Undertone Camera": <ColorCamera />,
+    "Undertone Camera": <UndertoneCam />,
     "Color Harmonizer": <HarmonizerWheel />,
     "Palette Library": <PaletteLibrary />,
     "Scheme Selector": <SchemeSelector />,

@@ -1,11 +1,13 @@
-import { Dimensions } from "react-native";
-import React, { useEffect } from "react";
+import { Dimensions, View, Text } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
 import { usePanManager } from "../Contexts/PanManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   fAverageColor,
   fCLARColorToString,
+  fDefaultPalettes,
   fToList,
+  tCLARColor,
   tPalette,
 } from "../utils/CLAcolor";
 import { CleanPalette, eLayers, useUserContext } from "../Contexts/UserContext";
@@ -23,11 +25,13 @@ import {
   wDefaultChordToAngle,
 } from "../Radials/RadialContext";
 import { SweepDisplay } from "../Buttons/SweepDisplay";
-import { useVerse } from "../utils/Verse";
+import { useVerse, useVerseRelay } from "../utils/Verse";
 import { ChipFan, ChipRow } from "./ChipStack";
 import { Paths } from "../utils/Paths";
-import Button from "../Buttons/Button";
+import Button, { tButton } from "../Buttons/Button";
 import * as Clipboard from "expo-clipboard";
+import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import { StringFormat } from "expo-clipboard";
 
 export default function PaletteLibrary({
   radii = [50, 300],
@@ -42,15 +46,11 @@ export default function PaletteLibrary({
   radii?: [number, number];
 }) {
   /// O N  M O U N T
-
+  const DimWidth = Dimensions.get("window").width;
+  const DimHeight = Dimensions.get("window").height;
   const { registerModifier, unregisterModifier } = useChipContext();
   const { registerHitBox, unregisterHitBox } = usePanManager();
-  const vPalettes = useVerse<tPalette[]>([
-    {
-      paints: [],
-      name: "New Palette",
-    },
-  ]);
+  const vPalettes = useVerse<tPalette[]>([...fDefaultPalettes()]);
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const vPanState = useSharedValue<ePanEvent>("leave");
   const vStartAngle = useSharedValue(0);
@@ -62,6 +62,7 @@ export default function PaletteLibrary({
   const archLength = useDerivedValue(() => {
     return Math.min((4 / 7) * vPalettes.shared.value.length, 44 / 7);
   });
+  const vTextBoxActive = useVerse<boolean>(false);
 
   /// C H I P  M O D I F I E R
 
@@ -77,12 +78,6 @@ export default function PaletteLibrary({
       let index = (input.id - eLayers.background - 10) % 10;
       const palette = vPalettes.shared.value[group];
       if (!palette) {
-        console.log(
-          "Palette not found for group:",
-          group,
-          "Available palettes:",
-          vPalettes.shared.value,
-        );
         return input;
       }
       let rot = input.rotateZ - vRotationROffset.value;
@@ -109,6 +104,26 @@ export default function PaletteLibrary({
   };
 
   /// P A N  G E S T U R E
+  const vAverageColor = useVerse<tCLARColor>(
+    fAverageColor(vPalettes.state[vSelection.state].paints),
+  );
+
+  function fUpdateAvgColor() {
+    "worklet";
+    if (
+      vPalettes.shared.value.length === 0 ||
+      !vPalettes.shared.value[vSelection.shared.value]
+    ) {
+      return;
+    }
+    const avgColor = fAverageColor(
+      vPalettes.shared.value[vSelection.shared.value].paints,
+    );
+    vAverageColor.dispatch(avgColor);
+    vAccentAR.dispatch(avgColor.ar);
+    vAccentC.dispatch(avgColor.c);
+    vAccentL.dispatch(avgColor.l);
+  }
 
   function fOnLeave() {
     "worklet";
@@ -133,16 +148,17 @@ export default function PaletteLibrary({
       0,
     );
     vSelection.dispatch(nearestPalette);
-    vRotationROffset.value = withTiming(nearestAngle, {
-      duration: 300,
-    });
+    vRotationROffset.value = withTiming(
+      nearestAngle,
+      {
+        duration: 300,
+      },
+      fUpdateAvgColor,
+    );
   }
   useEffect(() => {
     sideA.dispatch(!sideA.shared.value);
-    const avgColor = fAverageColor(vPalettes.state[vSelection.state].paints);
-    vAccentAR.dispatch(avgColor.ar);
-    vAccentC.dispatch(avgColor.c);
-    vAccentL.dispatch(avgColor.l);
+    fUpdateAvgColor();
   }, [vSelection.state]);
 
   useAnimatedReaction(
@@ -210,7 +226,6 @@ export default function PaletteLibrary({
         for (let i = 0; i < palettes.length; i++) {
           palettes[i] = CleanPalette(palettes[i]);
         }
-
         return palettes;
       } else {
         console.log("setting empty data");
@@ -231,6 +246,8 @@ export default function PaletteLibrary({
   };
   useEffect(() => {
     loadPalletes().then((data) => vPalettes.dispatch(data as tPalette[]));
+    console.log("loaded palettes:");
+    fOnLeave();
   }, []);
 
   useEffect(() => {
@@ -243,25 +260,12 @@ export default function PaletteLibrary({
   /// P A L E T T E  F U N C T I O N S
 
   function fSwapPalette() {
-    const arcLength = Math.min((4 / 7) * vPalettes.state.length, 44 / 7);
-    const selectedPaletteIndex = Math.min(
-      Math.max(
-        wDefaultAngleToChord(
-          vRotationROffset.value,
-          arcLength,
-          vPalettes.state.length,
-          0,
-        ),
-        0,
-      ),
-      vPalettes.state.length - 1,
-    );
-    const selectedPalette = vPalettes.state[selectedPaletteIndex];
-    let newPalettes = [...vPalettes.state];
+    const selectedPalette = vPalettes.shared.value[vSelection.shared.value];
+    let newPalettes = [...vPalettes.shared.value];
     if (vUserPalette.shared.value.paints.length > 0) {
-      newPalettes[selectedPaletteIndex] = vUserPalette.shared.value;
+      newPalettes[vSelection.shared.value] = vUserPalette.shared.value;
     } else {
-      newPalettes.splice(selectedPaletteIndex, 1);
+      newPalettes.splice(vSelection.shared.value, 1);
     }
     vPalettes.dispatch(newPalettes);
     vUserPalette.dispatch(selectedPalette);
@@ -274,83 +278,195 @@ export default function PaletteLibrary({
       paints: [],
       name: "New Palette",
     });
+    vSelection.dispatch(vPalettes.shared.value.length - 1);
     fOnLeave();
   }
 
   function fDeletePalette() {
     vPalettes.dispatch(
-      vPalettes.state.filter((_, index) => index !== vSelection.state),
+      vPalettes.shared.value.filter(
+        (_, index) => index !== vSelection.shared.value,
+      ),
     );
+    if (vPalettes.shared.value.length === 0) {
+      vPalettes.dispatch([
+        {
+          paints: [],
+          name: "New Palette",
+        },
+      ]);
+    }
     fOnLeave();
   }
-
+  const [copyText, setCopyText] = useState("Copy to Clipboard");
   function fClipBoard() {
-    const list = fToList(vUserPalette.shared.value.paints);
-    Clipboard.setStringAsync(list);
+    const list = fToList(vPalettes.state[vSelection.state]?.paints || []);
+    Clipboard.setStringAsync(list, {
+      inputFormat: StringFormat.PLAIN_TEXT,
+    }).then(() => {
+      Clipboard.getStringAsync().then((str) => console.log(str));
+      setCopyText("Copied!");
+      setTimeout(() => setCopyText("Copy to Clipboard"), 2000);
+    });
   }
-
   /// R E N D E R
-
+  const color = useMemo(
+    () =>
+      fCLARColorToString(
+        {
+          c: vAverageColor.state.c ** 2,
+          l: vAverageColor.state.l ** 0.2,
+          ar: vAverageColor.state.ar,
+        },
+        "RYGB",
+      ),
+    [vAverageColor.state],
+  );
+  const borderColor = fCLARColorToString(
+    {
+      c: vAverageColor.state.c ** 0.5,
+      l: vAverageColor.state.l * 0.5,
+      ar: vAverageColor.state.ar,
+    },
+    "RYGB",
+  );
   return (
     <>
       <Button
         path={Paths.swap}
         onPress={() => fSwapPalette()}
-        size={100}
-        origin={[100, 150]}
-        viewRadius={80}
+        size={cDimW(0.3)}
+        origin={[cDimW(-0.2), cDimH(-0.15)]}
+        viewRadius={100}
         textCircle={{
-          topText: "Use",
-          radii: [50, 70],
+          topText: "Use This",
+          radii: [58, 74],
           topTextProps: {
-            fontSize: 25,
+            fontSize: 22,
             fill: "white",
             fontFamily: "Outfit",
             letterSpacing: 1,
           },
           bottomText: "Palette",
           bottomTextProps: {
-            fontSize: 20,
+            fontSize: 21,
             fill: "white",
             fontFamily: "Outfit",
-            letterSpacing: 4,
+            letterSpacing: 8,
           },
         }}
       />
+
+      {vTextBoxActive.state ? (
+        <View
+          style={{
+            padding: 20,
+            justifyContent: "center",
+            alignItems: "center",
+            position: "absolute",
+            left: DimWidth * 0.05,
+            right: DimWidth * 0.05,
+            top: DimHeight * 0.15,
+            zIndex: eLayers.dropScreen,
+            backgroundColor: color,
+            borderRadius: 50,
+            shadowColor: "#000",
+            shadowOffset: { width: -2, height: 2 },
+            shadowOpacity: 0.5,
+            shadowRadius: 3,
+            borderWidth: 5,
+            borderColor: borderColor,
+          }}
+        >
+          <Text
+            style={{ fontSize: 16, textAlign: "center", fontFamily: "Outfit" }}
+          >
+            {fToList(vPalettes.state[vSelection.state]?.paints || [])}
+          </Text>
+          <Text
+            style={{
+              fontSize: 16,
+              textAlign: "center",
+              fontFamily: "Outfit",
+              backgroundColor: borderColor,
+              borderRadius: 50,
+              shadowColor: "#000",
+              shadowOffset: { width: -2, height: 2 },
+              shadowOpacity: 0.5,
+              shadowRadius: 3.84,
+              borderWidth: 1,
+              borderColor: color,
+              color: "white",
+              padding: 10,
+              fontWeight: "bold",
+              marginTop: 10,
+            }}
+            onPress={fClipBoard}
+          >
+            {copyText}
+          </Text>
+          <Button
+            path={Paths.x}
+            onPress={() => vTextBoxActive.dispatch(!vTextBoxActive.state)}
+            size={cDimW(0.15)}
+            origin={[cDimW(0.85), cDimH(0.01)]}
+            viewRadius={75}
+            layer={eLayers.dropScreen + 1}
+          />
+        </View>
+      ) : null}
       <Button
-        path={Paths.share}
-        onPress={() => fClipBoard()}
-        size={100}
-        origin={[200, 150]}
+        path={Paths.list}
+        onPress={() => vTextBoxActive.dispatch(!vTextBoxActive.state)}
+        size={cDimW(0.15)}
+        origin={[cDimW(0.15), cDimH(0.2)]}
         viewRadius={75}
       />
+
       {vUserPalette.shared.value.paints.length > 0 && (
         <Button
           path={Paths.save}
           onPress={() => fSavePalette()}
-          size={100}
-          origin={[300, 150]}
-          viewRadius={50}
+          size={cDimW(0.2)}
+          origin={[cDimW(0.15), cDimH(0.2)]}
+          viewRadius={60}
+          textCircle={{
+            topText: "Save",
+            radii: [40, 50],
+            topTextProps: {
+              fontSize: 16,
+              fill: "white",
+              fontFamily: "Outfit",
+              letterSpacing: 1,
+            },
+            bottomText: "Palette",
+            bottomTextProps: {
+              fontSize: 14,
+              fill: "white",
+              fontFamily: "Outfit",
+              letterSpacing: 4,
+            },
+          }}
         />
       )}
       <Button
         path={Paths.delete}
         onPress={() => fDeletePalette()}
-        size={100}
-        origin={[300, Dimensions.get("window").height - 150]}
-        viewRadius={50}
+        size={cDimW(0.15)}
+        origin={[cDimW(-0.15), cDimH(0.2)]}
+        viewRadius={60}
         textCircle={{
           topText: "Delete",
-          radii: [35, 45],
+          radii: [40, 50],
           topTextProps: {
-            fontSize: 14,
+            fontSize: 16,
             fill: "white",
             fontFamily: "Outfit",
             letterSpacing: 1,
           },
           bottomText: "Palette",
           bottomTextProps: {
-            fontSize: 13,
+            fontSize: 14,
             fill: "white",
             fontFamily: "Outfit",
             letterSpacing: 4,
@@ -377,7 +493,7 @@ export default function PaletteLibrary({
         ))}
       <SweepDisplay
         origin={origin}
-        radii={[0, radii[1] - 100]}
+        radii={[100, radii[1] - 150]}
         layer={eLayers.panManager - 1}
         opacity={0.25}
       />

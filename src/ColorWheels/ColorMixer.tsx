@@ -65,21 +65,15 @@ export default function ColorMixer({
     arg.reverse();
     return arg;
   }
-  const closestColors = useMemo(
-    () => colorMaptoArray(fClosestColors(vTargetColor.state, vBrand.state)),
-    [],
-  );
   const paintsA = useRef<tPaint[]>([]);
   const paintsB = useRef<tPaint[]>([]);
-  const [sideA, setSideA] = useState(true);
+  const [sideA, setSideA] = useState(false);
   const rotationAnim = useSharedValue(0);
-  useEffect(() => {
-    rotationAnim.value = withTiming(1, { duration: 500 });
-  }, []);
   useEffect(() => {
     vAccentAR.dispatch(vTargetColor.state.clar.ar);
     vAccentL.dispatch(vTargetColor.state.clar.l);
     vAccentC.dispatch(vTargetColor.state.clar.c);
+    console.log("vTargetColor.state", vTargetColor.state);
     if (sideA) {
       paintsB.current = colorMaptoArray(
         fClosestColors(vTargetColor.state, vBrand.state),

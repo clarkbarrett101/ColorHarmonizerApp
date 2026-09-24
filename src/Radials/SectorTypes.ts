@@ -80,6 +80,10 @@ export const fMakePetalPath = (
               `.trim();
   return path;
 };
+export function fGetBumpSize(arcLength: number, maxRadius: number): number {
+  "worklet";
+  return maxRadius * Math.sin(arcLength / 2);
+}
 
 export type tPetalSizeOptions = {
   rotationR?: number;

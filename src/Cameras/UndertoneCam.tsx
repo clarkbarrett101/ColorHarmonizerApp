@@ -42,7 +42,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 import { Thermo } from "./Thermo";
 
-export default function ColorCamera({
+export default function UndertoneCam({
   radii = [160, 320],
   chord = 24,
   arcLength = 43.9 / 7,

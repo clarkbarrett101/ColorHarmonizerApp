@@ -5,91 +5,62 @@ function hexToRgb(hex) {
   const b = bigint & 255;
   return [r, g, b];
 }
-import masterList from "./src/masterList.mjs";
-import pantoneColorsList from "./pantone-numbers.json" with { type: "json" };
+function rgbToHex([r, g, b]) {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+import colorsList from "./src/clarColors3.json" with { type: "json" };
+import newList from "./colors.json" with { type: "json" };
 
 import fs from "fs";
-const clarColors = [];
-masterList.map((item) => {
-  let [r, g, b] = item.rgb;
-  let [y, u, v] = fRGBToYUV([r, g, b]);
-  let { c, l, ar } = fRGBToCLARColor([r, g, b], "RYGB");
-  item.yuv = [y, u, v];
-  item.clar = { c, l, ar };
-  clarColors.push(item);
-});
-const pantoneKeys = Object.keys(pantoneColorsList);
-const pantoneValues = Object.values(pantoneColorsList);
-for (let i = 0; i < pantoneValues.length; i++) {
-  let item = pantoneValues[i];
-  item.hex = "#" + item.hex;
-  let [r, g, b] = hexToRgb(item.hex);
-  let [y, u, v] = fRGBToYUV([r, g, b]);
-  let { c, l, ar } = fRGBToCLARColor([r, g, b], "RYGB");
-  item.brand = "Pantone";
-  item.label = pantoneKeys[i];
-  item.name = item.name.replace("-", " ");
-  let splitNames = item.name.split(" ");
-  splitNames = splitNames.map(
-    (word) => word.charAt(0).toUpperCase() + word.slice(1),
-  );
-  item.name = splitNames.join(" ");
-  item.rgb = [r, g, b];
-  item.yuv = [y, u, v];
-  item.clar = { c, l, ar };
-  clarColors.push(item);
+for (let i = 0; i < newList.length; i++) {
+  const foundItem = colorsList.find((item) => item.name === newList[i].name);
+  if (foundItem) {
+    let rgb = newList[i].color
+      .replace("rgb(", "")
+      .replace(")", "")
+      .split(",")
+      .map(Number);
+    foundItem.rgb = rgb;
+    foundItem.yuv = fRGBToYUV(rgb);
+    foundItem.clar = fRGBToCLARColor(rgb, "RYGB");
+    foundItem.hex = rgbToHex(rgb);
+    if (!foundItem.brand) foundItem.brand = "Benjamin Moore";
+    console.log(`Updated item in colorsList: ${newList[i].name}`);
+  } else {
+    console.log(`Item not found in colorsList: ${newList[i].name}`);
+    let rgb = newList[i].color
+      .replace("rgb(", "")
+      .replace(")", "")
+      .split(",")
+      .map(Number);
+    colorsList.push({
+      name: newList[i].name,
+      brand: "Benjamin Moore",
+      rgb: rgb,
+      yuv: fRGBToYUV(rgb),
+      clar: fRGBToCLARColor(rgb, "RYGB"),
+      hex: rgbToHex(rgb),
+      label: newList[i].code,
+    });
+  }
 }
 
-clarColors.sort(
+colorsList.sort(
   (a, b) =>
     (a.clar.ar - b.clar.ar) * 100 +
     (a.clar.l - b.clar.l) * 10 +
     (a.clar.c - b.clar.c),
 );
-/*
-const refList = [];
-for (let ar = 0; ar < 44; ar++) {
-  for (let l = 1; l < 12; l++) {
-    for (let c = 1; c < 10; c++) {
-      const clarColor = { c: c / 10, l: l / 12, ar: ar / 7 };
-      let dist = [];
-      for (let i = 0; i < clarColors.length; i++) {
-        const item = clarColors[i];
-        const dc = item.clar.c - clarColor.c;
-        const dl = item.clar.l - clarColor.l;
-        const dar = Math.min(
-          Math.abs(item.clar.ar - clarColor.ar),
-          2 * Math.PI - Math.abs(item.clar.ar - clarColor.ar),
-        );
-        dist.push({
-          index: i,
-          distance: Math.sqrt(dc * dc + dl * dl + dar * dar),
-        });
-      }
-      dist.sort((a, b) => a.distance - b.distance);
-      const closestColors = dist.slice(0, 15).map((d) => d.index);
-      closestColors.sort((a, b) =>
-        clarColors[a].brand === "Behr"
-          ? 1
-          : clarColors[b].brand === "Behr"
-            ? -1
-            : 0,
-      );
-      const topColors = closestColors.slice(0, 10).sort((a, b) => a - b);
-      refList.push({ ...clarColor, paintIndexes: topColors });
-    }
-  }
-    */
 
-asJson(clarColors);
+asJson(colorsList);
 
 function asJson(colors) {
   const jsonString = JSON.stringify(colors, null, 2);
-  fs.writeFile(`./src/clarColors2.json`, jsonString, "utf8", (err) => {
+  fs.writeFile(`./src/clarColors3.json`, jsonString, "utf8", (err) => {
     if (err) {
       console.error("Error writing file:", err);
     } else {
-      console.log(`File clarColors.json has been written successfully.`);
+      console.log(`File clarColors3.json has been written successfully.`);
     }
   });
 }

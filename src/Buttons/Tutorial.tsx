@@ -39,7 +39,6 @@ export function Tutorial({
   const vActive = useVerse(true);
   return (
     <>
-      {" "}
       {vActive.state && (
         <Svg
           height={height}

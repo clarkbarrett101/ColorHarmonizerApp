@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { RadialGraphic } from "../Radials/RadialGraphic";
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { tRadialObject, tSector, tSectorGroup } from "../Radials/SectorTypes";
@@ -33,25 +33,8 @@ export function TintSelector({
   const { registerHitBox: registerZone, unregisterHitBox } = usePanManager();
   const vPanState = useSharedValue<ePanEvent>("leave");
   const context = useRadialContext();
-  const { origin, wAngleToChord, wChordToAngle, wUpdateState } = context;
+  const { origin, wAngleToChord, wChordToAngle } = context;
   const lastAngle = useSharedValue(vPanPos?.value.angle ?? 0);
-
-  useAnimatedReaction(
-    () => vPanPos?.value.angle,
-    (angle) => {
-      let nearestSectorAngle = wChordToAngle(
-        wAngleToChord(vPanPos.value.angle, arcLength, chord, rotationR),
-        arcLength,
-        chord,
-        rotationR,
-      );
-      vPanPos.value = { ...vPanPos.value, angle: nearestSectorAngle };
-      if (nearestSectorAngle !== lastAngle.value) {
-        wUpdateState();
-        lastAngle.value = nearestSectorAngle;
-      }
-    },
-  );
 
   useEffect(() => {
     const id = "" + ring + "-" + chord;

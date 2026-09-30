@@ -25,13 +25,13 @@ export default function Button({
   textCircle,
   layer = eLayers.dropScreen - 1,
 }: tButton) {
-  const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
+  const { dAccentColor, vColorModel } = useUserContext();
   const animatedProps = useAnimatedProps(() => ({
     fill: fCLARColorToString(
       {
-        c: vAccentC.shared.value ** (1 / 2),
-        l: vAccentL.shared.value * (1 / 2),
-        ar: vAccentAR.shared.value,
+        c: dAccentColor.value.c ** (1 / 2),
+        l: dAccentColor.value.l * (1 / 2),
+        ar: dAccentColor.value.ar,
       },
       vColorModel.shared.value,
     ),

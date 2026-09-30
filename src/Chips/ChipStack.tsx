@@ -29,46 +29,44 @@ export type tChipFan = {
   groupLayer?: number;
 };
 
-export const ChipFan = React.memo(
-  ({
-    paintsA,
-    paintsB,
-    origin,
-    size = "default",
-    rotationR = 0,
-    arcLength,
-    radius,
-    sideA = true,
-    fGetChipModifier = (chip) => chip,
-    groupLayer = 0,
-  }: tChipFan) => {
-    const groupID = useState(groupLayer)[0];
-    const chipStack = () => {
-      const newChipStack = [];
+export function ChipFan({
+  paintsA,
+  paintsB,
+  origin,
+  size = "default",
+  rotationR = 0,
+  arcLength,
+  radius,
+  sideA = true,
+  fGetChipModifier = (chip) => chip,
+  groupLayer = 0,
+}: tChipFan) {
+  const groupID = useState(groupLayer)[0];
+  const chipStack = () => {
+    const newChipStack = [];
 
-      for (let i = 0; i < paintsA.length; i++) {
-        const z = (i + 0.5) / paintsA.length;
-        const chip: tPaintChip = {
-          paintA: paintsA[i],
-          paintB: paintsB ? paintsB[i] : undefined,
-          radialOffset: radius,
-          origin: [origin[0], origin[1]],
-          size,
-          rotationR: rotationR + arcLength * (z - 0.5),
-          relativeZ: z,
-          chipID: [groupLayer, i],
-          sideA,
-        };
-        const modifiedChip = fGetChipModifier(chip);
-        newChipStack.push(
-          <PaintChip key={`${groupID}-${z}`} {...modifiedChip} />,
-        );
-      }
-      return newChipStack;
-    };
-    return <>{chipStack()}</>;
-  },
-);
+    for (let i = 0; i < paintsA.length; i++) {
+      const z = (i + 0.5) / paintsA.length;
+      const chip: tPaintChip = {
+        paintA: paintsA[i],
+        paintB: paintsB ? paintsB[i] : undefined,
+        radialOffset: radius,
+        origin: [origin[0], origin[1]],
+        size,
+        rotationR: rotationR + arcLength * (z - 0.5),
+        relativeZ: z,
+        chipID: [groupLayer, i],
+        sideA,
+      };
+      const modifiedChip = fGetChipModifier(chip);
+      newChipStack.push(
+        <PaintChip key={`${groupID}-${z}`} {...modifiedChip} />,
+      );
+    }
+    return newChipStack;
+  };
+  return <>{chipStack()}</>;
+}
 type tChipWheel = Omit<tChipFan, "paintsA"> & {
   targetColor: tCLARColor;
   brand?: tBrand;

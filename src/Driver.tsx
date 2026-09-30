@@ -29,6 +29,7 @@ import Button from "./Buttons/Button";
 import { Paths } from "./utils/Paths";
 import { rotate } from "@shopify/react-native-skia";
 import { View } from "react-native";
+import { DemoContext } from "./Contexts/DemoContext";
 // This is the default configuration
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -87,7 +88,9 @@ const Driver = () => {
                   }}
                 />
               )}
-              <PanManager>{pageMap[vPage.state]}</PanManager>
+              <PanManager>
+                <DemoContext>{pageMap[vPage.state]}</DemoContext>
+              </PanManager>
               <ChipHand />
             </View>
           </BucketContext>

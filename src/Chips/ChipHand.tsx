@@ -21,6 +21,7 @@ import { tPaint } from "../utils/CLAcolor";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { tChordReturn, useSoundContext } from "../Contexts/SoundContext";
 import { useChipContext } from "./ChipContext";
+import { Paths } from "../utils/Paths";
 
 export type tChipHand = tRadialObject & {
   holdRadius?: number;
@@ -267,7 +268,7 @@ export default function ChipHand({
       targetLayerRange: [0, eLayers.chipFan + 50],
       id: 21,
       zIndex: eLayers.buckets + 100,
-      icon: "addChip",
+      path: Paths.addChip,
     });
     registerBucket({
       origin: [Dimensions.get("window").width / 2, eChipSizes.outline[1] / 2],
@@ -275,7 +276,7 @@ export default function ChipHand({
       targetLayerRange: [eLayers.chipHand - 50, eLayers.chipHand + 50],
       id: 22,
       zIndex: eLayers.buckets + 100,
-      icon: "remove",
+      path: Paths.remove,
       callback: (paint) => {
         removePaintCallback(paint);
         fPlaySFX?.("drop");

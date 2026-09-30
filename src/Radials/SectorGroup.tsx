@@ -6,7 +6,7 @@ import Animated, {
 import { Sector } from "./Sector";
 import Svg from "react-native-svg";
 import { useEffect, useState } from "react";
-import { tSectorGroup } from "./SectorTypes";
+import { fGetBumpSize, tSectorGroup } from "./SectorTypes";
 import { useRadialContext } from "./RadialContext";
 import { tAttributeMap, useActor } from "../utils/Actor";
 import { eLayers } from "../Contexts/UserContext";
@@ -23,6 +23,7 @@ export const SectorGroup = ({
   radii = [20, 200],
   layer,
   opacity = 1,
+  arcLength = 2 / 7,
 }: tSectorGroup) => {
   const actor = useActor({
     ring,
@@ -36,7 +37,7 @@ export const SectorGroup = ({
     zIndex: layer ? layer : sectorGroupID,
   });
 
-  const { mTransformModifier } = useRadialContext();
+  const { mTransformModifier, radii: r } = useRadialContext();
   useEffect(() => {
     if (!mTransformModifier) return;
     actor.addModifier(mTransformModifier);
@@ -78,7 +79,7 @@ export const SectorGroup = ({
     });
     return style;
   });
-
+  const bumpSize = fGetBumpSize(arcLength, r[1]);
   return (
     <Animated.View
       style={[
@@ -95,7 +96,7 @@ export const SectorGroup = ({
         animatedProps={animatedProps}
         width={radii?.[1] * 2}
         height={radii?.[1] * 2}
-        viewBox={`-${radii[1] * 1.05} -${radii[1] * 1.05} ${radii[1] * 2.1} ${radii[1] * 2.1}`}
+        viewBox={`-${radii[1] + bumpSize} -${radii[1] + bumpSize} ${(radii[1] + bumpSize) * 2} ${(radii[1] + bumpSize) * 2}`}
         style={{
           margin: -radii?.[1],
           zIndex: 5,

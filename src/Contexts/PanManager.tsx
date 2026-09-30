@@ -65,6 +65,8 @@ type tPanManager = {
   unregisterHitBox: (id: string) => void;
   calculateBounds: () => void;
   vTouched: tVerse<boolean>;
+  panUpdate: (e: { absoluteX: number; absoluteY: number }) => void;
+  releaseZone: (state: ePanEvent) => void;
 };
 
 const Ctx = React.createContext<tPanManager | null>(null);
@@ -77,6 +79,12 @@ export function usePanManager() {
       unregisterHitBox: () => {},
       calculateBounds: () => {},
       vTouched: null,
+      panUpdate: (e: { absoluteX: number; absoluteY: number }) => {
+        "worklet";
+      },
+      releaseZone: (state: ePanEvent) => {
+        "worklet";
+      },
     };
   }
   return context;
@@ -379,6 +387,8 @@ export default function PanManager({
         unregisterHitBox,
         calculateBounds,
         vTouched,
+        panUpdate,
+        releaseZone,
       }}
     >
       {children}

@@ -1,5 +1,11 @@
 import { useCallback, useEffect } from "react";
-import { fCLARColorToRGB, tBrand, tCLARColor, tPaint } from "../utils/CLAcolor";
+import {
+  fCLARColorToRGB,
+  fGetRandomPalette,
+  tBrand,
+  tCLARColor,
+  tPaint,
+} from "../utils/CLAcolor";
 import { ColorWheel } from "../ColorWheels/ColorWheel";
 import { TintSelector } from "../ColorWheels/TintSelector";
 import { Dimensions, View } from "react-native";
@@ -16,12 +22,17 @@ import {
 import { ColorChipFan } from "../Chips/ChipStack";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { eChipSizes } from "../Chips/PaintChip";
-import { useVerse } from "../utils/Verse";
+import { useVerse, useVerseRelay } from "../utils/Verse";
 import { useBucketContext } from "../Buckets/BucketContext";
 import { tAttributeModifier } from "../utils/Actor";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { BrandFilter } from "../ColorWheels/BrandFilter";
-import { SweepDisplay } from "../Buttons/SweepDisplay";
+import { Paths } from "../utils/Paths";
+import React from "react";
+import { useDemo } from "../Contexts/DemoContext";
+import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import Button from "../Buttons/Button";
+import { useChipContext } from "../Chips/ChipContext";
 
 type tColorSelector = tRadialObject & {
   wheelCenter?: number;
@@ -43,10 +54,7 @@ export default function ColorSelector({
   chromaDimensions = [4, 4],
   chromaArcRotation = [4.4 / 7, 16 / 7],
   lightnessArcRotation = [5.5 / 7, 28 / 7],
-  origin = [
-    Dimensions.get("window").width + radii[1] * 0.3,
-    Dimensions.get("window").height * 0.45,
-  ],
+  origin = [cDimW() + radii[1] * 0.3, cDimH(0.45)],
 }: tColorSelector) {
   /// O N  M O U N T ///
 
@@ -69,45 +77,57 @@ export default function ColorSelector({
 
   useEffect(() => {
     registerBucket({
-      origin: [
-        Dimensions.get("window").width - eChipSizes.default[0] / 3,
-        Dimensions.get("window").height / 2,
-      ],
+      origin: [cDimW() - eChipSizes.default[0] / 3, cDimH(0.5)],
       radii: [radii[1] - 75, radii[1]],
       callback: fOnDrop,
       targetLayerRange: [eLayers.chipHand, eLayers.chipHand + 100],
       id: 20,
-      icon: "search",
+      path: Paths.search,
     });
     return () => {
       unregisterBucket("" + 20);
     };
   }, []);
 
-  const { vAccentC, vAccentAR, vAccentL, vColorModel } = useUserContext();
+  const { vAccentC, vAccentAR, vAccentL, vColorModel, pagesVisited } =
+    useUserContext();
 
   /// C L AR  C O L O R ///
 
   const dChroma = useDerivedValue(() => {
-    let c =
+    let c = Math.max(
+      Math.min(
+        vChromaPanPos.value.angle,
+        chromaArcRotation[1] + chromaArcRotation[0],
+      ),
+      chromaArcRotation[1],
+    );
+    c =
       (vChromaPanPos.value.angle -
         chromaArcRotation[1] +
         chromaArcRotation[0] / 2) /
       chromaArcRotation[0];
-    c = (c - 0.5 / chromaDimensions[1]) / (1 - 1 / chromaDimensions[1]);
+    //  c = (c - 0.5 / chromaDimensions[1]) / (1 - 1 / chromaDimensions[1]);
     c = chromaRange[0] + c * (chromaRange[1] - chromaRange[0]);
+    c = Math.max(chromaRange[0], Math.min(c, chromaRange[1]));
     c = Math.round(c * 100) / 100;
     return c;
   });
   const dLuma = useDerivedValue(() => {
-    let l =
+    let l = Math.max(
+      Math.min(
+        vLightnessPanPos.value.angle,
+        lightnessArcRotation[1] + lightnessArcRotation[0],
+      ),
+      lightnessArcRotation[1],
+    );
+    l =
       1 -
-      (vLightnessPanPos.value.angle -
-        lightnessArcRotation[1] +
-        lightnessArcRotation[0] / 2) /
+      (l - lightnessArcRotation[1] + lightnessArcRotation[0] / 2) /
         lightnessArcRotation[0];
-    l = (l - 0.5 / litDimensions[1]) / (1 - 1 / litDimensions[1]);
+    //  l = (l - 0.5 / litDimensions[1]) / (1 - 1 / litDimensions[1]);
     l = litRange[0] + l * (litRange[1] - litRange[0]);
+    l = Math.max(litRange[0], Math.min(l, litRange[1]));
     l = Math.round(l * 100) / 100;
     return l;
   });
@@ -116,6 +136,42 @@ export default function ColorSelector({
     let ar = ((vAccentAR.shared.value % (44 / 7)) + 44 / 7) % (44 / 7);
     ar = Math.round(ar * 100) / 100;
     return ar;
+  });
+
+  function wUpdateState() {
+    "worklet";
+    vTargetColor.dispatch({
+      c: dChroma.value,
+      l: dLuma.value,
+      ar: dAngleR.value,
+    });
+    vSideA.dispatch(!vSideA.shared.value);
+    console.log(
+      "Dispatching color",
+      vTargetColor.shared.value,
+      "to chip selector",
+      "vSideA.shared.value",
+      vSideA.shared.value,
+    );
+  }
+  const dChromaSubdivision = useDerivedValue(() => {
+    return wDefaultAngleToChord(
+      vChromaPanPos.value.angle,
+      chromaArcRotation[0],
+      chromaDimensions[1],
+      chromaArcRotation[1],
+    );
+  });
+  const dLightnessSubdivision = useDerivedValue(() => {
+    return wDefaultAngleToChord(
+      vLightnessPanPos.value.angle,
+      lightnessArcRotation[0],
+      litDimensions[1],
+      lightnessArcRotation[1],
+    );
+  });
+  const dHueSubdivision = useDerivedValue(() => {
+    return wDefaultAngleToChord(vAccentAR.shared.value, 44 / 7, 24, 0);
   });
   useAnimatedReaction(
     () => {
@@ -126,6 +182,26 @@ export default function ColorSelector({
       vAccentL.shared.value = clar[1];
     },
   );
+  useAnimatedReaction(
+    () => {
+      return [
+        dChromaSubdivision.value,
+        dLightnessSubdivision.value,
+        dHueSubdivision.value,
+      ];
+    },
+    (next, prev) => {
+      if (
+        !prev ||
+        next[0] !== prev[0] ||
+        next[1] !== prev[1] ||
+        next[2] !== prev[2]
+      ) {
+        wUpdateState();
+      }
+    },
+  );
+
   const chromaModifier: tAttributeModifier = {
     modID: 0,
     deps: [dChroma, dLuma, dAngleR, vColorModel.shared],
@@ -171,8 +247,8 @@ export default function ColorSelector({
         blue,
       };
     },
-    /// C A L L B A C K S ///
   };
+  /// C A L L B A C K S ///
   function fNearestColor(clar: tCLARColor): tCLARColor {
     "worklet";
     const color = { ...clar };
@@ -208,26 +284,80 @@ export default function ColorSelector({
     wUpdateState();
   }, []);
 
-  function wUpdateState() {
-    "worklet";
-    vTargetColor.dispatch({
-      c: dChroma.value,
-      l: dLuma.value,
-      ar: dAngleR.value,
-    });
-    vSideA.dispatch(!vSideA.shared.value);
-    console.log(
-      "Dispatching color",
-      vTargetColor.shared.value,
-      "to chip selector",
-      "vSideA.shared.value",
-      vSideA.shared.value,
-    );
-  }
   useEffect(() => {
     console.log("vBrand.state changed", vBrand.state);
     wUpdateState();
   }, [vBrand.state]);
+
+  const { fPlaySequence } = useDemo();
+  const { holdChip } = useChipContext();
+
+  const vPagesVisitedRelay = useVerseRelay(pagesVisited);
+  useEffect(() => {
+    if (!pagesVisited.shared.value["Color Wheel"]) {
+      pagesVisited.dispatch({
+        ...pagesVisited.shared.value,
+        "Color Wheel": true,
+      });
+      fPlaySequence([
+        {
+          touching: 0,
+          toPos: [cDimW(0.7), origin[1]],
+          duration: 1000,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.9), origin[1] + 100],
+          duration: 1000,
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.65), cDimH(0.2)],
+          duration: 2000,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.6), cDimH(0.3)],
+          duration: 1000,
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.65), cDimH(0.6)],
+          duration: 2000,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.75), cDimH(0.65)],
+          duration: 1000,
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.2), cDimH(0.5)],
+          duration: 2000,
+          callback: () => {
+            "worklet";
+            holdChip(eLayers.chipFan + 5);
+          },
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.5), cDimH(0.5)],
+          duration: 2000,
+          callback: () => {
+            "worklet";
+            holdChip();
+          },
+        },
+        {
+          touching: 0,
+          toPos: [-100, cDimH(0.5)],
+          duration: 1000,
+        },
+      ]);
+    } else {
+      console.log("Color Wheel has already been visited.");
+    }
+  }, [vPagesVisitedRelay.state]);
 
   /// R E N D E R ///
   return (
@@ -290,6 +420,18 @@ export default function ColorSelector({
         sideA={vSideA.state}
         arSteps={24}
         groupLayer={eLayers.chipFan}
+      />
+      <Button
+        path={Paths.replay}
+        layer={eLayers.superMax}
+        origin={[cDimW(0.9), cDimH(0.8)]}
+        viewRadius={30}
+        onPress={() => {
+          pagesVisited.dispatch({
+            ...pagesVisited.shared.value,
+            "Color Wheel": false,
+          });
+        }}
       />
     </>
   );

@@ -4,6 +4,7 @@ import {
   fClosestColors,
   fColorLerp,
   fGetRandomPaint,
+  fGetRandomPalette,
   refColors,
   tBrand,
   tColorMap,
@@ -11,7 +12,7 @@ import {
 } from "../utils/CLAcolor";
 import { RadialContext } from "../Radials/RadialContext";
 import { RadialGraphic } from "../Radials/RadialGraphic";
-import { useVerse } from "../utils/Verse";
+import { useVerse, useVerseRelay } from "../utils/Verse";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { ChipFan } from "../Chips/ChipStack";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -23,6 +24,12 @@ import { withTiming, useSharedValue } from "react-native-reanimated";
 import { BrandFilter } from "./BrandFilter";
 import { Text, TextProps, TSpan } from "react-native-svg";
 import { Tutorial } from "../Buttons/Tutorial";
+import React from "react";
+import { useChipContext } from "../Chips/ChipContext";
+import { useDemo } from "../Contexts/DemoContext";
+import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import Button from "../Buttons/Button";
+import Paths from "../utils/Paths";
 
 export default function ColorMixer({
   radii = [0, Dimensions.get("window").width * 0.9],
@@ -52,7 +59,14 @@ export default function ColorMixer({
     "#ff0000",
   ];
 
-  const { vColorModel, vAccentAR, vAccentL, vAccentC } = useUserContext();
+  const {
+    vColorModel,
+    vAccentAR,
+    vAccentL,
+    vAccentC,
+    pagesVisited,
+    vUserPalette,
+  } = useUserContext();
   const colors = { ...refColors };
   const vBrand = useVerse<tBrand>("All Brands");
   const vTargetColor = useVerse<tPaint>(fGetRandomPaint());
@@ -152,15 +166,72 @@ export default function ColorMixer({
       unregisterBucket("" + 20);
     };
   }, []);
-  const textProps: TextProps = {
-    x: 300,
-    y: 200,
-    textAnchor: "middle",
-    alignmentBaseline: "middle",
-    fill: "white",
-    fontFamily: "Outfit",
-    fontSize: 16,
-  };
+
+  const { fPlaySequence } = useDemo();
+  const { holdChip } = useChipContext();
+  const firstChipPos: [number, number] = [
+    origin[0] + Math.cos(rotationR + arcLength / 3) * radii[1] * 0.9,
+    origin[1] + Math.sin(rotationR + arcLength / 3) * radii[1] * 0.9,
+  ];
+  const vPagesVisitedRelay = useVerseRelay(pagesVisited);
+  useEffect(() => {
+    if (!pagesVisited.shared.value["Color Mixer"]) {
+      pagesVisited.dispatch({
+        ...pagesVisited.shared.value,
+        "Color Mixer": true,
+      });
+
+      if (!vUserPalette.shared.value.paints[0]) {
+        vUserPalette.dispatch(fGetRandomPalette(1));
+      }
+      fPlaySequence([
+        {
+          touching: 0,
+          toPos: [cDimW(0.05), cDimH(0.9)],
+          duration: 1000,
+          callback: () => {
+            "worklet";
+            holdChip(eLayers.chipHand);
+          },
+        },
+        {
+          touching: 1,
+          toPos: [origin[0] - 100, origin[1]],
+          duration: 1500,
+          callback: () => {
+            "worklet";
+            holdChip();
+          },
+        },
+        {
+          touching: 0,
+          toPos: firstChipPos,
+          duration: 2000,
+          callback: () => {
+            "worklet";
+            holdChip(eLayers.chipFan + 4);
+          },
+        },
+        {
+          touching: 1,
+          toPos: [origin[0] - 100, origin[1]],
+          duration: 1000,
+          callback: () => {
+            "worklet";
+            holdChip();
+          },
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(1.5), cDimH(0.5)],
+          duration: 300,
+        },
+      ]);
+    } else {
+      console.log("Color Mixer has already been visited.");
+    }
+  }, [vPagesVisitedRelay.state]);
+
   return (
     <>
       <RadialContext
@@ -204,45 +275,18 @@ export default function ColorMixer({
         totalArcLength={2.5 / 7}
         layer={eLayers.chipHand}
       />
-      <Tutorial
-        height={400}
-        width={600}
-        origin={[Dimensions.get("window").width / 2, origin[1]]}
-        infoIconOrigin={[origin[0] - 50, origin[1] + 175]}
-        infoIconSize={50}
-      >
-        <Text {...textProps} dy={-60}>
-          Drag in a paint for colors that are more:
-        </Text>
-        <Text {...textProps}>
-          <TSpan {...textProps} fill={"rgb(255, 100, 100)"} dx={-50} dy={-30}>
-            Red
-          </TSpan>
-          <TSpan {...textProps} fill={"rgb(255, 255, 100)"} dx={0} dy={-30}>
-            Yellow
-          </TSpan>
-          <TSpan {...textProps} fill={"rgb(100, 100, 255)"} dx={50} dy={-30}>
-            Blue
-          </TSpan>
-        </Text>
-        <Text {...textProps} fill={"rgb(255, 255, 255)"}>
-          <TSpan {...textProps} fill={"rgb(255, 255, 255)"} dx={-50}>
-            White
-          </TSpan>
-          <TSpan {...textProps} fill={"rgb(175, 175, 175)"} dx={0}>
-            Gray
-          </TSpan>
-          <TSpan {...textProps} fill={"rgb(100, 100, 100)"} dx={50}>
-            Black
-          </TSpan>
-        </Text>
-        <Text {...textProps} dy={40}>
-          Then drag the new ones
-        </Text>
-        <Text {...textProps} dy={60}>
-          back to repeat the process
-        </Text>
-      </Tutorial>
+      <Button
+        path={Paths.replay}
+        layer={eLayers.superMax}
+        origin={[cDimW(0.9), cDimH(0.65)]}
+        viewRadius={30}
+        onPress={() => {
+          pagesVisited.dispatch({
+            ...pagesVisited.shared.value,
+            "Color Mixer": false,
+          });
+        }}
+      />
     </>
   );
 }

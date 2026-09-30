@@ -2,7 +2,7 @@
   "expo": {
     "name": "ColorHarmonizer",
     "slug": "ColorHarmonizer",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "orientation": "portrait",
     "icon": "./assets/AppIcon.png",
     "userInterfaceStyle": "light",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.clarkbarrett101.ColorHarmonizer",
-      "buildNumber": "3.0.0"
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {

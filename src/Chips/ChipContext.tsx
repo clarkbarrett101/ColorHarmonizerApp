@@ -99,14 +99,14 @@ export default function UserContext({ children }: { children: ReactNode }) {
     console.log("Unregistering chip actor", Object.keys(allChipActors).length);
   }, []);
 
-  const _vPanX = useVerse(0);
-  const _vPanY = useVerse(0);
-  const _vVelocityX = useVerse(0);
-  const _vHeldChipID = useVerse<number | null>(null);
-  const vPanX = useRef(_vPanX).current;
-  const vPanY = useRef(_vPanY).current;
-  const vVelocityX = useRef(_vVelocityX).current;
-  const vHeldChipID = useRef(_vHeldChipID).current;
+  const vPanX = useVerse(0);
+  const vPanY = useVerse(0);
+  const vVelocityX = useVerse(0);
+  const vHeldChipID = useVerse<number | null>(null);
+  //const vPanX = useRef(_vPanX).current;
+  //const vPanY = useRef(_vPanY).current;
+  //const vVelocityX = useRef(_vVelocityX).current;
+  //const vHeldChipID = useRef(_vHeldChipID).current;
   const [heldChipPaint, setHeldChipPaint] = useState<tPaint | null>(null);
   const vSwayTimer = useSharedValue(0);
   useEffect(() => {
@@ -121,6 +121,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
       return;
     }
     if (vHeldChipID.shared.value !== chipID) {
+      console.log(`Holding chip with ID ${chipID}`);
       vHeldChipID.dispatch(chipID);
     }
   }, []);

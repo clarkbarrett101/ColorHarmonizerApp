@@ -47,9 +47,9 @@ function ColorWheel({
   vSecondColor = vSecondColor || secondColor;
   const transitionA = useSharedValue(0);
   const turnAnim = useSharedValue(0);
+  const vRotationOffset = useSharedValue(0);
   transitionAnim = transitionAnim || transitionA;
-  const { origin, wAngleToChord, wChordToAngle, wUpdateState } =
-    useRadialContext();
+  const { origin, wAngleToChord, wChordToAngle } = useRadialContext();
   const { vColorModel } = useUserContext();
   const { vAccentC, vAccentL, vAccentAR } = useUserContext();
   const mColorModifier: tAttributeModifier = {
@@ -80,28 +80,20 @@ function ColorWheel({
   }
   const mTransformModifier: tAttributeModifier = {
     modID: 0,
-    deps: [
-      vAccentAR.shared,
-      vAccentL.shared,
-      vAccentC.shared,
-      vPanPos,
-      vStartAngle,
-      dragStartAngle,
-      vIntroAnim,
-    ],
+    deps: [vPanPos, vStartAngle, vIntroAnim, vRotationOffset],
     modifier: (input: tAttributeMap) => {
       "worklet";
       let chords = chord;
       const chordLength = (2 * arcLength) / chords;
       let startRotation = wChordToAngle(input.chord, arcLength, chords, 0);
-      let rotation = input.rotateZ - vAccentAR.shared.value;
+      let rotation = input.rotateZ - vRotationOffset.value;
       const selectedSector = wAngleToChord(
-        vAccentAR.shared.value,
+        vRotationOffset.value,
         arcLength,
         chords,
         0,
       );
-      let diff = Math.abs(startRotation - vAccentAR.shared.value) % (44 / 7);
+      let diff = Math.abs(startRotation - vRotationOffset.value) % (44 / 7);
       if (diff > 22 / 7) diff = 44 / 7 - diff;
       let zDiff = Math.abs(input.chord - selectedSector) % chords;
       if (zDiff > chords / 2) zDiff = chords - zDiff;
@@ -135,11 +127,8 @@ function ColorWheel({
       0,
     );
     let nearestSectorAngle = wChordToAngle(nearestSector, arcLength, chord, 0);
-    vAccentAR.shared.value = withTiming(
-      nearestSectorAngle,
-      { duration: 500 },
-      wUpdateState,
-    );
+    vAccentAR.shared.value = withTiming(nearestSectorAngle, { duration: 500 });
+    vRotationOffset.value = nearestSectorAngle;
     console.log(
       "Wheel leaving, rotating to nearest sector",
       nearestSector,
@@ -162,7 +151,8 @@ function ColorWheel({
     (pos) => {
       if (vPanState.value === "drag") {
         const angleDiff = vPanPos.value.angle - vStartAngle.value;
-        vAccentAR.shared.value = dragStartAngle.value - angleDiff;
+        vRotationOffset.value = dragStartAngle.value - angleDiff;
+        vAccentAR.shared.value = vRotationOffset.value % (2 * Math.PI);
       }
     },
     [],
@@ -174,7 +164,7 @@ function ColorWheel({
       switch (state) {
         case "enter":
           vStartAngle.value = vPanPos.value.angle;
-          dragStartAngle.value = vAccentAR.shared.value;
+          dragStartAngle.value = vRotationOffset.value;
           break;
         case "leave":
           fOnLeave();

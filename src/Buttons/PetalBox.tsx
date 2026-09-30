@@ -67,8 +67,8 @@ export function PetalBox({
       }}
     >
       <RadialGraphic
-        origin={origin}
         radii={radii}
+        origin={origin}
         rotationR={rotationR}
         fSectorGroupModifier={fSectorGroupModifier}
         ring={1}

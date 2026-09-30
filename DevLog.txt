@@ -1,19 +1,30 @@
-9/9: Extracted Harmonizer Pages into the main driver and integrated it with the UserContext
-9/10: Brand filter, fix undertone Camera
-9/11: Implemented Haptics and reconfigured recolor cam. 
-9/12: Seasons Decor
-9/13: Color Mixer
-Next:
-mixer algo
 platforms
-wheels
-intro/outro transitions
-settings
-harmonizer to undertone
-chips out of sync
-tutorials
-export palette
+wheel unroll
+color mixer crash
+consistent brand filter
+list label
 paywalls
 Revenue Cat
 Screenshots
 Store
+
+Bonus Features:
+Season flickers
+color models
+Palette names
+Palette name generator
+Recolor touch feedback
+palette soft setup
+Sync Chips
+Settings
+Intro transitions
+Paste Palette
+Submenu
+Screen hints
+Toggle recolor
+triple harmonizer
+chroma luma harmonizer
+Sharing
+
+Multi recolor
+Paint Guesser

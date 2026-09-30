@@ -30,6 +30,7 @@ import { tRadialObject } from "../Radials/SectorTypes";
 import { tChordReturn, useSoundContext } from "../Contexts/SoundContext";
 import { scheduleOnRN } from "react-native-worklets";
 import { useChipContext } from "./ChipContext";
+import { Paths } from "../utils/Paths";
 
 export type tChipStatus =
   | ["idle", "ready" | "choosing" | "returning" | "flippingUp" | "flippingDown"]
@@ -127,17 +128,22 @@ export const PaintChip = ({
   useEffect(() => {
     return vHeldChipID.subscribe?.((newID) => {
       const isGrabbed = newID === id;
+      if (isGrabbed) {
+        console.log("PaintChip grabbed:", id, "chipID:", chipID);
+      }
       vGrabbed.dispatch(isGrabbed);
     });
   }, []);
   const chord = useRef<tChordReturn | null>(null);
   useEffect(() => {
     if (vGrabbed.state) {
+      panWeight.value = 1;
       setHeldChipPaint?.(paint);
       chord.current?.(0.05);
       chord.current = fStartChord?.(paint.clar);
       fPlaySFX?.("grab");
     } else {
+      panWeight.value = withTiming(0, { duration: 300 });
       chord.current?.(0.05);
       chord.current = null;
       fPlaySFX?.("drop");
@@ -178,7 +184,7 @@ export const PaintChip = ({
     minDistance: 0,
     onActivate: (event) => {
       if (!draggable) return;
-      panWeight.value = 1;
+
       vPanX.shared.value = event.absoluteX;
       vPanY.shared.value = event.absoluteY;
       holdChip(id);
@@ -192,7 +198,6 @@ export const PaintChip = ({
     },
     onDeactivate: (event) => {
       if (!draggable) return;
-      panWeight.value = withTiming(0, { duration: 300 });
       holdChip();
       vDropScreen.shared.value = false;
     },
@@ -390,18 +395,9 @@ export const PaintChip = ({
               </LinearGradient>
             </Defs>
             <G>
-              <Path
-                d="M-16-8C-8-12 8-12 16-8V8C8 12-8 12-16 8Z"
-                fill={paint?.hex || "transparent"}
-              />
-              <Path
-                d="M-16-8C-8-12 8-12 16-8V8C8 12-8 12-16 8Z"
-                fill="url(#grad)"
-              />
-              <Path
-                d="M-15-7C-4-11 4-11 15-7V7C4 11-4 11-15 7Z"
-                fill={paint?.hex || "transparent"}
-              />
+              <Path d={Paths.chipOutline} fill={paint?.hex || "transparent"} />
+              <Path d={Paths.chipOutline} fill="url(#grad)" />
+              <Path d={Paths.chip} fill={paint?.hex || "transparent"} />
             </G>
             <Text
               x="0"

@@ -9,12 +9,14 @@ import React, {
 } from "react";
 import {
   fGetRandomPalette,
+  tCLARColor,
   tColorModel,
   tPaint,
   tPalette,
 } from "../utils/CLAcolor";
 import { tVerse, useVerse } from "../utils/Verse";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SharedValue, useDerivedValue } from "react-native-reanimated";
 
 export const eLayers = {
   superMax: 2000,
@@ -57,6 +59,8 @@ export type tUserContext = {
   vAccentAR?: tVerse<number>;
   vSelected?: tVerse<number[]>;
   vPage?: tVerse<ePages>;
+  dAccentColor?: SharedValue<tCLARColor>;
+  pagesVisited?: tVerse<Record<ePages, boolean>>;
 };
 
 export const Context = createContext<tUserContext>({
@@ -70,6 +74,8 @@ export const Context = createContext<tUserContext>({
   vAccentAR: null,
   vSelected: null,
   vPage: null,
+  dAccentColor: null,
+  pagesVisited: null,
 });
 export const useUserContext = () => useContext(Context);
 
@@ -81,10 +87,30 @@ export default function UserContext({
   children: ReactNode;
 }) {
   const paintsPresent = useRef<Record<number, [tPaint, tPaint?]>>({}).current;
+  const pagesVisited = useVerse<Record<ePages, boolean>>({
+    Menu: false,
+    "ReColor Camera": false,
+    "Color Wheel": false,
+    "Color Mixer": false,
+    "Undertone Camera": false,
+    "Color Seasons": false,
+    "Color Harmonizer": false,
+    "Palette Library": false,
+    "Scheme Selector": false,
+    "Chip Selector": false,
+    "Color Search": false,
+  });
   const vColorModel = useVerse<tColorModel>("RYGB");
   const vAccentC = useVerse<number>(1);
   const vAccentL = useVerse<number>(1);
   const vAccentAR = useVerse<number>(0);
+  const dAccentColor = useDerivedValue<tCLARColor>(() => {
+    return {
+      c: vAccentC.shared.value,
+      l: vAccentL.shared.value,
+      ar: vAccentAR.shared.value,
+    };
+  });
   const vSelected = useRef(useVerse<number[]>([])).current;
   const vUserPalette = useVerse<tPalette>({ paints: [], name: "" });
   const loadPalette = async () => {
@@ -160,6 +186,8 @@ export default function UserContext({
       vAccentL,
       vSelected,
       vPage,
+      pagesVisited,
+      dAccentColor,
     }),
     [],
   );

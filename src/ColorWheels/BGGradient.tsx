@@ -1,7 +1,10 @@
 import {
   Canvas,
+  Circle,
+  RadialGradient,
   Rect,
   Shadow,
+  Skia,
   SweepGradient,
 } from "@shopify/react-native-skia";
 import { Dimensions, View } from "react-native";
@@ -10,10 +13,10 @@ import { useVerseRelay } from "../utils/Verse";
 import { fCLARColorToString, fCLARColorToRGB } from "../utils/CLAcolor";
 import { eLayers, ePages, useUserContext } from "../Contexts/UserContext";
 import { use, useEffect } from "react";
+import { cDimH, cDimW } from "../utils/ScreenDimensions";
 
 export default function BGGradient() {
-  const { vColorModel, vAccentAR, vAccentC, vAccentL, vSelected, vPage } =
-    useUserContext();
+  const { vColorModel, dAccentColor, vSelected, vPage } = useUserContext();
   const harmonizerPages: ePages[] = [
     "Color Harmonizer",
     "Scheme Selector",
@@ -24,17 +27,17 @@ export default function BGGradient() {
       return [
         fCLARColorToString(
           {
-            c: vAccentC.shared.value ** 1.5,
-            l: vAccentL.shared.value ** 0.25,
-            ar: vAccentAR.shared.value,
+            c: dAccentColor.value.c ** 1.5,
+            l: dAccentColor.value.l ** 0.25,
+            ar: dAccentColor.value.ar,
           },
           vColorModel.shared.value,
         ),
       ];
     }
     const cs = vSelected.shared.value.map((ar, index) => {
-      const c = vAccentC.shared.value;
-      const l = vAccentL.shared.value ** 0.5;
+      const c = dAccentColor.value.c;
+      const l = dAccentColor.value.l ** 0.5;
       const rgb = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
     });
@@ -44,9 +47,9 @@ export default function BGGradient() {
   const shadow = useDerivedValue(() => {
     return fCLARColorToString(
       {
-        c: vAccentC.shared.value * 0.1,
-        l: vAccentL.shared.value * 0.5,
-        ar: vAccentAR.shared.value,
+        c: dAccentColor.value.c * 0.1,
+        l: dAccentColor.value.l * 0.5,
+        ar: dAccentColor.value.ar,
       },
       vColorModel.shared.value,
     );
@@ -90,6 +93,13 @@ export default function BGGradient() {
           />
           <Shadow dx={5} dy={0} blur={25} color={shadow} inner />
         </Rect>
+        <Circle cx={0} cy={cDimH()} r={cDimW(0.4)} blendMode="multiply">
+          <RadialGradient
+            colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0)"]}
+            c={{ x: 0, y: cDimH() }}
+            r={cDimW(0.4)}
+          />
+        </Circle>
       </Canvas>
     </View>
   );

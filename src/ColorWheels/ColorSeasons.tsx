@@ -5,6 +5,7 @@ import {
   fClosestColors,
   fColorLerp,
   fGetRandomPaint,
+  fGetRandomPalette,
   fGetSeasonColors,
   tBrand,
   tCLARColor,
@@ -13,7 +14,7 @@ import {
 } from "../utils/CLAcolor";
 import { RadialContext } from "../Radials/RadialContext";
 import { RadialGraphic } from "../Radials/RadialGraphic";
-import { useVerse } from "../utils/Verse";
+import { useVerse, useVerseRelay } from "../utils/Verse";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { ChipFan } from "../Chips/ChipStack";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -38,8 +39,13 @@ import {
 import { CurvedText } from "../Buttons/CurvedText";
 import { Text, TextProps } from "react-native-svg";
 import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
+import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import { useDemo } from "../Contexts/DemoContext";
+import { Paths } from "../utils/Paths";
+import React from "react";
+import Button from "../Buttons/Button";
 export default function ColorSeasons({
-  radii = [0, 300],
+  radii = [0, 325],
   ring = 5,
   chord = 4,
   arcLength = 11 / 7,
@@ -47,17 +53,21 @@ export default function ColorSeasons({
 }: tRadialObject) {
   ///ON MOUNT
 
-  const origin: [number, number] = [
-    Dimensions.get("window").width,
-    Dimensions.get("window").height * 0.45,
-  ];
+  const origin: [number, number] = [cDimW(), cDimH(0.45)];
   const colors: tCLARColor[] = [
     { c: 0.8, l: 0.9, ar: 6 / 7 },
     { c: 0.2, l: 0.9, ar: 33 / 7 },
     { c: 0.4, l: 0.3, ar: 6 / 7 },
     { c: 0.6, l: 0.1, ar: 33 / 7 },
   ];
-  const { vColorModel, vAccentAR, vAccentC, vAccentL } = useUserContext();
+  const {
+    vColorModel,
+    vAccentAR,
+    vAccentC,
+    vAccentL,
+    vUserPalette,
+    pagesVisited,
+  } = useUserContext();
   const vBrand = useVerse<tBrand>("All Brands");
   const randomPaint = useMemo(() => fGetRandomPaint(), []);
   const vTargetColor = useVerse<tPaint>(randomPaint);
@@ -178,7 +188,7 @@ export default function ColorSeasons({
   useEffect(() => {
     registerModifier(chipMod);
     registerBucket({
-      origin: [Dimensions.get("window").width - 100, origin[1]],
+      origin: [origin[0] - 100, origin[1]],
       radii: [radii[1] * 0.3, radii[1] * 0.4],
       rotationR: 0,
       callback: (paint) => {
@@ -186,25 +196,140 @@ export default function ColorSeasons({
       },
       targetLayerRange: [eLayers.chipFan - 10, eLayers.chipHand + 100],
       id: 20,
-      icon: "search",
+      path: Paths.search,
     });
     return () => {
       unregisterBucket("" + 20);
       unregisterModifier(chipMod.modID);
     };
   }, []);
+  const firstChipPos: [number, number] = [
+    origin[0] + Math.cos(rotationR + arcLength / 2) * radii[1] * 0.9,
+    origin[1] + Math.sin(rotationR + arcLength / 2) * radii[1] * 0.9,
+  ];
+
+  const { fPlaySequence } = useDemo();
+  const { holdChip } = useChipContext();
+
+  const vPagesVisitedRelay = useVerseRelay(pagesVisited);
+  useEffect(() => {
+    if (!pagesVisited.shared.value["Color Seasons"]) {
+      pagesVisited.dispatch({
+        ...pagesVisited.shared.value,
+        "Color Seasons": true,
+      });
+
+      if (!vUserPalette.shared.value.paints[0]) {
+        vUserPalette.dispatch(fGetRandomPalette(1));
+      }
+      fPlaySequence([
+        {
+          touching: 0,
+          toPos: [cDimW(0.05), cDimH(0.95)],
+          duration: 2000,
+          callback: () => {
+            "worklet";
+            if (vUserPalette.shared.value.paints[0]) {
+              holdChip(eLayers.chipHand);
+            }
+          },
+        },
+        {
+          touching: 1,
+          toPos: [origin[0] - 100, origin[1]],
+          duration: 2000,
+          callback: () => {
+            "worklet";
+            holdChip();
+          },
+        },
+        {
+          touching: 0,
+          toPos: firstChipPos,
+          duration: 2000,
+          callback: () => {
+            "worklet";
+            holdChip(eLayers.chipFan + 3);
+          },
+        },
+        {
+          touching: 1,
+          toPos: [origin[0] - 100, origin[1]],
+          duration: 2000,
+          callback: () => {
+            "worklet";
+            holdChip();
+          },
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(1.5), cDimH(0.5)],
+          duration: 300,
+        },
+      ]);
+    } else {
+      console.log("Color Seasons has already been visited.");
+    }
+  }, [vPagesVisitedRelay.state]);
+
+  const colorsBySeason = {
+    spring: [
+      "rgba(255,95,162,0)",
+      "#FF5FA2",
+      "#CEB000",
+      "#26E865",
+      "rgba(38,232,101,0)",
+    ],
+    summer: [
+      "rgba(129,218,195,0)",
+      "#81DAC3",
+      "#BAAAFF",
+      "#F99EBE",
+      "rgba(249,158,190,0)",
+    ],
+    autumn: [
+      "rgba(0,91,49,0)",
+      "#005B31",
+      "#2C18B6",
+      "#920028",
+      "rgba(146,0,40,0)",
+    ],
+    winter: [
+      "rgba(156,37,16,0)",
+      "#9C2510",
+      "#685200",
+      "#067D00",
+      "rgba(6,125,0,0)",
+    ],
+  };
+  function sweepPath(
+    rd: [number, number],
+    arc: number,
+    r: number,
+    colors: string[],
+  ) {
+    return (
+      <Path
+        transform={[
+          { translateX: rd[1] },
+          { translateY: rd[1] },
+          { rotate: r },
+        ]}
+        path={fMakeSectorPath(rd, arc, rd[1])}
+      >
+        <SweepGradient
+          transform={[{ rotate: -arc / 2 }]}
+          c={vec(0, 0)}
+          start={0}
+          end={(arc / 3.14) * 180}
+          colors={colors}
+        />
+      </Path>
+    );
+  }
+  const gradientRadii: [number, number] = [0, radii[1] + 100];
 
   /// R E N D E R ///
-
-  const textProps: TextProps = {
-    x: 300,
-    y: 200,
-    textAnchor: "middle",
-    alignmentBaseline: "middle",
-    fill: "white",
-    fontFamily: "Outfit",
-    fontSize: 16,
-  };
 
   return (
     <>
@@ -249,12 +374,43 @@ export default function ColorSeasons({
         totalArcLength={2 / 7}
         layer={eLayers.buckets}
       />
-      <SeasonGradient
-        arcLength={2.8}
-        radii={[0, 450]}
-        rotationR={22.1 / 7}
-        origin={[origin[0] + 50, origin[1]]}
-      />
+
+      <Canvas
+        style={{
+          width: gradientRadii[1] * 2,
+          height: gradientRadii[1] * 2,
+          zIndex: eLayers.background + 5,
+          position: "absolute",
+          top: origin[1] - gradientRadii[1] - 10,
+          left: origin[0] - gradientRadii[1],
+          opacity: 0.8,
+        }}
+      >
+        {sweepPath(
+          gradientRadii,
+          arcLength / 4,
+          rotationR + arcLength * 0.4,
+          colorsBySeason.spring,
+        )}
+        {sweepPath(
+          gradientRadii,
+          arcLength / 4,
+          rotationR + arcLength * 0.13,
+          colorsBySeason.summer,
+        )}
+        {sweepPath(
+          gradientRadii,
+          arcLength / 4,
+          rotationR - arcLength * 0.13,
+          colorsBySeason.autumn,
+        )}
+        {sweepPath(
+          gradientRadii,
+          arcLength / 4,
+          rotationR - arcLength * 0.4,
+          colorsBySeason.winter,
+        )}
+      </Canvas>
 
       <CurvedText
         text="Winter"
@@ -312,180 +468,18 @@ export default function ColorSeasons({
         color="white"
         convex={true}
       />
-      <Tutorial
-        height={400}
-        width={600}
-        origin={[Dimensions.get("window").width / 2, origin[1]]}
-        infoIconOrigin={[origin[0] - 50, origin[1] + 175]}
-        infoIconSize={50}
-      >
-        <Text {...textProps} dy={-60}>
-          Drag in a paint for colors that are more:
-        </Text>
-        <Text {...textProps} fill="rgb(255, 225, 0)" dy={-30} dx={-30}>
-          Spring (warm and bright)
-        </Text>
-        <Text {...textProps} dy={-10} fill={"rgb(175, 255, 255)"} dx={-15}>
-          Summer (cool and light)
-        </Text>
-        <Text {...textProps} dy={10} fill={"rgb(200, 125, 50)"} dx={15}>
-          Autumn (warm and muted)
-        </Text>
-        <Text {...textProps} dy={30} fill={"rgb(100, 100, 255)"} dx={30}>
-          Winter (cool and deep)
-        </Text>
-        <Text {...textProps} dy={60}>
-          Then drag the new ones
-        </Text>
-        <Text {...textProps} dy={80}>
-          back to repeat the process
-        </Text>
-      </Tutorial>
+      <Button
+        path={Paths.replay}
+        layer={eLayers.superMax}
+        origin={[cDimW(0.9), cDimH(0.65)]}
+        viewRadius={30}
+        onPress={() => {
+          pagesVisited.dispatch({
+            ...pagesVisited.shared.value,
+            "Color Seasons": false,
+          });
+        }}
+      />
     </>
-  );
-}
-
-function SeasonGradient({
-  arcLength,
-  radii,
-  rotationR,
-  origin,
-}: tRadialObject) {
-  const colorRange = 2.5;
-  const winterAngle = 34 / 7;
-  const autumnAngle = 11 / 7;
-  const winterCLArs: tCLARColor[] = [
-    { c: 0.8, l: 0.2, ar: winterAngle - colorRange / 2 },
-    { c: 0.6, l: 0.25, ar: winterAngle },
-    { c: 0.8, l: 0.2, ar: winterAngle + colorRange / 2 },
-  ];
-  const autumnCLArs: tCLARColor[] = [
-    { c: 0.7, l: 0.35, ar: autumnAngle - colorRange / 2 },
-    { c: 0.7, l: 0.35, ar: autumnAngle },
-    { c: 0.7, l: 0.35, ar: autumnAngle + colorRange / 2 },
-  ];
-  const springCLArs: tCLARColor[] = [
-    { c: 0.9, l: 0.7, ar: autumnAngle - colorRange * 0.7 },
-    { c: 0.9, l: 0.7, ar: autumnAngle },
-    { c: 0.9, l: 0.7, ar: autumnAngle + colorRange * 0.7 },
-  ];
-  const summerCLArs: tCLARColor[] = [
-    { c: 0.5, l: 0.8, ar: winterAngle - colorRange / 2 },
-    { c: 0.5, l: 0.8, ar: winterAngle },
-    { c: 0.5, l: 0.8, ar: winterAngle + colorRange / 2 },
-  ];
-  function fGetColors(
-    season: "winter" | "autumn" | "spring" | "summer",
-  ): string[] {
-    let colors: tCLARColor[] = [];
-    switch (season) {
-      case "winter":
-        colors = winterCLArs;
-        break;
-      case "autumn":
-        colors = autumnCLArs;
-        break;
-      case "spring":
-        colors = springCLArs;
-        break;
-      case "summer":
-        colors = summerCLArs;
-        break;
-    }
-    const firstColorRGB = fCLARColorToRGB(colors[0], vColorModel.state);
-    const stringFirst =
-      "rgba(" +
-      firstColorRGB[0] +
-      "," +
-      firstColorRGB[1] +
-      "," +
-      firstColorRGB[2] +
-      "," +
-      0 +
-      ")";
-    const lastColorRGB = fCLARColorToRGB(
-      colors[colors.length - 1],
-      vColorModel.state,
-    );
-    const stringLast =
-      "rgba(" +
-      lastColorRGB[0] +
-      "," +
-      lastColorRGB[1] +
-      "," +
-      lastColorRGB[2] +
-      "," +
-      0 +
-      ")";
-    return [
-      stringFirst,
-      ...colors.map((c) => fCLARColorToString(c, vColorModel.state)),
-      stringLast,
-    ];
-  }
-
-  const { vColorModel } = useUserContext();
-  function sweepPath(
-    rd: [number, number],
-    arc: number,
-    r: number,
-    colors: string[],
-  ) {
-    return (
-      <Path
-        transform={[
-          { translateX: radii[1] },
-          { translateY: radii[1] },
-          { rotate: r },
-        ]}
-        path={fMakeSectorPath(rd, arc, radii[1])}
-      >
-        <SweepGradient
-          transform={[{ rotate: -arc / 2 }]}
-          c={vec(0, 0)}
-          start={0}
-          end={(arc / 3.14) * 180}
-          colors={colors}
-        />
-      </Path>
-    );
-  }
-  return (
-    <Canvas
-      style={{
-        width: radii[1] * 2,
-        height: radii[1] * 2,
-        zIndex: eLayers.background + 1,
-        position: "absolute",
-        top: origin[1] - radii[1],
-        left: origin[0] - radii[1],
-        opacity: 0.8,
-      }}
-    >
-      {sweepPath(
-        radii,
-        arcLength / 8,
-        rotationR + arcLength / 5,
-        fGetColors("spring"),
-      )}
-      {sweepPath(
-        radii,
-        arcLength / 8,
-        rotationR + arcLength / 5 / 3,
-        fGetColors("summer"),
-      )}
-      {sweepPath(
-        radii,
-        arcLength / 8,
-        rotationR - arcLength / 5 / 3,
-        fGetColors("autumn"),
-      )}
-      {sweepPath(
-        radii,
-        arcLength / 8,
-        rotationR - arcLength / 5,
-        fGetColors("winter"),
-      )}
-    </Canvas>
   );
 }

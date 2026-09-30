@@ -55,7 +55,7 @@ export const BrandFilter = (props: tBrandFilter) => {
   const origin = props.origin || ctx.origin || [0, 0];
   const totalArcLength = props.totalArcLength || ctx.totalArcLength || 11 / 7;
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
-  const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
+  const { dAccentColor, vColorModel } = useUserContext();
   const collapseAnim = useSharedValue(0);
   const radius = props.radius || 50;
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
@@ -179,25 +179,20 @@ export const BrandFilter = (props: tBrandFilter) => {
   const compGesture = useSimultaneousGestures(tap, pan);
   const mColorModifier: tAttributeModifier = {
     modID: 0,
-    deps: [
-      vAccentAR.shared,
-      vAccentC.shared,
-      vColorModel.shared,
-      vAccentL.shared,
-    ],
+    deps: [dAccentColor, vColorModel.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
-      const topC = vAccentC.shared.value ** 0.5;
-      const topL = vAccentL.shared.value * 0.4 + 0.6;
-      const bottomC = vAccentC.shared.value ** 2;
-      const bottomL = vAccentL.shared.value * 0.5;
+      const topC = dAccentColor.value.c ** 0.5;
+      const topL = dAccentColor.value.l * 0.4 + 0.6;
+      const bottomC = dAccentColor.value.c ** 2;
+      const bottomL = dAccentColor.value.l * 0.5;
 
       const rdc = Math.pow(bottomC, topC / Math.max(brands.length - 1, 1));
       const rdl = Math.pow(bottomL, topL / Math.max(brands.length - 1, 1));
 
       let l = Math.pow(rdl, input.ring) * topL;
       let c = Math.pow(rdc, input.ring) * topC;
-      let ar = vAccentAR.shared.value;
+      let ar = dAccentColor.value.ar;
       const [r, g, b] = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return {
         ...input,

@@ -31,7 +31,7 @@ export const eLayers = {
 };
 
 export type ePages =
-  | "Menu"
+  | "Main Menu"
   | "ReColor Camera"
   | "Color Wheel"
   | "Color Mixer"
@@ -41,7 +41,8 @@ export type ePages =
   | "Palette Library"
   | "Scheme Selector"
   | "Chip Selector"
-  | "Color Search";
+  | "Color Search"
+  | "Find a Color";
 
 export type tPage = {
   vTransition: tVerse<number>;
@@ -88,7 +89,7 @@ export default function UserContext({
 }) {
   const paintsPresent = useRef<Record<number, [tPaint, tPaint?]>>({}).current;
   const pagesVisited = useVerse<Record<ePages, boolean>>({
-    Menu: false,
+    "Main Menu": false,
     "ReColor Camera": false,
     "Color Wheel": false,
     "Color Mixer": false,
@@ -99,6 +100,7 @@ export default function UserContext({
     "Scheme Selector": false,
     "Chip Selector": false,
     "Color Search": false,
+    "Find a Color": false,
   });
   const vColorModel = useVerse<tColorModel>("RYGB");
   const vAccentC = useVerse<number>(1);

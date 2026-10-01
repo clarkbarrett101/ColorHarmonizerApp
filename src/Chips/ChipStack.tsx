@@ -1,19 +1,10 @@
 import { eChipSizes, PaintChip, tPaintChip } from "./PaintChip";
-import {
-  refColors,
-  tCLARColor,
-  tColorMap,
-  tPaint,
-  findColors,
-  tBrand,
-} from "../utils/CLAcolor";
-import { SharedValue, useSharedValue } from "react-native-reanimated";
-import React, { useEffect, useRef, useState } from "react";
-import { eLayers, useUserContext } from "../Contexts/UserContext";
+import { tCLARColor, tPaint, findColors, tBrand } from "../utils/CLAcolor";
+import { useSharedValue } from "react-native-reanimated";
+import React, { useEffect, useState } from "react";
 import { useSoundContext } from "../Contexts/SoundContext";
 import { View } from "react-native";
 import { tRadialObject } from "../Radials/SectorTypes";
-import { tVerse } from "../utils/Verse";
 const clarColorsList: tPaint[] = require("../clarColors3.json");
 
 export type tChipFan = {
@@ -135,20 +126,6 @@ export const ColorChipFan = ({
     />
   );
 };
-/*
-export function AccentChipFan({
-  brand,
-  ...rest
-}: Omit<tChipWheel, "targetColor">) {
-  const { vAccentC, vAccentL, vAccentAR } = useUserContext();
-  const targetColor = {
-    c: vAccentC.state,
-    l: vAccentL.state,
-    ar: vAccentAR.state,
-  };
-  return <ColorChipFan targetColor={targetColor} brand={brand} {...rest} />;
-}
-  */
 type tChipRow = tRadialObject &
   Partial<tPaintChip> & {
     paints: tPaint[];

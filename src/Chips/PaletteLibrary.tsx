@@ -137,7 +137,7 @@ export default function PaletteLibrary({
       0,
       Math.min(
         wDefaultAngleToChord(
-          vRotationROffset.value,
+          vRotationROffset.value || 0,
           arcLength,
           vPalettes.shared.value.length,
           0,
@@ -145,6 +145,7 @@ export default function PaletteLibrary({
         vPalettes.shared.value.length - 1,
       ),
     );
+
     const nearestAngle = wDefaultChordToAngle(
       nearestPalette,
       arcLength,
@@ -227,8 +228,13 @@ export default function PaletteLibrary({
       if (value !== null) {
         console.log("data:" + value);
         let palettes = JSON.parse(value);
+        let totalPaints = 0;
         for (let i = 0; i < palettes.length; i++) {
           palettes[i] = CleanPalette(palettes[i]);
+          totalPaints += palettes[i].paints.length;
+        }
+        if (totalPaints === 0) {
+          palettes = fDefaultPalettes().map((pal) => CleanPalette(pal));
         }
         return palettes;
       } else {

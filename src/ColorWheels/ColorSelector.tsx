@@ -1,14 +1,8 @@
 import { useCallback, useEffect } from "react";
-import {
-  fCLARColorToRGB,
-  fGetRandomPalette,
-  tBrand,
-  tCLARColor,
-  tPaint,
-} from "../utils/CLAcolor";
+import { fCLARColorToRGB, tBrand, tCLARColor, tPaint } from "../utils/CLAcolor";
 import { ColorWheel } from "../ColorWheels/ColorWheel";
 import { TintSelector } from "../ColorWheels/TintSelector";
-import { Dimensions, View } from "react-native";
+import { Dimensions } from "react-native";
 import {
   RadialContext,
   wDefaultAngleToChord,
@@ -400,9 +394,7 @@ export default function ColorSelector({
       </RadialContext>
       <BrandFilter
         vBrand={vBrand}
-        radius={40}
         layer={eLayers.buckets}
-        totalArcLength={2 / 7}
         mainRotationR={11 / 7}
         origin={[Dimensions.get("window").width - 60, 75]}
       />

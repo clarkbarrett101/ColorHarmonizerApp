@@ -1,12 +1,17 @@
-import { SharedValue } from "react-native-reanimated";
-import { Path, Text } from "react-native-svg";
-import { useUserContext } from "../Contexts/UserContext";
+import Animated, {
+  SharedValue,
+  useAnimatedProps,
+  useDerivedValue,
+} from "react-native-reanimated";
+import Svg, { Path, Text } from "react-native-svg";
+import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { fCLARColorToRGB } from "../utils/CLAcolor";
 import { SectorGroup } from "../Radials/SectorGroup";
 import { RadialGraphic } from "../Radials/RadialGraphic";
 import { RadialContext } from "../Radials/RadialContext";
 import { tRadialObject, tSectorGroup } from "../Radials/SectorTypes";
+import { Paths } from "../utils/Paths";
 
 export type tPetalBox = tRadialObject & {
   children?: React.ReactNode[] | React.ReactNode;
@@ -76,5 +81,56 @@ export function PetalBox({
         arcLength={arcLength}
       />
     </RadialContext>
+  );
+}
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+export function PetalBoxSimple({
+  dC,
+  dL,
+  dAR,
+  children,
+  opacity = 1,
+  origin,
+  dim = [100, 100],
+  layer = eLayers.buckets,
+}: tPetalBox & { dim?: [number, number] }) {
+  const { vAccentC, vAccentL, vAccentAR, vColorModel } = useUserContext();
+  const chroma = dC ?? vAccentC.shared;
+  const lightness = dL ?? vAccentL.shared;
+  const angleRatio = dAR ?? vAccentAR.shared;
+  const dColor = useDerivedValue(() => {
+    return fCLARColorToRGB(
+      { c: chroma.value, l: lightness.value, ar: angleRatio.value },
+      vColorModel.shared.value,
+    );
+  });
+  const animatedColor = useAnimatedProps(() => {
+    const [r, g, b] = dColor.value;
+    return {
+      fill: `rgba(${r}, ${g}, ${b}, ${opacity})`,
+    };
+  });
+
+  return (
+    <Svg
+      style={{
+        top: origin[1] - dim[1] / 2,
+        left: origin[0] - dim[0] / 2,
+        position: "absolute",
+        width: dim[0],
+        height: dim[1],
+        shadowColor: "#000",
+        shadowOffset: { width: -2, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 2,
+        zIndex: layer,
+      }}
+      viewBox={`-16 -12 32 24`}
+      width={dim[0]}
+      height={dim[1]}
+    >
+      <AnimatedPath d={Paths.chip} animatedProps={animatedColor} />
+      {children}
+    </Svg>
   );
 }

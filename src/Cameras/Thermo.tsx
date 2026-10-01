@@ -17,7 +17,6 @@ export function Thermo({
   tempList = [3500, 4500, 5500, 6500, 8000, 10000, 12000],
   tempK,
   arcLength = 2 / 7,
-  radii = [0, 100],
   rotationR = 0,
   origin = [0, 0],
   totalLength = 500,
@@ -66,7 +65,7 @@ export function Thermo({
         arcLength: arcLength,
         chord: 0,
         ring: i,
-        radii,
+        radii: [0, radius],
         rgb: temps[i].rgb,
       };
       const text = (

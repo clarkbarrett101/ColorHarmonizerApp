@@ -1,8 +1,6 @@
-import { Dimensions, View } from "react-native";
+import { Dimensions } from "react-native";
 import {
   fCLARColorToRGB,
-  fCLARColorToString,
-  fClosestColors,
   fColorLerp,
   fGetRandomPaint,
   fGetRandomPalette,
@@ -29,16 +27,8 @@ import { eChipSizes, PaintChip } from "../Chips/PaintChip";
 import { withTiming, useSharedValue } from "react-native-reanimated";
 import { BrandFilter } from "../ColorWheels/BrandFilter";
 import { useChipContext } from "../Chips/ChipContext";
-import {
-  Canvas,
-  Group,
-  Path,
-  SweepGradient,
-  vec,
-} from "@shopify/react-native-skia";
+import { Canvas, Path, SweepGradient, vec } from "@shopify/react-native-skia";
 import { CurvedText } from "../Buttons/CurvedText";
-import { Text, TextProps } from "react-native-svg";
-import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 import { cDimW, cDimH } from "../utils/ScreenDimensions";
 import { useDemo } from "../Contexts/DemoContext";
 import { Paths } from "../utils/Paths";
@@ -368,10 +358,8 @@ export default function ColorSeasons({
       />
       <BrandFilter
         vBrand={vBrand}
-        radius={55}
         origin={[origin[0] - radii[1] * 0.2, origin[1] - 250]}
         mainRotationR={11 / 7}
-        totalArcLength={2 / 7}
         layer={eLayers.buckets}
       />
 

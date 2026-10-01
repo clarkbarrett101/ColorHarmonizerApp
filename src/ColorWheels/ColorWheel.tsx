@@ -1,19 +1,12 @@
-import {
-  fCLARColorToRGB,
-  fCLARColorToString,
-  fRGBToCLARColor,
-  tCLARColor,
-  tPaint,
-} from "../utils/CLAcolor";
+import { fCLARColorToRGB } from "../utils/CLAcolor";
 import { RadialGraphic } from "../Radials/RadialGraphic";
-import { use, useCallback, useEffect, useState } from "react";
-import { tRadialObject, tSector, tSectorGroup } from "../Radials/SectorTypes";
+import { useCallback, useEffect } from "react";
+import { tRadialObject } from "../Radials/SectorTypes";
 import {
   useSharedValue,
   SharedValue,
   withTiming,
   useAnimatedReaction,
-  withDelay,
 } from "react-native-reanimated";
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { RadialContext, useRadialContext } from "../Radials/RadialContext";
@@ -21,7 +14,6 @@ import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tVerse, useVerse } from "../utils/Verse";
 import React from "react";
-import { View } from "react-native";
 
 type tColorWheel = tRadialObject & {
   wheelCenter?: number;
@@ -70,26 +62,23 @@ function ColorWheel({
   const vPanState = useSharedValue<ePanEvent>("leave");
   const vStartAngle = useSharedValue(0);
   const dragStartAngle = useSharedValue(0);
-  function fLerp(a: number, b: number, t: number): number {
-    "worklet";
-    return a + (b - a) * t;
-  }
+
   const mTransformModifier: tAttributeModifier = {
     modID: 0,
-    deps: [vPanPos, vStartAngle, vRotationOffset],
+    deps: [vPanPos, vStartAngle, vAccentAR.shared],
     modifier: (input: tAttributeMap) => {
       "worklet";
       let chords = chord;
       const chordLength = (2 * arcLength) / chords;
       let startRotation = wChordToAngle(input.chord, arcLength, chords, 0);
-      let rotation = input.rotateZ - vRotationOffset.value;
+      let rotation = input.rotateZ - vAccentAR.shared.value;
       const selectedSector = wAngleToChord(
-        vRotationOffset.value,
+        vAccentAR.shared.value,
         arcLength,
         chords,
         0,
       );
-      let diff = Math.abs(startRotation - vRotationOffset.value) % (44 / 7);
+      let diff = Math.abs(startRotation - vAccentAR.shared.value) % (44 / 7);
       if (diff > 22 / 7) diff = 44 / 7 - diff;
       let zDiff = Math.abs(input.chord - selectedSector) % chords;
       if (zDiff > chords / 2) zDiff = chords - zDiff;
@@ -125,30 +114,22 @@ function ColorWheel({
     let nearestSectorAngle = wChordToAngle(nearestSector, arcLength, chord, 0);
     vAccentAR.shared.value = withTiming(nearestSectorAngle, { duration: 500 });
     vRotationOffset.value = nearestSectorAngle;
-    console.log(
-      "Wheel leaving, rotating to nearest sector",
-      nearestSector,
-      nearestSectorAngle,
-    );
   };
   const fOnTap = useCallback(() => {
     "worklet";
     const offsetAngle = vPanPos.value.angle - 22 / 7;
-
     if (Math.abs(offsetAngle) > 0.4) {
       fOnLeave(offsetAngle);
     }
-    console.log(
-      "Tapped wheel," + offsetAngle + " rotating to " + vAccentAR.shared.value,
-    );
   }, []);
+
   useAnimatedReaction(
     () => vPanPos.value,
     (pos) => {
       if (vPanState.value === "drag") {
         const angleDiff = vPanPos.value.angle - vStartAngle.value;
-        vRotationOffset.value = dragStartAngle.value - angleDiff;
-        vAccentAR.shared.value = vRotationOffset.value % (2 * Math.PI);
+        vAccentAR.shared.value =
+          (dragStartAngle.value - angleDiff) % (2 * Math.PI);
       }
     },
     [],
@@ -156,7 +137,6 @@ function ColorWheel({
   useAnimatedReaction(
     () => vPanState.value,
     (state) => {
-      console.log("Wheel pan state changed:", state);
       switch (state) {
         case "enter":
           vStartAngle.value = vPanPos.value.angle;
@@ -177,6 +157,7 @@ function ColorWheel({
     },
     [],
   );
+
   useEffect(() => {
     if (!draggable) return;
     const id = `${ring}-${chord}`;
@@ -195,6 +176,7 @@ function ColorWheel({
       unregisterHitBox(id);
     };
   }, []);
+
   const chordLength = arcLength / chord;
   const secondTransformModifier: tAttributeModifier = {
     modID: 2,

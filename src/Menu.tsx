@@ -1,20 +1,15 @@
-import { Dimensions, PanResponder, View } from "react-native";
+import { Dimensions } from "react-native";
 import { useDemo } from "./Contexts/DemoContext";
-import { fCLARColorToRGB, fCLARColorToString } from "./utils/CLAcolor";
+import { fCLARColorToRGB } from "./utils/CLAcolor";
 import { RadialGraphic } from "./Radials/RadialGraphic";
-import { ReactNode, useEffect } from "react";
+import { useEffect } from "react";
 import Svg, {
   Text,
-  Path,
   G,
   TextProps,
   Defs,
-  Ellipse,
   RadialGradient,
   Stop,
-  FeDropShadow,
-  Filter,
-  LinearGradient,
   Rect,
 } from "react-native-svg";
 import Animated, {
@@ -23,58 +18,67 @@ import Animated, {
   withSpring,
   useAnimatedProps,
   useDerivedValue,
+  runOnJS,
 } from "react-native-reanimated";
-import {
-  fMakePetalPathFromSize,
-  tRadialObject,
-  tSector,
-  tSectorGroup,
-} from "./Radials/SectorTypes";
+import { tRadialObject, tSector, tSectorGroup } from "./Radials/SectorTypes";
 import { tAttributeModifier, tAttributeMap } from "./utils/Actor";
 import { RadialContext, wDefaultAngleToChord } from "./Radials/RadialContext";
-import { tVerse, useVerse, useVerseRelay } from "./utils/Verse";
+import { useVerseRelay } from "./utils/Verse";
 import { ePanEvent, usePanManager } from "./Contexts/PanManager";
 import { eLayers, ePages, useUserContext } from "./Contexts/UserContext";
 import { cDimH, cDimW } from "./utils/ScreenDimensions";
-import { fTextWrapSVG, Tutorial } from "./Buttons/Tutorial";
-import { PetalBox } from "./Buttons/PetalBox";
 import Paths from "./utils/Paths";
 import React from "react";
 import { SharedValue } from "react-native-gesture-handler/lib/typescript/v3/types";
 import Button from "./Buttons/Button";
-const allPages = [
+import { scheduleOnRN } from "react-native-worklets";
+const mainPages = [
   "Undertone Camera",
   "ReColor Camera",
-  "Palette Library",
   "Color Harmonizer",
-  "Color Wheel",
+  "Palette Library",
+  "Find a Color",
+] as const satisfies readonly ePages[];
+const searchPages = [
+  "Main Menu",
+  "Color Search",
   "Color Mixer",
   "Color Seasons",
-  "Color Search",
+  "Color Wheel",
 ] as const satisfies readonly ePages[];
-type tMenuPage = (typeof allPages)[number];
+type tMenuPage = (typeof mainPages)[number] | (typeof searchPages)[number];
 
 export default function Menu({
   radii = [200, 500],
   rotationR = 22 / 7,
-  arcLength = 9 / 7,
-  chord = allPages.length,
+  arcLength = 6 / 7,
+  chord = mainPages.length,
   ring = 5,
   origin = [cDimW() + radii[0], cDimH(0.5)],
 }: tRadialObject) {
   const { registerHitBox, unregisterHitBox } = usePanManager();
   const { vPage, pagesVisited } = useUserContext();
-  const vPanPos = useSharedValue({ angle: 21 / 7, radius: 0 });
+  const [isSearchMenu, setIsSearchMenu] = React.useState(false);
+  const activePages = isSearchMenu ? searchPages : mainPages;
+  const activeChord = activePages.length;
+  const vPanPos = useSharedValue({ angle: 22 / 7, radius: 0 });
   const vPanState = useSharedValue<ePanEvent>("enter");
   const vSlowAngle = useSharedValue<number>(0);
+  const vIsSearchMenu = useSharedValue(false);
+  useEffect(() => {
+    vIsSearchMenu.value = isSearchMenu;
+  }, [isSearchMenu, vIsSearchMenu]);
   const dSelection = useDerivedValue(() => {
+    const selectedChord = vIsSearchMenu.value
+      ? searchPages.length
+      : mainPages.length;
     let nearestChord = wDefaultAngleToChord(
       vSlowAngle.value,
       arcLength,
-      chord,
+      selectedChord,
       rotationR,
     );
-    nearestChord = Math.max(Math.min(nearestChord, chord - 1), 0);
+    nearestChord = Math.max(Math.min(nearestChord, selectedChord - 1), 0);
     return nearestChord;
   });
   const { fPlaySequence } = useDemo();
@@ -95,22 +99,22 @@ export default function Menu({
   }, []);
   const vPagesVisitedRelay = useVerseRelay(pagesVisited);
   useEffect(() => {
-    if (!pagesVisited.shared.value.Menu) {
+    if (!pagesVisited.shared.value["Main Menu"]) {
       fPlaySequence([
         {
           touching: 0,
-          toPos: [cDimW(0.5), cDimH(0.2)],
+          toPos: [cDimW(0.5), cDimH(0.3)],
           duration: 2000,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.5), cDimH(0.8)],
-          duration: 3000,
+          toPos: [cDimW(0.5), cDimH(0.7)],
+          duration: 2000,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.5), cDimH(0.55)],
-          duration: 1500,
+          toPos: [cDimW(0.5), cDimH(0.5)],
+          duration: 1000,
         },
         {
           touching: 1,
@@ -125,7 +129,7 @@ export default function Menu({
       ]);
       pagesVisited.dispatch({
         ...pagesVisited.shared.value,
-        Menu: true,
+        "Main Menu": true,
       });
     }
   }, [vPagesVisitedRelay.state]);
@@ -138,18 +142,34 @@ export default function Menu({
     () => vPanState.value,
     (state) => {
       if (state === "release" || state === "tap") {
+        const selectedChord = vIsSearchMenu.value
+          ? searchPages.length
+          : mainPages.length;
+        const selectedPages = vIsSearchMenu.value ? searchPages : mainPages;
         const adjustedAngle = vPanPos.value.angle - rotationR + arcLength / 2;
         const nearestChord = Math.max(
-          Math.min(Math.floor(adjustedAngle / (arcLength / chord)), chord - 1),
+          Math.min(
+            Math.floor(adjustedAngle / (arcLength / selectedChord)),
+            selectedChord - 1,
+          ),
           0,
         );
-        vPage?.dispatch(allPages[nearestChord]);
+        const selectedPage = selectedPages[nearestChord];
+        if (selectedPage === "Find a Color" || selectedPage === "Main Menu") {
+          vIsSearchMenu.value = !vIsSearchMenu.value;
+          scheduleOnRN(setIsSearchMenu, vIsSearchMenu.value);
+          return;
+        }
+        vPage?.dispatch(selectedPage);
       }
     },
   );
   useAnimatedReaction(
     () => vPanPos.value,
     (pos) => {
+      const selectedChord = vIsSearchMenu.value
+        ? searchPages.length
+        : mainPages.length;
       vSlowAngle.value = withSpring(pos.angle, {
         damping: 100,
         stiffness: 1000,
@@ -157,11 +177,11 @@ export default function Menu({
       const pChord = wDefaultAngleToChord(
         pos.angle,
         arcLength,
-        chord,
+        selectedChord,
         rotationR,
       );
       vAccentAR.shared.value = withSpring(
-        22 / 7 + (pChord / (chord - 1)) * (22 / 7),
+        22 / 7 + (pChord / (selectedChord - 1)) * (22 / 7),
       );
     },
   );
@@ -175,18 +195,26 @@ export default function Menu({
       return {
         ...input,
         translateX: input.translateX + diff * radii[0] * 0.2,
+        translateY:
+          input.translateY + (1 - input.chord / (mainPages.length - 1)) * 30,
         scaleX: 1 + Math.max(0, diff - 0.9),
         scaleY: 1 + Math.max(0, diff - 0.9),
-        zIndex: eLayers.colorMixer + Math.round(diff * chord),
+        zIndex:
+          eLayers.colorMixer +
+          Math.round(diff * Math.max(mainPages.length, searchPages.length)),
       };
     },
   };
   function fSectorModifier(sector: tSector) {
+    const colorChord = Math.max(activeChord - 1, 1);
+    let colorRange = isSearchMenu ? [27 / 7, 0 / 7] : [25 / 7, 44 / 7];
     const rgb = fCLARColorToRGB(
       {
         c: (sector.ring / (ring - 1)) * 0.4 + 0.4,
         l: (sector.ring / (ring - 1)) * 0.4 + 0.4,
-        ar: 22 / 7 + (sector.chord / (chord - 1)) * (22 / 7),
+        ar:
+          colorRange[0] +
+          (sector.chord / colorChord) * (colorRange[1] - colorRange[0]),
       },
       "RYGB",
     );
@@ -197,6 +225,8 @@ export default function Menu({
     };
   }
   function fSectorGroupModifier(sectorGroup: tSectorGroup) {
+    let label: string = activePages[sectorGroup.sectorGroupID];
+    if (label === "Main Menu") label = "Back";
     return {
       ...sectorGroup,
       children: (
@@ -210,12 +240,15 @@ export default function Menu({
           fontWeight={600}
           transform={[{ rotate: 22 / 7 + "rad" }]}
         >
-          {allPages[sectorGroup.sectorGroupID]}
+          {label}
         </Text>
       ),
     };
   }
-  const vSelectedPage = useDerivedValue(() => allPages[dSelection.value]);
+  const vSelectedPage = useDerivedValue(() => {
+    const selectedPages = vIsSearchMenu.value ? searchPages : mainPages;
+    return selectedPages[dSelection.value];
+  });
 
   return (
     <>
@@ -224,13 +257,13 @@ export default function Menu({
           mTransformModifier,
           origin,
           totalRings: ring,
-          totalChords: chord,
+          totalChords: activeChord,
           radii,
         }}
       >
         <RadialGraphic
           radii={radii}
-          chord={chord}
+          chord={activeChord}
           ring={ring}
           arcLength={arcLength}
           rotationR={rotationR}
@@ -267,7 +300,7 @@ export default function Menu({
         onPress={() => {
           pagesVisited.dispatch({
             ...pagesVisited.shared.value,
-            Menu: false,
+            "Main Menu": false,
           });
         }}
       />
@@ -561,6 +594,16 @@ function PageDescription({ vPage }: { vPage: SharedValue<tMenuPage> }) {
         fontSize={24}
       >
         Save and manage your Color Palettes
+      </DoubleText>
+      <DoubleText
+        {...textProps}
+        dy={0}
+        dx={0}
+        stroke="black"
+        targetPage="Find a Color"
+        fontSize={24}
+      >
+        Search for the perfect paint color
       </DoubleText>
     </>
   );

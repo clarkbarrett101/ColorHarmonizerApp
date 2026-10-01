@@ -1,4 +1,4 @@
-import { Dimensions, View } from "react-native";
+import { Dimensions } from "react-native";
 import {
   fCLARColorToRGB,
   fClosestColors,
@@ -22,8 +22,6 @@ import { useBucketContext } from "../Buckets/BucketContext";
 import { eChipSizes, PaintChip } from "../Chips/PaintChip";
 import { withTiming, useSharedValue } from "react-native-reanimated";
 import { BrandFilter } from "./BrandFilter";
-import { Text, TextProps, TSpan } from "react-native-svg";
-import { Tutorial } from "../Buttons/Tutorial";
 import React from "react";
 import { useChipContext } from "../Chips/ChipContext";
 import { useDemo } from "../Contexts/DemoContext";
@@ -269,10 +267,8 @@ export default function ColorMixer({
       />
       <BrandFilter
         vBrand={vBrand}
-        radius={50}
         origin={[origin[0] - radii[1] * 0.15, origin[1] - 250]}
         mainRotationR={11 / 7}
-        totalArcLength={2.5 / 7}
         layer={eLayers.chipHand}
       />
       <Button

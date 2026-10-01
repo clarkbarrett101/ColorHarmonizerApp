@@ -1,17 +1,11 @@
-import { use, useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { RadialGraphic } from "../Radials/RadialGraphic";
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { tRadialObject, tSector, tSectorGroup } from "../Radials/SectorTypes";
-import {
-  SharedValue,
-  useAnimatedReaction,
-  useSharedValue,
-} from "react-native-reanimated";
+import { SharedValue, useSharedValue } from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "../Radials/RadialContext";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { eLayers } from "../Contexts/UserContext";
-import { scheduleOnRN } from "react-native-worklets";
-
 export type tTintSelector = tRadialObject & {
   fSectorModifier?: (sector: tSector) => tSector;
   fSectorGroupModifier?: (group: tSectorGroup) => any;
@@ -33,8 +27,7 @@ export function TintSelector({
   const { registerHitBox: registerZone, unregisterHitBox } = usePanManager();
   const vPanState = useSharedValue<ePanEvent>("leave");
   const context = useRadialContext();
-  const { origin, wAngleToChord, wChordToAngle } = context;
-  const lastAngle = useSharedValue(vPanPos?.value.angle ?? 0);
+  const { origin, wChordToAngle } = context;
 
   useEffect(() => {
     const id = "" + ring + "-" + chord;

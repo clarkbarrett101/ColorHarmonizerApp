@@ -1,16 +1,13 @@
 import {
   Canvas,
-  Circle,
   Path,
-  Rect,
   RoundedRect,
   Shadow,
-  Skia,
   Text,
   Transforms3d,
   useFont,
 } from "@shopify/react-native-skia";
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext } from "react";
 import { usePanManager } from "./PanManager";
 import Animated, {
   DerivedValue,
@@ -30,7 +27,6 @@ import { cDimW, cDimH } from "../utils/ScreenDimensions";
 import { useVerse } from "../utils/Verse";
 import { useChipContext } from "../Chips/ChipContext";
 import Paths from "../utils/Paths";
-import { Dimensions } from "react-native";
 
 export type tDemoStep = {
   touching: 0 | 1;

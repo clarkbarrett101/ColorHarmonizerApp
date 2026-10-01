@@ -1,12 +1,9 @@
-import Svg, { G, Text, Circle, Path } from "react-native-svg";
-import { Dimensions } from "react-native";
-import React, { useEffect, useState } from "react";
-import Animated, {
-  useAnimatedProps,
+import { G, Text } from "react-native-svg";
+import React, { useEffect } from "react";
+import {
   useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
-  withDelay,
   withTiming,
 } from "react-native-reanimated";
 import {

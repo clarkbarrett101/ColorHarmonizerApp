@@ -4,15 +4,12 @@ import {
   RadialGradient,
   Rect,
   Shadow,
-  Skia,
   SweepGradient,
 } from "@shopify/react-native-skia";
 import { Dimensions, View } from "react-native";
 import { useDerivedValue } from "react-native-reanimated";
-import { useVerseRelay } from "../utils/Verse";
 import { fCLARColorToString, fCLARColorToRGB } from "../utils/CLAcolor";
 import { eLayers, ePages, useUserContext } from "../Contexts/UserContext";
-import { use, useEffect } from "react";
 import { cDimH, cDimW } from "../utils/ScreenDimensions";
 
 export default function BGGradient() {

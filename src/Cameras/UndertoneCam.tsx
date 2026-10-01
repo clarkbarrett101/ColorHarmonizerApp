@@ -1,25 +1,18 @@
-import { Dimensions, View } from "react-native";
 import {
   DrawableFrame,
   useCameraDevice,
   useCameraPermission,
 } from "react-native-vision-camera";
-import {
-  useDerivedValue,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
-import { useEffect, useState } from "react";
+import { useDerivedValue, withSpring } from "react-native-reanimated";
+import { useEffect } from "react";
 import {
   wDefaultAngleToChord,
   wDefaultChordToAngle,
 } from "../Radials/RadialContext";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { fRGBToCLARColor, fRGBToYUV } from "../utils/CLAcolor";
-import { eLayers, useUserContext } from "../Contexts/UserContext";
+import { useUserContext } from "../Contexts/UserContext";
 import { useVerse } from "../utils/Verse";
-import { ThermSelect } from "./ThermSelect";
 import { tTemp, kelvin_table, fGetTempFromUV } from "./KelvinTemp";
 import { SkiaCam } from "./SkiaCam";
 import { useIVerse } from "../utils/iVerse";
@@ -37,10 +30,10 @@ import {
   Stop,
   Text,
 } from "react-native-svg";
-import { PetalBox } from "../Buttons/PetalBox";
-import { scheduleOnRN } from "react-native-worklets";
+import { PetalBox, PetalBoxSimple } from "../Buttons/PetalBox";
 import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 import { Thermo } from "./Thermo";
+import { cDimH, cDimW } from "../utils/ScreenDimensions";
 
 export default function UndertoneCam({
   radii = [160, 320],
@@ -48,10 +41,7 @@ export default function UndertoneCam({
   arcLength = 43.9 / 7,
   rotationR = 22 / 7,
 }: tRadialObject) {
-  const origin: [number, number] = [
-    Dimensions.get("window").width + 50,
-    Dimensions.get("window").height * 0.6,
-  ];
+  const origin: [number, number] = [cDimW() + 50, cDimH(0.6)];
   const { hasPermission, requestPermission } = useCameraPermission();
   if (!hasPermission) {
     requestPermission();
@@ -64,8 +54,6 @@ export default function UndertoneCam({
   const vAnimAr = useVerse(0);
   const vTemp = useIVerse<tTemp>(kelvin_table[6000]);
   const { vColorModel, vAccentAR, vAccentC } = useUserContext();
-  const SCREEN_WIDTH = Dimensions.get("window").width;
-  const SCREEN_HEIGHT = Dimensions.get("window").height;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -165,7 +153,7 @@ export default function UndertoneCam({
   });
   usePanHitBox({
     id: "thermoMode",
-    origin: [10, SCREEN_HEIGHT / 2],
+    origin: [10, cDimH(0.5)],
     radii: [0, 100],
     arcLength: 15 / 7,
     rotationR: 5 / 7,
@@ -199,12 +187,12 @@ export default function UndertoneCam({
       />
 
       <PetalBox
-        origin={[50, SCREEN_HEIGHT / 2 + 100]}
+        origin={[50, cDimH(0.5) + 100]}
         radii={[20, 110]}
         dC={dC}
         dL={dL}
         dAR={dR}
-        arcLength={3 / 7}
+        arcLength={4 / 7}
         rotationR={-11 / 7}
       >
         <Defs>
@@ -226,7 +214,7 @@ export default function UndertoneCam({
             ],
             fontSize * 2,
             [0, -30],
-            { ...textProps, fontSize: fontSize - 4 },
+            { ...textProps, fontSize: fontSize },
           )}
           <Circle cx="0" cy="-80" r="40" fill="url(#radGrad)" opacity="0.5" />
           <Path
@@ -244,8 +232,8 @@ export default function UndertoneCam({
           <Tutorial
             width={400}
             height={200}
-            origin={[SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 250]}
-            infoIconOrigin={[SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2 - 100]}
+            origin={[cDimW(0.5), cDimH(0.5) - 250]}
+            infoIconOrigin={[cDimW(1) - 50, cDimH(0.5) - 100]}
             infoIconSize={50}
             maxOpacity={0.8}
           >
@@ -268,37 +256,31 @@ export default function UndertoneCam({
             </G>
           </Tutorial>
           <HarmonizerWheel origin={origin} draggable={false} radii={radii} />
-          <PetalBox
-            origin={[50, Dimensions.get("window").height / 2]}
-            radii={[20, 50]}
+          <PetalBoxSimple
+            origin={[50, cDimH(0.5) - 20]}
             dC={dC}
             dL={dL}
             dAR={dR}
-            arcLength={2.5 / 7}
-            rotationR={-11 / 7}
+            dim={[100, 50]}
           >
-            <G transform={[{ rotate: 11 / 7 + "rad" }]}>
-              <Text {...textProps} y={-25} fontSize={fontSize}>
-                {vTemp.state.k + "K"}
-              </Text>
-            </G>
-          </PetalBox>
-          <PetalBox
-            origin={[50, Dimensions.get("window").height / 2 - 30]}
-            radii={[20, 50]}
+            <Text {...textProps} fontSize={8}>
+              {vTemp.state.k + "K"}
+            </Text>
+          </PetalBoxSimple>
+          <PetalBoxSimple
+            origin={[50, cDimH(0.5) - 55]}
+            dim={[100, 50]}
             dC={dC}
             dL={dL}
             dAR={dR}
-            arcLength={2.5 / 7}
-            rotationR={-11 / 7}
           >
-            <G transform={[{ rotate: 11 / 7 + "rad" }]}>
-              {fTextWrapSVG(["Light", "Temp"], fontSize * 2, [0, -30], {
+            <G>
+              {fTextWrapSVG(["Light", "Temp"], 12, [0, 0], {
                 ...textProps,
-                fontSize: fontSize - 2,
+                fontSize: 7,
               })}
             </G>
-          </PetalBox>
+          </PetalBoxSimple>
         </>
       )}
       {vThermoMode.state && (
@@ -306,9 +288,9 @@ export default function UndertoneCam({
           <Tutorial
             width={300}
             height={200}
-            origin={[SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 250]}
+            origin={[cDimW(0.5), cDimH(0.5) - 250]}
             maxOpacity={0.8}
-            infoIconOrigin={[50, SCREEN_HEIGHT / 2 - 100]}
+            infoIconOrigin={[50, cDimH(0.5) - 100]}
             infoIconSize={50}
           >
             <G transform={[{ translateX: 150 }, { translateY: 0 }]}>
@@ -332,7 +314,7 @@ export default function UndertoneCam({
             radii={[0, 30]}
             totalLength={400}
             tempK={vTemp.state.k}
-            origin={[SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2]}
+            origin={[cDimW(1) - 50, cDimH(0.5)]}
             tempList={[
               4000, 4500, 5000, 5500, 6000, 6300, 6600, 7000, 7500, 8000, 9500,
               10500, 12000,

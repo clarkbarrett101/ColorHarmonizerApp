@@ -1,30 +1,19 @@
-import { View, Text } from "react-native";
-import { Profiler, useEffect } from "react";
+import { useEffect } from "react";
 import { useChipContext } from "../Chips/ChipContext";
 import { useDemo } from "../Contexts/DemoContext";
-import { tRadialObject } from "../Radials/SectorTypes";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { HarmonizerWheel } from "./HarmonizerWheel";
-import { useVerse, useVerseRelay } from "../utils/Verse";
-import {
-  fCLARColorToString,
-  fGetRandomPalette,
-  tColorModel,
-} from "../utils/CLAcolor";
+import { useVerseRelay } from "../utils/Verse";
+import { fCLARColorToString, fGetRandomPalette } from "../utils/CLAcolor";
 import { Paths } from "../utils/Paths";
-import {
-  useAnimatedProps,
-  useAnimatedReaction,
-  useDerivedValue,
-  useSharedValue,
-} from "react-native-reanimated";
+import { useAnimatedProps, useDerivedValue } from "react-native-reanimated";
 import { Svg, Circle, Path } from "react-native-svg";
 import Animated from "react-native-reanimated";
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { cDimH, cDimW } from "../utils/ScreenDimensions";
 import { CurvedText } from "../Buttons/CurvedText";
 import React from "react";
 import Button from "../Buttons/Button";
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 export default function ColorHarmonizer() {
   const { vAccentAR, vColorModel, vPage, pagesVisited, vUserPalette } =
     useUserContext();

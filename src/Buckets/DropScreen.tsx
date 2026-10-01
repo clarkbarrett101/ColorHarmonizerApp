@@ -1,26 +1,29 @@
 import { Dimensions } from "react-native";
-import React, { use, useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { eLayers } from "../Contexts/UserContext";
 import Animated, {
   useAnimatedProps,
-  useAnimatedReaction,
-  useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { ChipBucket } from "./ChipBucket";
 import { useBucketContext } from "./BucketContext";
 import { BlurView } from "expo-blur";
-import { tVerse } from "../utils/Verse";
+import { tVerse, useVerseRelay } from "../utils/Verse";
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 export default function DropScreen() {
-  const { vBuckets, vDropScreen } = useBucketContext();
+  const { vBuckets, vDropScreen, getBucketCallback } = useBucketContext();
+  const vBucketsRelay = useVerseRelay(vBuckets);
   const bucketComps = useMemo(
     () =>
-      Object.values(vBuckets.state).map((bucket) => (
-        <ChipBucket key={bucket.id} {...bucket} />
+      Object.values(vBucketsRelay.state).map((bucket) => (
+        <ChipBucket
+          key={bucket.id}
+          {...bucket}
+          callback={getBucketCallback?.(bucket.id)}
+        />
       )),
-    [vBuckets.state],
+    [vBucketsRelay.state, getBucketCallback],
   );
 
   return (

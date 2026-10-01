@@ -1,4 +1,4 @@
-import React, { Profiler, ReactNode, useEffect, useRef } from "react";
+import React, { ReactNode, useEffect, useRef } from "react";
 import ColorHarmonizer from "./Harmonizer/ColorHarmonizer";
 import type { ePages } from "./Contexts/UserContext";
 import PanManager from "./Contexts/PanManager";
@@ -17,36 +17,31 @@ import ColorSelector from "./ColorWheels/ColorSelector";
 import PaletteLibrary from "./Chips/PaletteLibrary";
 import ColorSeasons from "./ColorWheels/ColorSeasons";
 import BGGradient from "./ColorWheels/BGGradient";
-import { HarmonizerWheel } from "./Harmonizer/HarmonizerWheel";
 import SchemeChipSelector from "./Harmonizer/ChipSelector";
 import SchemeSelector from "./Harmonizer/SchemeSelector";
 import { useVerse } from "./utils/Verse";
-
 import {
   configureReanimatedLogger,
   ReanimatedLogLevel,
 } from "react-native-reanimated";
 import Button from "./Buttons/Button";
 import { Paths } from "./utils/Paths";
-import { rotate } from "@shopify/react-native-skia";
 import { View } from "react-native";
 import { DemoContext } from "./Contexts/DemoContext";
-// This is the default configuration
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
-  strict: false, // Reanimated runs in strict mode by default
+  strict: false,
 });
 
 const Driver = () => {
-  const vPage = useVerse<ePages>("Menu");
-  const vTransition = useVerse<number>(0);
+  const vPage = useVerse<ePages>("Main Menu");
   const hardReset = useRef(0);
   useEffect(() => {
     hardReset.current += 1;
     console.log("Hard reset count:", hardReset.current);
   }, [vPage.state]);
-  const pageMap: Record<ePages, ReactNode> = {
-    Menu: <Menu />,
+  const pageMap: Partial<Record<ePages, ReactNode>> = {
+    "Main Menu": <Menu />,
     "ReColor Camera": <ReColorCam />,
     "Color Wheel": <ColorSelector />,
     "Color Mixer": <ColorMixer />,
@@ -79,13 +74,13 @@ const Driver = () => {
               }}
             >
               <DropScreen />
-              {vPage.state !== "Menu" && (
+              {vPage.state !== "Main Menu" && (
                 <Button
                   size={50}
                   origin={[50, 75]}
                   path={Paths.menu}
                   onPress={() => {
-                    vPage.dispatch("Menu");
+                    vPage.dispatch("Main Menu");
                   }}
                 />
               )}

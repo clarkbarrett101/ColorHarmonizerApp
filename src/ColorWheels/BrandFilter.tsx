@@ -32,9 +32,7 @@ import { fTextWrapSVG } from "../Buttons/Tutorial";
 
 type tPanEvent = "enter" | "leave" | "drag" | "tap" | "release";
 export type tBrandFilter = {
-  radius: number;
   vBrand: tVerse<tBrand>;
-  totalArcLength?: number;
   mainRotationR?: number;
   origin?: [number, number];
   layer?: number;
@@ -53,11 +51,11 @@ export const BrandFilter = (props: tBrandFilter) => {
   const ctx = useRadialContext();
   const vBlur = useVerse(false);
   const origin = props.origin || ctx.origin || [0, 0];
-  const totalArcLength = props.totalArcLength || ctx.totalArcLength || 11 / 7;
+  const totalArcLength = 2.5 / 7;
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
   const { dAccentColor, vColorModel } = useUserContext();
   const collapseAnim = useSharedValue(0);
-  const radius = props.radius || 50;
+  const radius = 50;
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const vPanState = useSharedValue<tPanEvent>("leave");
   const vInZone = useSharedValue(false);

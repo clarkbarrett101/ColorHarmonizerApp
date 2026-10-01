@@ -2,12 +2,7 @@ import { Dimensions } from "react-native";
 import { Profiler, useEffect, useMemo, useState } from "react";
 import { fMakePetalPath, tRadialObject, tSector } from "../Radials/SectorTypes";
 import { RadialGraphic } from "../Radials/RadialGraphic";
-import {
-  fCLARColorToRGB,
-  fGetRandomPalette,
-  tBrand,
-  tCLARColor,
-} from "../utils/CLAcolor";
+import { fCLARColorToRGB, tBrand, tCLARColor } from "../utils/CLAcolor";
 import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
 import { ColorChipFan } from "../Chips/ChipStack";
 import { RadialContext, wDefaultAngleToChord } from "../Radials/RadialContext";
@@ -187,8 +182,6 @@ export default function SchemeChipSelector({
         vBrand={vBrand}
         origin={[40, 150]}
         mainRotationR={11 / 7}
-        totalArcLength={2 / 7}
-        radius={50}
         layer={eLayers.buckets}
       />
       <BackIcon

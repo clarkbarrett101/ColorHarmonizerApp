@@ -14,7 +14,7 @@ import Svg, {
   Circle,
   Path,
 } from "react-native-svg";
-import { useUserContext, eLayers } from "../Contexts/UserContext";
+import { eLayers } from "../Contexts/UserContext";
 import { eChipSizes } from "../Chips/PaintChip";
 import { useVerse, useVerseRelay } from "../utils/Verse";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
@@ -27,9 +27,6 @@ const fLerp = (a, b, t) => {
   return a * (1 - t) + b * t;
 };
 
-/**
- * @param radii
- */
 export type tChipBucket = tRadialObject & {
   id?: number;
   callback?: (paint: tPaint) => void;
@@ -50,7 +47,7 @@ export const ChipBucket = ({
   path,
 }: tChipBucket) => {
   const {
-    heldChipPaint,
+    vHeldChipPaint,
     vHeldChipID,
     registerModifier,
     unregisterModifier,
@@ -60,7 +57,10 @@ export const ChipBucket = ({
   const vActive = useVerse(false);
   const inRadius = useVerse(false);
   const vHeldChipRelay = useVerseRelay(vHeldChipID);
-  const paintColor = inRadius.state ? (heldChipPaint?.hex ?? "white") : "white";
+  const vHeldChipPaintRelay = useVerseRelay(vHeldChipPaint);
+  const paintColor = inRadius.state
+    ? (vHeldChipPaintRelay.state?.hex ?? "white")
+    : "white";
   const bucketAnim = useSharedValue(0);
 
   useEffect(() => {
@@ -75,9 +75,8 @@ export const ChipBucket = ({
       }
     } else {
       if (vActive.shared.value) {
-        if (inRadius.shared.value) {
-          callback?.(heldChipPaint);
-
+        if (inRadius.shared.value && vHeldChipPaint.shared.value && callback) {
+          callback(vHeldChipPaint.shared.value);
           bucketAnim.value = withTiming(0, { duration: 500 });
         }
         vActive.dispatch(false);

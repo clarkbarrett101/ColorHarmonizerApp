@@ -25,8 +25,7 @@ export type tChipContext = {
   vPanY: tVerse<number>;
   vVelocityX: tVerse<number>;
   vHeldChipID: tVerse<number | null>;
-  heldChipPaint: tPaint | null;
-  setHeldChipPaint?: (paint: tPaint | null) => void;
+  vHeldChipPaint: tVerse<tPaint | null>;
   registerChipActor?: (
     chipID: number,
     entry: tActor,
@@ -45,8 +44,7 @@ export const Context = createContext<tChipContext>({
   vPanY: null,
   vVelocityX: null,
   vHeldChipID: null,
-  heldChipPaint: null,
-  setHeldChipPaint: () => {},
+  vHeldChipPaint: null,
   registerChipActor: () => {},
   unregisterChipActor: () => {},
   allChipActors: {},
@@ -107,7 +105,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
   //const vPanY = useRef(_vPanY).current;
   //const vVelocityX = useRef(_vVelocityX).current;
   //const vHeldChipID = useRef(_vHeldChipID).current;
-  const [heldChipPaint, setHeldChipPaint] = useState<tPaint | null>(null);
+  const vHeldChipPaint = useVerse<tPaint | null>(null);
   const vSwayTimer = useSharedValue(0);
   useEffect(() => {
     vSwayTimer.value = 0;
@@ -133,8 +131,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
       vVelocityX,
       vHeldChipID,
       holdChip,
-      heldChipPaint,
-      setHeldChipPaint,
+      vHeldChipPaint,
       registerChipActor,
       unregisterChipActor,
       allChipActors,
@@ -142,7 +139,7 @@ export default function UserContext({ children }: { children: ReactNode }) {
       unregisterModifier,
       vSwayTimer,
     }),
-    [heldChipPaint],
+    [vHeldChipPaint.state],
   );
 
   return <Context.Provider value={contextValue}>{children}</Context.Provider>;

@@ -81,7 +81,7 @@ export const PaintChip = ({
   const {
     holdChip,
     vHeldChipID,
-    setHeldChipPaint,
+    vHeldChipPaint,
     registerChipActor,
     unregisterChipActor,
     vPanX,
@@ -138,7 +138,7 @@ export const PaintChip = ({
   useEffect(() => {
     if (vGrabbed.state) {
       panWeight.value = 1;
-      setHeldChipPaint?.(paint);
+      vHeldChipPaint.dispatch(paint);
       chord.current?.(0.05);
       chord.current = fStartChord?.(paint.clar);
       fPlaySFX?.("grab");

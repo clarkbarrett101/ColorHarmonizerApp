@@ -42,13 +42,9 @@ function ColorWheel({
   vSecondColor,
   transitionAnim,
 }: tColorWheel) {
-  const vIntroAnim = useSharedValue(0);
   const secondColor = useVerse(null);
   vSecondColor = vSecondColor || secondColor;
-  const transitionA = useSharedValue(0);
-  const turnAnim = useSharedValue(0);
   const vRotationOffset = useSharedValue(0);
-  transitionAnim = transitionAnim || transitionA;
   const { origin, wAngleToChord, wChordToAngle } = useRadialContext();
   const { vColorModel } = useUserContext();
   const { vAccentC, vAccentL, vAccentAR } = useUserContext();
@@ -80,7 +76,7 @@ function ColorWheel({
   }
   const mTransformModifier: tAttributeModifier = {
     modID: 0,
-    deps: [vPanPos, vStartAngle, vIntroAnim, vRotationOffset],
+    deps: [vPanPos, vStartAngle, vRotationOffset],
     modifier: (input: tAttributeMap) => {
       "worklet";
       let chords = chord;
@@ -107,13 +103,13 @@ function ColorWheel({
       return {
         ...input,
         zIndex,
-        rotateZ: fLerp(-22 / 7, rotation, vIntroAnim.value),
-        scaleX: fLerp(1, vS, vIntroAnim.value),
-        scaleY: fLerp(1, vS, vIntroAnim.value),
-        translateX: fLerp(input.translateX - 100, tx, vIntroAnim.value),
-        shadowRadius: fLerp(0, input.shadowRadius * vS, vIntroAnim.value),
-        shadowX: fLerp(0.1, input.shadowX * vS, vIntroAnim.value),
-        shadowY: fLerp(0.1, input.shadowY * vS, vIntroAnim.value),
+        rotateZ: rotation,
+        scaleX: vS,
+        scaleY: vS,
+        translateX: tx,
+        shadowRadius: input.shadowRadius * vS,
+        shadowX: input.shadowX * vS,
+        shadowY: input.shadowY * vS,
       };
     },
   };
@@ -182,7 +178,6 @@ function ColorWheel({
     [],
   );
   useEffect(() => {
-    vIntroAnim.value = withDelay(500, withTiming(1, { duration: 500 }));
     if (!draggable) return;
     const id = `${ring}-${chord}`;
     registerZone({

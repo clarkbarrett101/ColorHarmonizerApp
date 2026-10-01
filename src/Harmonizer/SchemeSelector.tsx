@@ -11,6 +11,9 @@ import { ColorScheme, fGetHarmonies } from "./ColorScheme";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 
+import { CurvedText } from "../Buttons/CurvedText";
+import { cDimW, cDimH } from "../utils/ScreenDimensions";
+
 export default function SchemeSelector({
   arcLength = 20 / 7,
   radii = [200, 350],
@@ -133,6 +136,17 @@ export default function SchemeSelector({
           ]}
         />
       )}
+      <CurvedText
+        text="Choose a Color Scheme"
+        radii={[cDimW(0.7), cDimW()]}
+        convex={true}
+        rotationR={3 / 7}
+        origin={[cDimW(), cDimH(0.5)]}
+        layer={eLayers.colorMixer}
+        color="rgba(0,0,0,.65)"
+        fontSize={30}
+        drawCurve={false}
+      />
     </RadialContext>
   );
 }

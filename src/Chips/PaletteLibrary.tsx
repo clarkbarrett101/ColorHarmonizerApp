@@ -50,7 +50,7 @@ export default function PaletteLibrary({
   const DimHeight = Dimensions.get("window").height;
   const { registerModifier, unregisterModifier } = useChipContext();
   const { registerHitBox, unregisterHitBox } = usePanManager();
-  const vPalettes = useVerse<tPalette[]>([...fDefaultPalettes()]);
+  const vPalettes = useVerse<tPalette[]>([]);
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const vPanState = useSharedValue<ePanEvent>("leave");
   const vStartAngle = useSharedValue(0);
@@ -63,6 +63,10 @@ export default function PaletteLibrary({
     return Math.min((4 / 7) * vPalettes.shared.value.length, 44 / 7);
   });
   const vTextBoxActive = useVerse<boolean>(false);
+  const getSelectedPaints = () => {
+    const selected = vPalettes.state[vSelection.state];
+    return selected?.paints ?? [];
+  };
 
   /// C H I P  M O D I F I E R
 
@@ -105,7 +109,7 @@ export default function PaletteLibrary({
 
   /// P A N  G E S T U R E
   const vAverageColor = useVerse<tCLARColor>(
-    fAverageColor(vPalettes.state[vSelection.state].paints),
+    fAverageColor(getSelectedPaints()),
   );
 
   function fUpdateAvgColor() {
@@ -229,8 +233,10 @@ export default function PaletteLibrary({
         return palettes;
       } else {
         console.log("setting empty data");
-        let pal = await storePalettes();
-        return [pal];
+        const fallback = [...fDefaultPalettes()].map((pal) =>
+          CleanPalette(pal),
+        );
+        return fallback;
       }
     } catch (e) {
       console.log(e);

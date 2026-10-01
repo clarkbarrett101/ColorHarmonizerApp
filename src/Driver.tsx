@@ -1,4 +1,5 @@
 import React, { Profiler, ReactNode, useEffect, useRef } from "react";
+import ColorHarmonizer from "./Harmonizer/ColorHarmonizer";
 import type { ePages } from "./Contexts/UserContext";
 import PanManager from "./Contexts/PanManager";
 import UserContext from "./Contexts/UserContext";
@@ -51,7 +52,7 @@ const Driver = () => {
     "Color Mixer": <ColorMixer />,
     "Color Seasons": <ColorSeasons />,
     "Undertone Camera": <UndertoneCam />,
-    "Color Harmonizer": <HarmonizerWheel />,
+    "Color Harmonizer": <ColorHarmonizer />,
     "Palette Library": <PaletteLibrary />,
     "Scheme Selector": <SchemeSelector />,
     "Chip Selector": <SchemeChipSelector />,

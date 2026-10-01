@@ -1,8 +1,13 @@
 import { Dimensions } from "react-native";
-import React, { Profiler, useEffect, useMemo, useState } from "react";
+import { Profiler, useEffect, useMemo, useState } from "react";
 import { fMakePetalPath, tRadialObject, tSector } from "../Radials/SectorTypes";
 import { RadialGraphic } from "../Radials/RadialGraphic";
-import { fCLARColorToRGB, tBrand, tCLARColor } from "../utils/CLAcolor";
+import {
+  fCLARColorToRGB,
+  fGetRandomPalette,
+  tBrand,
+  tCLARColor,
+} from "../utils/CLAcolor";
 import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
 import { ColorChipFan } from "../Chips/ChipStack";
 import { RadialContext, wDefaultAngleToChord } from "../Radials/RadialContext";
@@ -16,6 +21,12 @@ import { BrandFilter } from "../ColorWheels/BrandFilter";
 import { useChipContext } from "../Chips/ChipContext";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 
+import { useDemo } from "../Contexts/DemoContext";
+import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import React from "react";
+import Button from "../Buttons/Button";
+import Paths from "../utils/Paths";
+
 export default function SchemeChipSelector({
   origin = [
     Dimensions.get("window").width,
@@ -25,7 +36,7 @@ export default function SchemeChipSelector({
   arcLength = 21 / 7,
   rotationR = 22 / 7,
 }: tRadialObject) {
-  const { vSelected, vPage } = useUserContext();
+  const { vSelected, vPage, pagesVisited } = useUserContext();
   const { registerModifier, unregisterModifier } = useChipContext();
   const vSelectedRelay = useVerseRelay(vSelected);
   const chordLength = Math.min(arcLength / vSelectedRelay?.state.length, 1.3);
@@ -71,6 +82,68 @@ export default function SchemeChipSelector({
       }
     },
   });
+  const vPagesVisitedRelay = useVerseRelay(pagesVisited);
+  const { fPlaySequence } = useDemo();
+  const { holdChip } = useChipContext();
+  useEffect(() => {
+    if (!pagesVisited.shared.value["Chip Selector"]) {
+      fPlaySequence([
+        {
+          touching: 0,
+          duration: 1000,
+          toPos: [cDimW(0.7), cDimH(0.3)],
+        },
+        {
+          touching: 1,
+          duration: 1000,
+          toPos: [cDimW(0.9), cDimH(0.4)],
+        },
+        {
+          touching: 0,
+          duration: 1000,
+          toPos: [cDimW(0.9), cDimH(0.6)],
+        },
+        {
+          touching: 1,
+          duration: 1000,
+          toPos: [cDimW(0.8), cDimH(0.6)],
+        },
+        {
+          touching: 0,
+          duration: 500,
+          toPos: [cDimW(0.8), cDimH(0.6)],
+        },
+        {
+          touching: 0,
+          duration: 1000,
+          toPos: [cDimW(0.2), cDimH(0.5)],
+          callback: () => {
+            "worklet";
+            holdChip(eLayers.chipFan + 22);
+          },
+        },
+        {
+          touching: 1,
+          duration: 3000,
+          toPos: [cDimW(0.5), cDimH(0.5)],
+          callback: () => {
+            "worklet";
+            holdChip();
+          },
+        },
+        {
+          touching: 0,
+          duration: 300,
+          toPos: [-100, cDimH(0.6)],
+        },
+      ]);
+      pagesVisited.dispatch({
+        ...pagesVisited.shared.value,
+        "Chip Selector": true,
+      });
+    }
+  }, [vPagesVisitedRelay.state]);
+
   const vBrand = useVerse<tBrand>("All Brands");
   const selector = useMemo(() => {
     return vSelectedRelay?.state.map((color, index) => (
@@ -126,6 +199,19 @@ export default function SchemeChipSelector({
           Dimensions.get("window").width - 40,
           Dimensions.get("window").height / 2,
         ]}
+      />
+
+      <Button
+        path={Paths.replay}
+        layer={eLayers.superMax}
+        origin={[cDimW(0.3), cDimH(0.1)]}
+        viewRadius={30}
+        onPress={() => {
+          pagesVisited.dispatch({
+            ...pagesVisited.shared.value,
+            "Chip Selector": false,
+          });
+        }}
       />
     </>
   );

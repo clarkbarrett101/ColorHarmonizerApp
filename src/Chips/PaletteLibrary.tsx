@@ -11,7 +11,7 @@ import {
   tPalette,
 } from "../utils/CLAcolor";
 import { CleanPalette, eLayers, useUserContext } from "../Contexts/UserContext";
-import { fLerpModifierFactory, tAttributeModifier } from "../utils/Actor";
+import { tAttributeModifier } from "../utils/Actor";
 import { useChipContext } from "./ChipContext";
 import {
   withTiming,
@@ -24,21 +24,18 @@ import {
   wDefaultAngleToChord,
   wDefaultChordToAngle,
 } from "../Radials/RadialContext";
-import { SweepDisplay } from "../Buttons/SweepDisplay";
 import { useVerse, useVerseRelay } from "../utils/Verse";
 import { ChipFan, ChipRow } from "./ChipStack";
 import { Paths } from "../utils/Paths";
 import Button, { tButton } from "../Buttons/Button";
 import * as Clipboard from "expo-clipboard";
-import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import { cDimW, cDimH, cWide, cRaxelW } from "../utils/ScreenDimensions";
 import { StringFormat } from "expo-clipboard";
+import { useDemo } from "../Contexts/DemoContext";
 
 export default function PaletteLibrary({
-  radii = [50, 300],
-  origin = [
-    Dimensions.get("window").width + radii[0] * 0.5,
-    Dimensions.get("window").height * 0.5,
-  ],
+  radii = [cRaxelW(0.7, 0.5), cRaxelW(0.7, 0.6)],
+  origin = [cDimW(), cDimH(0.5)],
   wheelCenter = 33 / 7,
 }: {
   origin?: [number, number];
@@ -46,8 +43,6 @@ export default function PaletteLibrary({
   radii?: [number, number];
 }) {
   /// O N  M O U N T
-  const DimWidth = Dimensions.get("window").width;
-  const DimHeight = Dimensions.get("window").height;
   const { registerModifier, unregisterModifier } = useChipContext();
   const { registerHitBox, unregisterHitBox } = usePanManager();
   const vPalettes = useVerse<tPalette[]>([]);
@@ -56,7 +51,8 @@ export default function PaletteLibrary({
   const vStartAngle = useSharedValue(0);
   const dragStartAngle = useSharedValue(0);
   const vRotationROffset = useSharedValue(0);
-  const { vUserPalette, vAccentC, vAccentL, vAccentAR } = useUserContext();
+  const { vUserPalette, vAccentC, vAccentL, vAccentAR, pagesVisited } =
+    useUserContext();
   const vSelection = useVerse<number>(0);
   const sideA = useVerse<boolean>(true);
   const archLength = useDerivedValue(() => {
@@ -76,15 +72,13 @@ export default function PaletteLibrary({
     modifier: (input) => {
       "worklet";
       if (input.id >= eLayers.chipFan || input.held === 1) return input;
-
       const arcLength = archLength.value;
       let group = Math.floor((input.id - eLayers.background - 10) / 10);
       let index = (input.id - eLayers.background - 10) % 10;
       const palette = vPalettes.shared.value[group];
-      if (!palette) {
-        return input;
-      }
-      let rot = input.rotateZ - vRotationROffset.value;
+      let paintCount = palette?.paints.length || 3;
+      let rot =
+        input.rotateZ - (vRotationROffset.value ? vRotationROffset.value : 0);
       let diff = Math.abs(rot - wheelCenter) % (2 * Math.PI);
       if (diff > Math.PI) diff = 2 * Math.PI - diff;
       diff /= arcLength;
@@ -93,10 +87,9 @@ export default function PaletteLibrary({
         ...input,
         shadowOpacity: 0.3,
         radialOffsetY: -(
-          radii[0] +
-          (index / palette.paints.length) *
-            (radii[1] - radii[0]) *
-            (0.5 + Math.max(0.1 - diff, 0))
+          (index / paintCount) *
+          radii[0] *
+          (0.5 + Math.max(0.1 - diff, 0))
         ),
         scaleX: selected ? 1.1 : 1,
         scaleY: selected ? 1.1 : 1,
@@ -342,12 +335,54 @@ export default function PaletteLibrary({
     },
     "RYGB",
   );
+
+  const { fPlaySequence } = useDemo();
+  const vPagesVisitedRelay = useVerseRelay(pagesVisited);
+  useEffect(() => {
+    if (pagesVisited.shared.value["Palette Library"] === false) {
+      fPlaySequence([
+        {
+          touching: 0,
+          toPos: [cDimW(0.85), cDimH(0.5)],
+          duration: 1000,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.9), cDimH(0.55)],
+          duration: 1000,
+        },
+        {
+          touching: 0,
+          toPos: [-100, cDimH(0.5)],
+          duration: 500,
+        },
+      ]);
+      pagesVisited.dispatch({
+        ...pagesVisited.shared.value,
+        "Palette Library": true,
+      });
+    }
+  }, [vPagesVisitedRelay.state]);
+
   return (
     <>
       <Button
+        path={Paths.replay}
+        layer={eLayers.superMax}
+        size={cDimH(0.05)}
+        origin={[cDimH(0.05), cDimH(0.14)]}
+        viewRadius={30}
+        onPress={() => {
+          pagesVisited.dispatch({
+            ...pagesVisited.shared.value,
+            "Palette Library": false,
+          });
+        }}
+      />
+      <Button
         path={Paths.swap}
         onPress={() => fSwapPalette()}
-        size={cDimW(0.3)}
+        size={cDimH(0.125)}
         origin={[cDimW(-0.2), cDimH(-0.15)]}
         viewRadius={100}
         textCircle={{
@@ -376,9 +411,9 @@ export default function PaletteLibrary({
             justifyContent: "center",
             alignItems: "center",
             position: "absolute",
-            left: DimWidth * 0.05,
-            right: DimWidth * 0.05,
-            top: DimHeight * 0.15,
+            left: cDimW(0.05),
+            right: cDimW(0.05),
+            top: cDimH(0.15),
             zIndex: eLayers.dropScreen,
             backgroundColor: color,
             borderRadius: 50,
@@ -420,7 +455,7 @@ export default function PaletteLibrary({
           <Button
             path={Paths.x}
             onPress={() => vTextBoxActive.dispatch(!vTextBoxActive.state)}
-            size={cDimW(0.15)}
+            size={cDimH(0.1)}
             origin={[cDimW(0.85), cDimH(0.01)]}
             viewRadius={75}
             layer={eLayers.dropScreen + 1}
@@ -430,17 +465,34 @@ export default function PaletteLibrary({
       <Button
         path={Paths.list}
         onPress={() => vTextBoxActive.dispatch(!vTextBoxActive.state)}
-        size={cDimW(0.15)}
-        origin={[cDimW(0.15), cDimH(0.2)]}
-        viewRadius={75}
+        size={cDimH(0.08)}
+        origin={[cDimW(0.15), cDimH(0.23)]}
+        viewRadius={80}
+        textCircle={{
+          topText: "Copy",
+          radii: [50, 70],
+          topTextProps: {
+            fontSize: 26,
+            fill: "white",
+            fontFamily: "Outfit",
+            letterSpacing: 1,
+          },
+          bottomText: "List",
+          bottomTextProps: {
+            fontSize: 26,
+            fill: "white",
+            fontFamily: "Outfit",
+            letterSpacing: 4,
+          },
+        }}
       />
 
       {vUserPalette.shared.value.paints.length > 0 && (
         <Button
           path={Paths.save}
           onPress={() => fSavePalette()}
-          size={cDimW(0.2)}
-          origin={[cDimW(0.15), cDimH(0.2)]}
+          size={cDimH(0.09)}
+          origin={[cDimW(0.3), cDimH(0.15)]}
           viewRadius={60}
           textCircle={{
             topText: "Save",
@@ -464,7 +516,7 @@ export default function PaletteLibrary({
       <Button
         path={Paths.delete}
         onPress={() => fDeletePalette()}
-        size={cDimW(0.15)}
+        size={cDimH(0.09)}
         origin={[cDimW(-0.15), cDimH(0.2)]}
         viewRadius={60}
         textCircle={{
@@ -498,17 +550,11 @@ export default function PaletteLibrary({
               wheelCenter,
             )}
             rotationOffset={22 / 7}
-            radii={radii}
+            radii={[0, cRaxelW(0.7, 0.3)]}
             origin={origin}
             grouped={false}
           />
         ))}
-      <SweepDisplay
-        origin={origin}
-        radii={[100, radii[1] - 150]}
-        layer={eLayers.panManager - 1}
-        opacity={0.25}
-      />
       {vPalettes.state.length > 0 &&
         vSelection.state < vPalettes.state.length && (
           <ChipFan
@@ -518,7 +564,7 @@ export default function PaletteLibrary({
             radius={radii[1]}
             origin={origin}
             rotationR={wheelCenter - 11 / 7}
-            arcLength={13 / 7}
+            arcLength={cWide ? 9 / 7 : 13 / 7}
             sideA={sideA.state}
           />
         )}

@@ -17,7 +17,13 @@ import { useChipContext } from "../Chips/ChipContext";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 
 import { useDemo } from "../Contexts/DemoContext";
-import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import {
+  cDimW,
+  cDimH,
+  cWide,
+  cRaxelW,
+  cRaxelH,
+} from "../utils/ScreenDimensions";
 import React from "react";
 import Button from "../Buttons/Button";
 import Paths from "../utils/Paths";
@@ -27,14 +33,17 @@ export default function SchemeChipSelector({
     Dimensions.get("window").width,
     Dimensions.get("window").height / 2,
   ],
-  radii = [125, 250],
-  arcLength = 21 / 7,
+  radii = [cDimW(0.25), cDimW(0.5)],
+  arcLength = cWide ? 16 / 7 : 22 / 7,
   rotationR = 22 / 7,
 }: tRadialObject) {
   const { vSelected, vPage, pagesVisited } = useUserContext();
   const { registerModifier, unregisterModifier } = useChipContext();
   const vSelectedRelay = useVerseRelay(vSelected);
-  const chordLength = Math.min(arcLength / vSelectedRelay?.state.length, 1.3);
+  const chordLength = Math.min(
+    arcLength / vSelectedRelay?.shared.value.length,
+    1.3,
+  );
   const mChipModifier: tAttributeModifier = {
     modID: 30,
     deps: [],
@@ -119,8 +128,8 @@ export default function SchemeChipSelector({
         },
         {
           touching: 1,
-          duration: 3000,
-          toPos: [cDimW(0.5), cDimH(0.5)],
+          duration: 2000,
+          toPos: [cDimW(0.2), cDimH(0.5)],
           callback: () => {
             "worklet";
             holdChip();
@@ -141,14 +150,14 @@ export default function SchemeChipSelector({
 
   const vBrand = useVerse<tBrand>("All Brands");
   const selector = useMemo(() => {
-    return vSelectedRelay?.state.map((color, index) => (
+    return vSelectedRelay?.shared.value.map((color, index) => (
       <ChipSelector
         key={index}
         color={color}
         arcLength={chordLength * 0.8}
         rotationR={
           rotationR +
-          chordLength * (index - vSelectedRelay?.state.length / 2 + 0.5)
+          chordLength * (index - vSelectedRelay?.shared.value.length / 2 + 0.5)
         }
         origin={origin}
         radii={radii}
@@ -172,7 +181,7 @@ export default function SchemeChipSelector({
       <ColorFan
         hues={vSelectedRelay?.state}
         origin={origin}
-        radii={[10, radii[0] - 30]}
+        radii={[cDimW(0.025), radii[0] - cDimW(0.03)]}
         arcLength={chordLength * vSelectedRelay?.state.length * 0.8}
         rotationR={rotationR}
         ring={3}
@@ -180,7 +189,7 @@ export default function SchemeChipSelector({
       />
       <BrandFilter
         vBrand={vBrand}
-        origin={[40, 150]}
+        origin={[cRaxelW(0.5, 0.1), cRaxelH(0.07, 0.21)]}
         mainRotationR={11 / 7}
         layer={eLayers.buckets}
       />
@@ -197,7 +206,8 @@ export default function SchemeChipSelector({
       <Button
         path={Paths.replay}
         layer={eLayers.superMax}
-        origin={[cDimW(0.3), cDimH(0.1)]}
+        size={cDimH(0.05)}
+        origin={[cDimH(0.05), cDimH(0.14)]}
         viewRadius={30}
         onPress={() => {
           pagesVisited.dispatch({

@@ -1,26 +1,25 @@
-import Driver from "./src/Driver";
-import { Dimensions, Platform } from "react-native";
+import Driver from "./Driver";
+import { Platform } from "react-native";
 import React from "react";
-import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Purchases from "react-native-purchases";
 import { LOG_LEVEL } from "react-native-purchases";
-import PayWall from "./src/pages/PayWall";
+import { PurchaseContext } from "./Contexts/PurchaseContext";
 
 export default class App extends React.Component {
   state = {
     isPremium: false,
     paywall: false,
   };
+
   async componentDidMount() {
-    Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
+    Purchases.setLogLevel(LOG_LEVEL.WARN);
     if (Platform.OS === "android") {
       this.setState({ isPremium: true });
     } else if (Platform.OS === "ios") {
       await Purchases.configure({
         apiKey: "appl_VkkRztDNPposokHuqhRQIbgbIbV",
       });
-
       try {
         const customer = await Purchases.getCustomerInfo();
         if (customer.entitlements.active["Premium Features"]) {
@@ -56,25 +55,24 @@ export default class App extends React.Component {
       }
     } catch (e) {
       if (!e.userCancelled) {
-        showError(e);
+        // showError(e);
       }
     }
   };
+
   render() {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
-        {this.state.paywall ? (
-          <PayWall
-            restore={this.restore}
-            purchase={this.purchase}
-            setPaywall={(paywall) => this.setState({ paywall: paywall })}
-          />
-        ) : (
-          <Driver
-            premium={this.state.isPremium}
-            setPaywall={(paywall) => this.setState({ paywall: paywall })}
-          />
-        )}
+        <PurchaseContext.Provider
+          value={{
+            premium: this.state.isPremium,
+            setPaywall: (paywall) => this.setState({ paywall: paywall }),
+            restore: this.restore,
+            purchase: this.purchase,
+          }}
+        >
+          <Driver />
+        </PurchaseContext.Provider>
       </GestureHandlerRootView>
     );
   }

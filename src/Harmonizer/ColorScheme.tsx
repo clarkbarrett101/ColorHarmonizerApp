@@ -13,6 +13,7 @@ import {
   TSpan,
 } from "react-native-svg";
 import { tPaint } from "../utils/CLAcolor";
+import { cDimH, cDimW } from "../utils/ScreenDimensions";
 
 export type tAngles = {
   Alpha: number;
@@ -239,13 +240,13 @@ export function ColorScheme({ tScheme, ready = true, ...props }: tColorScheme) {
     <>
       <ColorFan
         hues={tScheme?.finalHues}
-        chordLength={props.arcLength / 2}
         {...props}
+        chordLength={props.arcLength / 2}
       />
       {ready && tScheme?.signPath && (
         <Sign
           {...props}
-          radii={[(props.radii[0] + props.radii[1]) / 2 - 25, 50]}
+          radii={[(props.radii[0] + props.radii[1]) / 2 - 25, cDimH(0.05)]}
           topText={tScheme.topText}
           bottomText={tScheme.bottomText}
           fontSize={30}

@@ -42,7 +42,8 @@ export type ePages =
   | "Scheme Selector"
   | "Chip Selector"
   | "Color Search"
-  | "Find a Color";
+  | "Find a Color"
+  | "PayWall";
 
 export type tPage = {
   vTransition: tVerse<number>;
@@ -101,6 +102,7 @@ export default function UserContext({
     "Chip Selector": false,
     "Color Search": false,
     "Find a Color": false,
+    PayWall: false,
   });
   const vColorModel = useVerse<tColorModel>("RYGB");
   const vAccentC = useVerse<number>(1);

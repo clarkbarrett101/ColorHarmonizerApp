@@ -20,7 +20,10 @@ export default function BGGradient() {
     "Chip Selector",
   ];
   const colors = useDerivedValue(() => {
-    if (!harmonizerPages.includes(vPage.shared.value)) {
+    if (
+      !harmonizerPages.includes(vPage.shared.value) ||
+      vSelected.shared.value.length === 0
+    ) {
       return [
         fCLARColorToString(
           {
@@ -34,12 +37,12 @@ export default function BGGradient() {
     }
     const cs = vSelected.shared.value.map((ar, index) => {
       const c = dAccentColor.value.c;
-      const l = dAccentColor.value.l ** 0.5;
+      const l = Math.max(dAccentColor.value.l ** 0.5, 0.3);
       const rgb = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
     });
     console.log("vSelected.shared.value:", cs);
-    return cs;
+    return cs.reverse();
   });
   const shadow = useDerivedValue(() => {
     return fCLARColorToString(
@@ -51,7 +54,7 @@ export default function BGGradient() {
       vColorModel.shared.value,
     );
   });
-
+  console.log("colors:", colors.value);
   return (
     <View
       style={{

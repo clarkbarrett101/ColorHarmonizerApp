@@ -1,8 +1,10 @@
 import React, { ReactNode, useEffect, useRef } from "react";
+import { usePurchaseContext } from "./Contexts/PurchaseContext";
+import PayWall from "./PayWall";
 import ColorHarmonizer from "./Harmonizer/ColorHarmonizer";
 import type { ePages } from "./Contexts/UserContext";
 import PanManager from "./Contexts/PanManager";
-import UserContext from "./Contexts/UserContext";
+import UserContext, { eLayers } from "./Contexts/UserContext";
 import BucketContext from "./Buckets/BucketContext";
 import SoundContext from "./Contexts/SoundContext";
 import ChipContext from "./Chips/ChipContext";
@@ -28,12 +30,14 @@ import Button from "./Buttons/Button";
 import { Paths } from "./utils/Paths";
 import { View } from "react-native";
 import { DemoContext } from "./Contexts/DemoContext";
+import { cDimW, cDimH } from "./utils/ScreenDimensions";
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
   strict: false,
 });
 
 const Driver = () => {
+  const { premium, setPaywall, restore, purchase } = usePurchaseContext();
   const vPage = useVerse<ePages>("Main Menu");
   const hardReset = useRef(0);
   useEffect(() => {
@@ -42,11 +46,11 @@ const Driver = () => {
   }, [vPage.state]);
   const pageMap: Partial<Record<ePages, ReactNode>> = {
     "Main Menu": <Menu />,
-    "ReColor Camera": <ReColorCam />,
+    "ReColor Camera": premium ? <ReColorCam /> : <PayWall />,
     "Color Wheel": <ColorSelector />,
     "Color Mixer": <ColorMixer />,
     "Color Seasons": <ColorSeasons />,
-    "Undertone Camera": <UndertoneCam />,
+    "Undertone Camera": premium ? <UndertoneCam /> : <PayWall />,
     "Color Harmonizer": <ColorHarmonizer />,
     "Palette Library": <PaletteLibrary />,
     "Scheme Selector": <SchemeSelector />,
@@ -76,9 +80,10 @@ const Driver = () => {
               <DropScreen />
               {vPage.state !== "Main Menu" && (
                 <Button
-                  size={50}
-                  origin={[50, 75]}
+                  size={cDimH(0.05)}
+                  origin={[cDimH(0.05), cDimH(0.07)]}
                   path={Paths.menu}
+                  layer={eLayers.buckets}
                   onPress={() => {
                     vPage.dispatch("Main Menu");
                   }}

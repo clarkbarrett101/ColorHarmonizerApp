@@ -1,5 +1,5 @@
 import { Dimensions } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { tRadialObject } from "../Radials/SectorTypes";
 import { RadialContext, wDefaultAngleToChord } from "../Radials/RadialContext";
 import { tVerse, useVerse, useVerseRelay } from "../utils/Verse";
@@ -7,16 +7,16 @@ import { withDelay, withTiming } from "react-native-reanimated";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { BackIcon } from "../Buttons/BackIcon";
 import { ColorFan } from "./ColorFan";
-import { ColorScheme, fGetHarmonies } from "./ColorScheme";
+import { ColorScheme, fGetHarmonies, tScheme } from "./ColorScheme";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 
 import { CurvedText } from "../Buttons/CurvedText";
-import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import { cDimW, cDimH, cWide, cRaxelW } from "../utils/ScreenDimensions";
 
 export default function SchemeSelector({
-  arcLength = 20 / 7,
-  radii = [200, 350],
+  arcLength = cWide ? 13 / 7 : 20 / 7,
+  radii = [cRaxelW(0.5, 0.3), cRaxelW(0.9, 0.8)],
   origin = [
     Dimensions.get("window").width,
     Dimensions.get("window").height / 2,
@@ -25,9 +25,9 @@ export default function SchemeSelector({
 }: tRadialObject) {
   const { vSelected, vPage } = useUserContext();
   const vSelectedRelay = useVerseRelay(vSelected);
-  const schemes = useVerse(fGetHarmonies(vSelectedRelay?.state));
+  const schemes = useVerse<tScheme[]>([]);
   useEffect(() => {
-    schemes.dispatch(fGetHarmonies(vSelectedRelay?.state));
+    schemes.dispatch(fGetHarmonies(vSelected.shared.value));
   }, [vSelectedRelay?.state]);
   const { vAccentC, vAccentL } = useUserContext();
   useEffect(() => {
@@ -96,14 +96,18 @@ export default function SchemeSelector({
         <ColorScheme
           key={index}
           origin={origin}
-          arcLength={Math.min(harmony.finalHues.length, 3) / 7}
-          chordLength={harmony.finalHues.length < 3 ? 1.3 / 7 : 1 / 7}
+          arcLength={
+            ((Math.min(harmony.finalHues.length, 3) / 3) * arcLength) / 8
+          }
+          chordLength={
+            ((harmony.finalHues.length < 3 ? 1.3 : 1) * arcLength) / 8
+          }
           rotationR={
             rotationR -
             arcLength / 2 +
             (arcLength / schemes.state.length) * (index + 0.5)
           }
-          radii={radii}
+          radii={[cRaxelW(0.5, 0.45), cRaxelW(0.9, 0.8)]}
           bend={0.3}
           tScheme={harmony}
           ready={vIntroAnim.state > 0.5}
@@ -114,7 +118,7 @@ export default function SchemeSelector({
         origin={origin}
         ring={4}
         chord={3}
-        radii={[0, radii[0] - 75]}
+        radii={[cDimW(0.025), radii[0] * 0.7]}
         rotationR={rotationR}
         arcLength={18 / 7}
         bend={0.5}
@@ -129,22 +133,19 @@ export default function SchemeSelector({
         <BackIcon
           zIndex={eLayers.chipFan}
           color="white"
-          size={75}
-          origin={[
-            Dimensions.get("window").width - 40,
-            Dimensions.get("window").height / 2,
-          ]}
+          size={cDimH(0.05)}
+          origin={[cDimW(0.9), cDimH(0.5)]}
         />
       )}
       <CurvedText
         text="Choose a Color Scheme"
-        radii={[cDimW(0.7), cDimW()]}
+        radii={[0, cRaxelW(1, 0.9)]}
         convex={true}
-        rotationR={3 / 7}
+        rotationR={cWide ? 1 / 7 : 3 / 7}
         origin={[cDimW(), cDimH(0.5)]}
         layer={eLayers.colorMixer}
         color="rgba(0,0,0,.65)"
-        fontSize={30}
+        fontSize={cDimH(0.03)}
         drawCurve={false}
       />
     </RadialContext>

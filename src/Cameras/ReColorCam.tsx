@@ -1,4 +1,3 @@
-import type { TextProps } from "react-native-svg";
 import {
   Camera,
   useCameraDevice,
@@ -6,33 +5,23 @@ import {
   useCameraPermission,
   useSkiaFrameProcessor,
 } from "react-native-vision-camera";
-import { Dimensions, View } from "react-native";
-import {
-  AlphaType,
-  ColorType,
-  Skia,
-  SkPaint,
-} from "@shopify/react-native-skia";
+import { View } from "react-native";
+import { Skia, SkPaint } from "@shopify/react-native-skia";
 import { useEffect, useState } from "react";
 import {
-  fCLARColorToString,
   fCLARColorToYUV,
   fGetRandomPaint,
-  fRGBToYUV,
-  fYUVToRGB,
+  fGetRandomPalette,
   tPaint,
 } from "../utils/CLAcolor";
 import { useRunOnJS, useSharedValue } from "react-native-worklets-core";
 import { useBucketContext } from "../Buckets/BucketContext";
 import { useIVerse } from "../utils/iVerse";
 import { tTemp, kelvin_table, fGetTempFromUV } from "./KelvinTemp";
-import PanManager, { ePanEvent } from "../Contexts/PanManager";
 import { ThermSelect } from "./ThermSelect";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { GlassView } from "expo-glass-effect";
 import { useVerse, useVerseRelay } from "../utils/Verse";
-import { PetalButton } from "../Buttons/PetalButton";
-import { PaintChip } from "../Chips/PaintChip";
 import { ReplacementMeter } from "./ReplacementMeter";
 import {
   Defs,
@@ -44,12 +33,15 @@ import {
   Path,
   Text,
 } from "react-native-svg";
-import { PetalBox } from "../Buttons/PetalBox";
+import { PetalBoxSimple } from "../Buttons/PetalBox";
 import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 import { useDerivedValue } from "react-native-reanimated";
 import React from "react";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+import { Paths } from "../utils/Paths";
+import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import { useDemo } from "../Contexts/DemoContext";
+import Button from "../Buttons/Button";
+import { useChipContext } from "../Chips/ChipContext";
 
 export default function ReColorCam() {
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -114,14 +106,14 @@ export default function ReColorCam() {
   const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
   useEffect(() => {
     registerBucket({
-      origin: [SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2],
+      origin: [cDimW(0.5), cDimH(0.5)],
       radii: [150, 400],
       rotationR: 0,
       callback: (paint) => {
         vTargetPaint.dispatch(paint);
       },
       targetLayerRange: [0, 1000],
-      icon: "search",
+      path: Paths.search,
       id: 20,
     });
     return () => unregisterBucket("" + 20);
@@ -138,7 +130,8 @@ export default function ReColorCam() {
     }
   }, [dropScreenRelay.state]);
 
-  const { vAccentC, vAccentL, vAccentAR } = useUserContext();
+  const { vAccentC, vAccentL, vAccentAR, pagesVisited, vUserPalette } =
+    useUserContext();
   useEffect(() => {
     const { c, l, ar } = vTargetPaint.state.clar;
     vAccentC.dispatch(c);
@@ -154,56 +147,176 @@ export default function ReColorCam() {
   const dAR = useDerivedValue(() => vTargetTemp.shared.value.ar);
   const dC = useDerivedValue(() => vTargetTemp.shared.value.c);
   const dL = useDerivedValue(() => 1);
-  const fontSize = 16;
-  const textProps: React.ComponentProps<typeof Text> = {
-    fontSize,
-    fontFamily: "Outfit",
-    textAnchor: "middle",
-    fill: "rgba(0,0,0,0.5)",
-    alignmentBaseline: "middle",
-    verticalAlign: "middle",
-  };
+
+  const vPagesVisitedRelay = useVerseRelay(pagesVisited);
+  const { holdChip } = useChipContext();
+  const { fPlaySequence } = useDemo();
+  useEffect(() => {
+    if (!pagesVisited.shared.value["ReColor Camera"]) {
+      if (!vUserPalette.shared.value.paints[0]) {
+        vUserPalette.dispatch(fGetRandomPalette(1));
+      }
+      fPlaySequence([
+        {
+          touching: 0,
+          toPos: [cDimW(0.05), cDimH(0.95)],
+          duration: 2000,
+          callback: () => {
+            "worklet";
+            if (vUserPalette.shared.value.paints[0]) {
+              holdChip(eLayers.chipHand);
+            }
+          },
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.6), cDimH(0.5)],
+          duration: 2000,
+          callback: () => {
+            "worklet";
+            holdChip();
+          },
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          duration: 500,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          duration: 200,
+        },
+
+        {
+          touching: 0,
+          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          duration: 1000,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 1,
+          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          duration: 200,
+        },
+        {
+          touching: 0,
+          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          duration: 1000,
+        },
+        {
+          touching: 0,
+          toPos: [50, cDimH(0.5) - 150],
+          duration: 1000,
+        },
+        {
+          touching: 1,
+          toPos: [50, cDimH(0.65)],
+          duration: 1000,
+        },
+        {
+          touching: 1,
+          toPos: [50, cDimH(0.5) - 100],
+          duration: 1000,
+        },
+        {
+          touching: 1,
+          toPos: [50, cDimH(0.55)],
+          duration: 1000,
+        },
+        {
+          touching: 0,
+          toPos: [50, cDimH(0.55)],
+          duration: 300,
+        },
+        {
+          touching: 0,
+          toPos: [-100, cDimH(0.55)],
+          duration: 300,
+        },
+      ]);
+      pagesVisited.dispatch({
+        ...pagesVisited.shared.value,
+        "ReColor Camera": true,
+      });
+    }
+  }, [vPagesVisitedRelay.state]);
   return (
     <>
-      <Tutorial
-        width={350}
-        height={300}
-        origin={[SCREEN_WIDTH / 2 + 50, SCREEN_HEIGHT / 2 - 200]}
-        infoIconOrigin={[SCREEN_WIDTH - 50, SCREEN_HEIGHT / 2 - 50]}
-        infoIconSize={50}
-        maxOpacity={0.8}
-      >
-        <G>
-          {fTextWrapSVG(
-            [
-              "Point the camera at a surface",
-              "and drag a paint to change its color.",
-              "",
-              "Adjust the color tint to simulate",
-              "different lighting conditions.",
-              "",
-              "Adjust the replacement level",
-              "to recolor more or less.",
-            ],
-            fontSize * 12,
-            [175, 150],
-            { ...textProps, fill: "white" },
-          )}
-        </G>
-      </Tutorial>
+      <Button
+        path={Paths.replay}
+        layer={eLayers.superMax}
+        origin={[cDimW(0.1), cDimH(0.15)]}
+        viewRadius={30}
+        onPress={() => {
+          pagesVisited.dispatch({
+            ...pagesVisited.shared.value,
+            "ReColor Camera": false,
+          });
+        }}
+      />
+
       <ThermSelect
         mainRotationR={11 / 7}
-        radius={35}
+        radius={40}
         tempK={vTargetTemp.state.k}
         setTemp={(temp) => vTargetTemp.dispatch(temp)}
-        origin={[50, SCREEN_HEIGHT / 2 - 100]}
+        origin={[50, cDimH(0.5) - 100]}
         arcLength={2 / 7}
       />
-      <PetalBox
-        origin={[50, SCREEN_HEIGHT / 2 - 105]}
-        radii={[0, 80]}
-        arcLength={3 / 7}
-        rotationR={-11 / 7}
+      <PetalBoxSimple
+        origin={[50, cDimH(0.34)]}
+        size={[100, 100]}
+        viewBox={[75, 75]}
         dAR={dAR}
         dC={dC}
         dL={dL}
@@ -220,37 +333,36 @@ export default function ReColorCam() {
             <Stop offset="100%" stopColor="rgb(150,150,150)" stopOpacity="0" />
           </RadialGradient>
         </Defs>
-        <G transform={[{ rotate: 11 / 7 + "rad" }]}>
+        <G>
           <Text
             x="-32"
-            y="-0"
+            y="32"
             fontSize="15"
             opacity=".6"
             fill="black"
             fontFamily="Outfit"
-            baselineShift="middle"
             verticalAlign="middle"
           >
             Color Tint
           </Text>
-          <Circle cx="0" cy="-50" r="40" fill="url(#radGrad)" opacity="0.5" />
+          <Circle cx="0" cy="-10" r="40" fill="url(#radGrad)" opacity="0.5" />
           <Path
-            transform={[{ translateX: 0 }, { translateY: -50 }]}
+            transform={[{ translateY: -10 }]}
             fill="url(#grad)"
             stroke="black"
             strokeWidth={0.5}
             strokeOpacity={0.3}
-            d="M-13-28C-15-28-16-27-16-25V-21H-14V-25H-12V18A4 4 90 01-9 22 4 4 90 01-13 26 4 4 90 01-17 22 4 4 90 01-14 18V-21H-16V17H-16C-18 18-19 20-19 22-19 26-16 28-13 28S-7 26-7 22C-7 20-8 18-10 17H-10V-25C-10-27-11-28-13-28ZM0-26C-2-24-4-21-6-19A74 74 90 01-8-20V-17C-5-18-3-18 0-18 10-18 18-11 18 0 18 10 10 18 0 18-2 18-3 18-5 18A9 9 90 01-4 21 77 77 90 010 26C0 26 5 18 5 18 5 18 13 22 13 22 13 22 14 14 14 14A76 76 90 0122 13C22 13 18 5 18 5 18 5 26 0 26 0 26 0 18-6 18-6 18-6 22-13 22-13 14-14 22-13 14-14A76 76 90 0113-23C13-23 5-19 5-19 5-19 0-26 0-26ZM-16-20V-18H-12V-16H-16ZM0-16C-3-16-5-16-8-15V15C-5 16-4 16 0 16 9 16 16 9 16 0 16-9 9-16 0-16ZM-18-14A77 77 90 01-23-13C-23-13-19-6-19-6-19-6-26 0-26 0-26 0-19 5-19 5-19 5-23 13-23 13-21 13-19 13-18 13V6A18 18 90 01-19 0 18 18 90 01-18-6V-14ZM-16-10V-10H-12V-8H-16ZV-1H-12V1H-16ZV8H-12V10H-16ZM-13 19C-15 18-17 21-16 23-16 21-14 19-13 19Z"
+            d={Paths.thermo}
           />
         </G>
-      </PetalBox>
+      </PetalBoxSimple>
       <Camera
         device={device}
         isActive={camActive}
         style={{
           position: "absolute",
-          width: SCREEN_WIDTH,
-          height: SCREEN_HEIGHT,
+          width: cDimW(),
+          height: cDimH(),
           zIndex: 0,
         }}
         frameProcessor={skfp}
@@ -259,15 +371,15 @@ export default function ReColorCam() {
       <ReplacementMeter
         activePaint={vTargetPaint.state}
         layer={eLayers.colorMixer}
-        origin={[SCREEN_WIDTH - 125, SCREEN_HEIGHT / 2 + 150]}
+        origin={[cDimW(0.65), cDimH(0.65)]}
         setThreshold={fAddThreshold}
       />
 
       <GlassView
         style={{
           position: "absolute",
-          top: SCREEN_HEIGHT / 2 - 20,
-          left: SCREEN_WIDTH / 2 - 20,
+          top: cDimH(0.5) - 20,
+          left: cDimW(0.5) - 20,
           width: 40,
           height: 40,
           borderRadius: 20,

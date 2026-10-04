@@ -1,16 +1,18 @@
-import { View, Text } from "react-native";
 import React, { useEffect } from "react";
+import { Paths } from "../utils/Paths";
 import { eChipSizes, PaintChip } from "../Chips/PaintChip";
-import { fCLARColorToString, tPaint } from "../utils/CLAcolor";
+import { tPaint } from "../utils/CLAcolor";
 import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { useVerse } from "../utils/Verse";
-import { Sector } from "../Radials/Sector";
 import { useUserContext } from "../Contexts/UserContext";
-import { useAnimatedReaction } from "react-native-reanimated";
-import { tIVerse } from "../utils/iVerse";
-import { PetalButton } from "../Buttons/PetalButton";
-import { PetalBox } from "../Buttons/PetalBox";
-import { Path, Circle, G } from "react-native-svg";
+import {
+  useAnimatedReaction,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
+import { PetalBox, PetalBoxSimple } from "../Buttons/PetalBox";
+import { Path, G } from "react-native-svg";
 import { TextCircle } from "../Buttons/CurvedText";
 export type tReplacementMeter = {
   origin: [number, number];
@@ -31,6 +33,8 @@ export function ReplacementMeter({
     radius: 0,
   });
   const length = 250;
+  const vOpacityL = useSharedValue(0.5);
+  const vOpacityM = useSharedValue(0.5);
   useEffect(() => {
     registerHitBox({
       id: `ReplacementMeter`,
@@ -53,8 +57,10 @@ export function ReplacementMeter({
       if (pos === "enter" || pos === "tap") {
         if (vPanPos.shared.value.radius < length / 2) {
           setThreshold(-0.1);
+          vOpacityL.value = withSequence(withTiming(1), withTiming(0.5));
         } else {
           setThreshold(0.1);
+          vOpacityM.value = withSequence(withTiming(1), withTiming(0.5));
         }
         vPanState.shared.value = "leave";
       }
@@ -62,55 +68,50 @@ export function ReplacementMeter({
     [],
   );
 
-  const { vColorModel } = useUserContext();
   return (
     <>
-      <PetalBox
-        origin={origin}
-        radii={[eChipSizes.default[0] / 3, eChipSizes.default[0] / 2 + 45]}
-        rotationR={0 / 7}
+      <PetalBoxSimple
+        origin={[origin[0] + eChipSizes.default[0] * 0.5 + 20, origin[1]]}
+        rotationR={11 / 7}
         layer={layer - 10}
-        arcLength={3 / 7}
-        opacity={0.75}
+        size={[75, 75]}
+        viewBox={[75, 75]}
+        vOpacity={vOpacityM}
       >
-        <G transform={[{ translateX: 95 }, { translateY: 0 }]}>
+        <G transform={[{ translateX: 0 }]}>
           <Path
-            transform={[{ translateX: 0 }, { scale: 0.7 }]}
-            d={
-              "M-19-32C-22-16-30-12-30-1-30 5-25 9-17 9-17 5-13-5-10-10-13-16-17-21-19-32ZM19-33C17-22 13-17 10-10 13-5 17 5 17 9 25 9 30 5 30-1 30-12 22-16 19-33ZM0-29C-3-20-6-13-9-8-13 0-15 5-15 13-15 23-8 27 0 27 8 27 15 23 15 13 15 5 13 0 9-8 6-14 3-20 0-29ZM-3 4H3V10H9V16H3V22H-3V16H-9V10H-3Z"
-            }
+            transform={[{ scale: 0.6 }, { translateY: 10 }]}
+            d={Paths.replaceMore}
             fill={`rgba(0,0,0,.75)`}
           />
           <TextCircle
             topText={"More"}
-            radii={[30, eChipSizes.default[0] / 2]}
-            topTextProps={{ fontSize: 12 }}
+            radii={[20, 25]}
+            topTextProps={{ fontSize: 17 }}
           />
         </G>
-      </PetalBox>
-      <PetalBox
-        origin={origin}
-        radii={[eChipSizes.default[0] / 3, eChipSizes.default[0] / 2 + 45]}
-        rotationR={22 / 7}
-        arcLength={3 / 7}
+      </PetalBoxSimple>
+      <PetalBoxSimple
+        origin={[origin[0] - eChipSizes.default[0] * 0.5 - 20, origin[1]]}
+        rotationR={33 / 7}
         layer={layer - 10}
-        opacity={0.75}
+        size={[75, 75]}
+        viewBox={[75, 75]}
+        vOpacity={vOpacityL}
       >
-        <G transform={[{ translateX: 95 }, { scale: -1 }]}>
+        <G transform={[{ translateX: 0 }]}>
           <Path
-            transform={[{ translateX: 0 }, { scale: 0.7 }]}
-            d={
-              "M3 10H8V16H-8V10ZM0-28C-3-19-6-13-9-7-13 1-15 6-15 14-15 24-8 28 0 28S15 24 15 14C15 6 13 1 9-7 6-12 3-19 0-28Z"
-            }
+            transform={[{ scale: 0.65 }, { translateY: 5 }]}
+            d={Paths.replaceLess}
             fill={`rgba(0,0,0,.75)`}
           />
           <TextCircle
             topText={"Less"}
-            radii={[30, eChipSizes.default[0] / 2]}
-            topTextProps={{ fontSize: 12 }}
+            radii={[20, 20]}
+            topTextProps={{ fontSize: 16 }}
           />
         </G>
-      </PetalBox>
+      </PetalBoxSimple>
       <PaintChip
         paintA={activePaint}
         size={"default"}

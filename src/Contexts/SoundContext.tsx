@@ -1,23 +1,35 @@
 import {
-  createContext,
-  ReactNode,
-  RefObject,
-  use,
+  useState,
   useContext,
   useEffect,
   useRef,
+  RefObject,
+  ReactNode,
+  createContext,
 } from "react";
-import { tCLARColor, tPaint, tSeasonMap, fGetSeasons } from "../utils/CLAcolor";
+import {
+  tCLARColor,
+  tPaint,
+  tSeasonMap,
+  fGetSeasons,
+  fToList,
+} from "../utils/CLAcolor";
 import {
   AudioContext,
   AudioBuffer,
-  BaseAudioContext,
   AudioBufferSourceNode,
   GainNode,
-  AudioManager,
   AnalyserNode,
+  AudioManager,
 } from "react-native-audio-api";
 import * as Haptics from "expo-haptics";
+import Button from "../Buttons/Button";
+import { Paths } from "../utils/Paths";
+import { cDimH, cDimW } from "../utils/ScreenDimensions";
+import { eLayers, useUserContext } from "./UserContext";
+import { Text, View } from "react-native";
+import React from "react";
+import { useVerse } from "../utils/Verse";
 
 const noteFiles = {
   56: require("../../assets/56.wav"),
@@ -70,19 +82,6 @@ export type tChord = {
   arpeggio: "up" | "down";
   clarColor?: tCLARColor;
 };
-function fChordCode(chord: tChord): string {
-  return (
-    chord.root +
-    "," +
-    chord.season +
-    "," +
-    chord.triad +
-    "," +
-    chord.length +
-    "," +
-    chord.arpeggio
-  );
-}
 function fChordToIntervals(chord: tChord): number[] {
   const triadInts = triadIntervals[chord.triad];
   const seasonInts = seasonIntervals[chord.season];
@@ -106,12 +105,13 @@ export type tSoundContext = {
   fStartChord?: (color: tCLARColor, harp?: boolean) => tChordReturn;
   fPlaySFX?: (sfx: eSFX) => void;
   analyzer?: RefObject<AnalyserNode>;
-  fPlayNote?: (midiNote: number, harp?: boolean) => void;
+  fPlayTick?: () => void;
   fAddPaintsToPresent?: (id: string, paints: tPaint[]) => void;
 };
 
 const ctx = createContext<tSoundContext>({});
 export const useSoundContext = () => useContext(ctx);
+
 export default function SoundContext({ children }: { children: ReactNode }) {
   const roomSize = 1;
   const decayTime = 1;
@@ -127,9 +127,10 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     drop: null,
   }).current;
   const ready = useRef<boolean>(false);
+  const vMute = useVerse<boolean>(false);
 
   function fStartChord(color: tCLARColor, harp: boolean = false): tChordReturn {
-    if (!color || !ready.current) return () => {};
+    if (!color || !ready.current || vMute.state) return () => {};
     const gainNode = audioContext.createGain();
     const convolver = audioContext.createConvolver();
     const sampleRate = audioContext.sampleRate;
@@ -179,7 +180,8 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     return chordReturn;
   }
 
-  function fPlayNote(midiNote: number) {
+  function fPlayTick() {
+    /*
     if (!ready.current) return;
     const gainNode = audioContext.createGain();
     const convolver = audioContext.createConvolver();
@@ -196,11 +198,16 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     convolver.buffer = impulse;
     gainNode.gain.value = 0.01;
     gainNode.connect(convolver);
-    const node = fSetupNode(midiNote, gainNode, true);
+    convolver.connect(masterGain);
+    const node = fSetupNode(midiNote, gainNode, false);
     node.start(audioContext.currentTime);
     gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.3);
     gainNode.gain.linearRampToValueAtTime(0.0001, audioContext.currentTime + 1);
     node.stop(audioContext.currentTime + 1);
+    */
+    if (vMute?.shared.value !== true) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+    }
   }
 
   function fSetupNode(
@@ -211,7 +218,11 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     const node: AudioBufferSourceNode = audioContext.createBufferSource({
       pitchCorrection: false,
     });
-    if (!ready.current) return node;
+    if (
+      !ready.current ||
+      Object.keys(harp ? harpBuffers : buffers).length === 0
+    )
+      return node;
     let closeMatch = Object.keys(harp ? harpBuffers : buffers).reduce(
       (prev, curr) => {
         return Math.abs(Number(curr) - midiNote) <
@@ -223,6 +234,7 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     let detune = midiNote - Number(closeMatch);
     node.buffer = (harp ? harpBuffers : buffers)[Number(closeMatch)];
     node.detune.value = detune * 100;
+    console.log("Node setup:", "midiNote:", midiNote, "harp:", harp);
     node.connect(output);
     return node;
   }
@@ -249,15 +261,6 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     const length = Math.ceil(c * (seasonIntervals[season].length - 1)) + 1;
     const arpeggio = l > 0.5 ? "up" : "down";
     return { root, season, triad, length, arpeggio };
-  }
-
-  function fMatchingChord(chordA: tChord, chordB: tChord): boolean {
-    if (chordA.root !== chordB.root) return false;
-    if (chordA.triad !== chordB.triad) return false;
-    if (chordA.season !== chordB.season) return false;
-    if (chordA.length !== chordB.length) return false;
-    if (chordA.arpeggio !== chordB.arpeggio) return false;
-    return true;
   }
 
   function fAssignPaintsToChords() {
@@ -310,7 +313,7 @@ export default function SoundContext({ children }: { children: ReactNode }) {
   }
 
   function fPlaySFX(sfx: eSFX, delay: number = 0) {
-    if (!ready.current) return;
+    if (!ready.current || vMute.state) return;
     const buffer = sfxBuffers[sfx];
 
     if (buffer) {
@@ -335,6 +338,8 @@ export default function SoundContext({ children }: { children: ReactNode }) {
   function fAddPaintsToPresent(id: string, paints: tPaint[]) {
     paintsPresent[id] = paints;
     fAssignPaintsToChords();
+    AudioManager.setAudioSessionActivity(true);
+    audioContext.resume();
   }
 
   useEffect(() => {
@@ -361,15 +366,25 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     ready.current = true;
   }, []);
 
+  const { dAccentColor } = useUserContext();
+
   return (
     <ctx.Provider
       value={{
         fStartChord,
         fPlaySFX,
-        fPlayNote,
+        fPlayTick,
         fAddPaintsToPresent,
       }}
     >
+      <Button
+        path={vMute.state ? Paths.mute : Paths.speaker}
+        origin={[cDimH(0.12), cDimH(0.07)]}
+        layer={eLayers.panManager + 5}
+        inverted={vMute.state}
+        onPress={() => vMute.dispatch(!vMute.state)}
+        size={cDimH(0.05)}
+      />
       {children}
     </ctx.Provider>
   );

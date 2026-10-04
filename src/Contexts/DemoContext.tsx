@@ -29,7 +29,7 @@ import { useChipContext } from "../Chips/ChipContext";
 import Paths from "../utils/Paths";
 
 export type tDemoStep = {
-  touching: 0 | 1;
+  touching: 0 | 1 | -1;
   toPos: [number, number];
   duration: number;
   callback?: () => void;
@@ -47,21 +47,24 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
   const { vPanX, vPanY, vVelocityX, holdChip } = useChipContext();
   const vActive = useVerse(0);
   const vTimer: SharedValue<number> = useSharedValue(0);
-  const vTouch: SharedValue<(0 | 1)[]> = useSharedValue([1]);
+  const vTouch: SharedValue<(0 | 1 | -1)[]> = useSharedValue([1]);
   const dTouching: DerivedValue<number> = useDerivedValue(() => {
     return vTouch.value[Math.floor(vTimer.value)];
   });
   const vTouchBuffer: SharedValue<number> = useSharedValue(0);
+  const vDuration: SharedValue<number> = useSharedValue(0);
   const vPositions: SharedValue<[number, number][]> = useSharedValue([
     [cDimW() / 2 + 100, cDimH() / 2],
   ]);
   function fCancelAnimation() {
     "worklet";
-    vTouchBuffer.value = 0;
+
+    vTouchBuffer.value = -1;
     vActive.shared.value = 0;
     vTimer.value = 0;
-    vTouch.value = [0];
+    vTouch.value = [-1];
     vPositions.value = [[0, 0]];
+    holdChip();
   }
   function fPlaySequence(steps: tDemoStep[]) {
     vActive.dispatch(1);
@@ -96,6 +99,8 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
         }),
       ),
     );
+    vDuration.value = 1;
+    vDuration.value = withTiming(0, { duration: totalDuration });
   }
 
   function fLerp(start: number, end: number, t: number) {
@@ -198,17 +203,21 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
   useAnimatedReaction(
     () => dTouching.value,
     (value, previous) => {
-      if (previous > 0 && value === 0) {
-        releaseZone("release");
-        vTouchBuffer.value = withTiming(value, { duration: 300 });
-      } else if (previous === 0 && value > 0) {
-        vTouchBuffer.value = withTiming(value, { duration: 300 });
+      if (previous > 0 && value < 1) {
+        releaseZone(value === 0 ? "release" : "leave");
+        vTouchBuffer.value = withTiming(0, { duration: 300 });
+      } else if (previous <= 0 && value > 0) {
+        vTouchBuffer.value = withTiming(1, { duration: 300 });
       }
     },
   );
   const font = useFont(
     require("../../assets/Outfit-VariableFont_wght.ttf"),
     50,
+  );
+  const smallFont = useFont(
+    require("../../assets/Outfit-VariableFont_wght.ttf"),
+    30,
   );
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -220,7 +229,12 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
       zIndex: eLayers.superMax,
     };
   });
-
+  const vFlicker = useDerivedValue(() => {
+    return (
+      vActive.shared.value *
+      ((Math.sin(vDuration.value * Math.PI * 12) + 1.25) / 2)
+    );
+  });
   return (
     <context.Provider value={{ fPlaySequence }}>
       <Canvas
@@ -237,7 +251,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
         <RoundedRect
           x={0}
           y={0}
-          r={cDimW(0.1)}
+          r={25}
           width={cDimW(1)}
           height={cDimH(1)}
           color="white"
@@ -248,7 +262,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
         <RoundedRect
           x={0}
           y={0}
-          r={cDimW(0.1)}
+          r={25}
           width={cDimW(1)}
           height={cDimH(1)}
           color="white"
@@ -264,7 +278,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
             strokeWidth={circleCount - index}
             style="stroke"
             color={vColor}
-            opacity={(1 - index / circleCount) ** 2}
+            opacity={(1 - index / circleCount) ** 2 * vActive.shared.value}
           />
         ))}
         <Path
@@ -282,6 +296,14 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
           color={"white"}
           font={font}
           text={"Demonstration"}
+          opacity={vFlicker}
+        />
+        <Text
+          x={cDimW(0.6)}
+          y={cDimH(0.8)}
+          color={"white"}
+          font={smallFont}
+          text={"Tap to skip"}
           opacity={vActive.shared}
         />
       </Canvas>

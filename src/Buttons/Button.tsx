@@ -2,11 +2,12 @@ import React from "react";
 import { Circle, Path, Svg } from "react-native-svg";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { fCLARColorToString } from "../utils/CLAcolor";
-import Animated, { useAnimatedProps } from "react-native-reanimated";
+import Animated, {
+  useAnimatedProps,
+  useDerivedValue,
+} from "react-native-reanimated";
 import { CurvedText, TextCircle, tTextCircle } from "./CurvedText";
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 export type tButton = {
   onPress: () => void;
   path: string;
@@ -15,6 +16,7 @@ export type tButton = {
   viewRadius?: number;
   textCircle?: tTextCircle;
   layer?: number;
+  inverted?: boolean;
 };
 export default function Button({
   onPress,
@@ -24,17 +26,27 @@ export default function Button({
   viewRadius = 25,
   textCircle,
   layer = eLayers.dropScreen - 1,
+  inverted = false,
 }: tButton) {
-  const { dAccentColor, vColorModel } = useUserContext();
-  const animatedProps = useAnimatedProps(() => ({
-    fill: fCLARColorToString(
+  const { vColorModel, vAccentAR, vAccentC, vAccentL } = useUserContext();
+  const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+  const AnimatedPath = Animated.createAnimatedComponent(Path);
+  const vColor = useDerivedValue(() =>
+    fCLARColorToString(
       {
-        c: dAccentColor.value.c ** (1 / 2),
-        l: dAccentColor.value.l * (1 / 2),
-        ar: dAccentColor.value.ar,
+        c: vAccentC.shared.value ** (1 / 2),
+        l: vAccentL.shared.value * (1 / 2),
+        ar: vAccentAR.shared.value,
       },
       vColorModel.shared.value,
     ),
+  );
+  const animatedProps = useAnimatedProps(() => ({
+    fill: inverted ? "white" : vColor.value,
+  }));
+  const pathProps = useAnimatedProps(() => ({
+    d: path,
+    fill: inverted ? vColor.value : "white",
   }));
   return (
     <Svg
@@ -61,7 +73,7 @@ export default function Button({
         r={viewRadius}
         animatedProps={animatedProps}
       />
-      <AnimatedPath d={path} fill="white" />
+      <AnimatedPath animatedProps={pathProps} />
       <TextCircle {...textCircle} />
     </Svg>
   );

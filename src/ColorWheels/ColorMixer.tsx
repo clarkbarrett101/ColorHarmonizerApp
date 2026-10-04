@@ -25,7 +25,7 @@ import { BrandFilter } from "./BrandFilter";
 import React from "react";
 import { useChipContext } from "../Chips/ChipContext";
 import { useDemo } from "../Contexts/DemoContext";
-import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import { cDimW, cDimH, cWide } from "../utils/ScreenDimensions";
 import Button from "../Buttons/Button";
 import Paths from "../utils/Paths";
 
@@ -33,7 +33,7 @@ export default function ColorMixer({
   radii = [0, Dimensions.get("window").width * 0.9],
   ring = 5,
   chord = 6,
-  arcLength = 13 / 7,
+  arcLength = cWide ? 9 / 7 : 13 / 7,
   rotationR = 22 / 7,
 }: tRadialObject) {
   const origin: [number, number] = [
@@ -267,14 +267,15 @@ export default function ColorMixer({
       />
       <BrandFilter
         vBrand={vBrand}
-        origin={[origin[0] - radii[1] * 0.15, origin[1] - 250]}
+        origin={[cDimW(0.85), cDimH(0.08)]}
         mainRotationR={11 / 7}
         layer={eLayers.chipHand}
       />
       <Button
         path={Paths.replay}
         layer={eLayers.superMax}
-        origin={[cDimW(0.9), cDimH(0.65)]}
+        origin={[cDimH(0.05), cDimH(0.14)]}
+        size={cDimH(0.05)}
         viewRadius={30}
         onPress={() => {
           pagesVisited.dispatch({

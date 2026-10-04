@@ -26,42 +26,51 @@ import { RadialContext, wDefaultAngleToChord } from "./Radials/RadialContext";
 import { useVerseRelay } from "./utils/Verse";
 import { ePanEvent, usePanManager } from "./Contexts/PanManager";
 import { eLayers, ePages, useUserContext } from "./Contexts/UserContext";
-import { cDimH, cDimW } from "./utils/ScreenDimensions";
+import {
+  cDimH,
+  cDimW,
+  cRaxelW,
+  cRaxelH,
+  cWide,
+} from "./utils/ScreenDimensions";
 import Paths from "./utils/Paths";
-import React from "react";
 import { SharedValue } from "react-native-gesture-handler/lib/typescript/v3/types";
 import Button from "./Buttons/Button";
 import { scheduleOnRN } from "react-native-worklets";
+import { useSoundContext } from "./Contexts/SoundContext";
+import { usePurchaseContext } from "./Contexts/PurchaseContext";
+import React from "react";
 const mainPages = [
-  "Undertone Camera",
   "ReColor Camera",
-  "Color Harmonizer",
+  "Undertone Camera",
   "Palette Library",
-  "Find a Color",
-] as const satisfies readonly ePages[];
-const searchPages = [
-  "Main Menu",
   "Color Search",
-  "Color Mixer",
   "Color Seasons",
+  "Color Mixer",
   "Color Wheel",
+  "Color Harmonizer",
 ] as const satisfies readonly ePages[];
+const searchPages = ["Main Menu", ,] as const satisfies readonly ePages[];
 type tMenuPage = (typeof mainPages)[number] | (typeof searchPages)[number];
 
 export default function Menu({
-  radii = [200, 500],
-  rotationR = 22 / 7,
-  arcLength = 6 / 7,
+  radii = [cDimW(0.3), cRaxelW(1.2, 0.9)],
+  rotationR = 21 / 7,
+  arcLength = cWide ? 9 / 7 : 9 / 7,
   chord = mainPages.length,
   ring = 5,
-  origin = [cDimW() + radii[0], cDimH(0.5)],
+  origin = [cDimW() + radii[0], cRaxelH(0.5, 0.45)],
 }: tRadialObject) {
+  const { fPlayTick } = useSoundContext();
   const { registerHitBox, unregisterHitBox } = usePanManager();
   const { vPage, pagesVisited } = useUserContext();
   const [isSearchMenu, setIsSearchMenu] = React.useState(false);
   const activePages = isSearchMenu ? searchPages : mainPages;
   const activeChord = activePages.length;
-  const vPanPos = useSharedValue({ angle: 22 / 7, radius: 0 });
+  const vPanPos = useSharedValue({
+    angle: rotationR + arcLength / 2,
+    radius: 0,
+  });
   const vPanState = useSharedValue<ePanEvent>("enter");
   const vSlowAngle = useSharedValue<number>(0);
   const vIsSearchMenu = useSharedValue(false);
@@ -81,6 +90,12 @@ export default function Menu({
     nearestChord = Math.max(Math.min(nearestChord, selectedChord - 1), 0);
     return nearestChord;
   });
+  useAnimatedReaction(
+    () => dSelection.value,
+    (nearestChord) => {
+      scheduleOnRN(fPlayTick);
+    },
+  );
   const { fPlaySequence } = useDemo();
 
   useEffect(() => {
@@ -108,22 +123,17 @@ export default function Menu({
         },
         {
           touching: 1,
-          toPos: [cDimW(0.5), cDimH(0.7)],
+          toPos: [cDimW(0.5), cDimH(0.8)],
           duration: 2000,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.5), cDimH(0.5)],
-          duration: 1000,
+          toPos: [cDimW(0.5), cDimH(0.2)],
+          duration: 2000,
         },
         {
-          touching: 1,
-          toPos: [-100, cDimH(0.55)],
-          duration: 100,
-        },
-        {
-          touching: 0,
-          toPos: [-100, cDimH(0.55)],
+          touching: -1,
+          toPos: [-100, -100],
           duration: 100,
         },
       ]);
@@ -164,6 +174,7 @@ export default function Menu({
       }
     },
   );
+
   useAnimatedReaction(
     () => vPanPos.value,
     (pos) => {
@@ -185,13 +196,14 @@ export default function Menu({
       );
     },
   );
-
+  const { premium } = usePurchaseContext();
   const mTransformModifier: tAttributeModifier = {
     modID: 1,
     deps: [vSlowAngle],
     modifier: (input: tAttributeMap) => {
       "worklet";
       let diff = 1 - Math.abs(input.rotateZ - vSlowAngle.value) / arcLength;
+      diff = Math.max(diff, 0);
       return {
         ...input,
         translateX: input.translateX + diff * radii[0] * 0.2,
@@ -207,14 +219,14 @@ export default function Menu({
   };
   function fSectorModifier(sector: tSector) {
     const colorChord = Math.max(activeChord - 1, 1);
-    let colorRange = isSearchMenu ? [27 / 7, 0 / 7] : [25 / 7, 44 / 7];
     const rgb = fCLARColorToRGB(
       {
-        c: (sector.ring / (ring - 1)) * 0.4 + 0.4,
+        c:
+          sector.chord > 1 || premium
+            ? (sector.ring / (ring - 1)) * 0.4 + 0.4
+            : 0.1,
         l: (sector.ring / (ring - 1)) * 0.4 + 0.4,
-        ar:
-          colorRange[0] +
-          (sector.chord / colorChord) * (colorRange[1] - colorRange[0]),
+        ar: (sector.chord / colorChord) * (23 / 7) + 20 / 7,
       },
       "RYGB",
     );
@@ -234,7 +246,7 @@ export default function Menu({
           fill="white"
           x={(radii[0] + radii[1]) * -0.5}
           y={7}
-          fontSize={30}
+          fontSize={cDimH(0.03)}
           fontFamily="Outfit"
           textAnchor="middle"
           fontWeight={600}
@@ -276,11 +288,11 @@ export default function Menu({
         style={{
           position: "absolute",
           left: 0,
-          top: cDimH(0.05),
+          top: cRaxelH(0.1, 0.25),
           zIndex: eLayers.buckets,
         }}
-        width={cDimW()}
-        height={cDimW(0.3)}
+        width={cRaxelW(1, 0.4)}
+        height={cRaxelH(0.15, 0.5)}
         viewBox={`-200 -75 400 150`}
       >
         <Defs>
@@ -295,7 +307,8 @@ export default function Menu({
       <Button
         path={Paths.replay}
         layer={eLayers.superMax}
-        origin={[cDimW(0.1), cDimH(0.25)]}
+        size={cDimH(0.05)}
+        origin={[cDimH(0.05), cDimH(0.07)]}
         viewRadius={30}
         onPress={() => {
           pagesVisited.dispatch({

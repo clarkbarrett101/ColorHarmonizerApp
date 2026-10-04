@@ -29,16 +29,16 @@ import { BrandFilter } from "../ColorWheels/BrandFilter";
 import { useChipContext } from "../Chips/ChipContext";
 import { Canvas, Path, SweepGradient, vec } from "@shopify/react-native-skia";
 import { CurvedText } from "../Buttons/CurvedText";
-import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import { cDimW, cDimH, cWide, cRaxelW } from "../utils/ScreenDimensions";
 import { useDemo } from "../Contexts/DemoContext";
 import { Paths } from "../utils/Paths";
 import React from "react";
 import Button from "../Buttons/Button";
 export default function ColorSeasons({
-  radii = [0, 325],
+  radii = [0, cRaxelW(0.75, 0.8)],
   ring = 5,
   chord = 4,
-  arcLength = 11 / 7,
+  arcLength = cWide ? 9 / 7 : 11 / 7,
   rotationR = 22 / 7,
 }: tRadialObject) {
   ///ON MOUNT
@@ -216,7 +216,7 @@ export default function ColorSeasons({
         {
           touching: 0,
           toPos: [cDimW(0.05), cDimH(0.95)],
-          duration: 2000,
+          duration: 1500,
           callback: () => {
             "worklet";
             if (vUserPalette.shared.value.paints[0]) {
@@ -227,7 +227,7 @@ export default function ColorSeasons({
         {
           touching: 1,
           toPos: [origin[0] - 100, origin[1]],
-          duration: 2000,
+          duration: 1000,
           callback: () => {
             "worklet";
             holdChip();
@@ -245,7 +245,7 @@ export default function ColorSeasons({
         {
           touching: 1,
           toPos: [origin[0] - 100, origin[1]],
-          duration: 2000,
+          duration: 1000,
           callback: () => {
             "worklet";
             holdChip();
@@ -277,14 +277,14 @@ export default function ColorSeasons({
       "#F99EBE",
       "rgba(249,158,190,0)",
     ],
-    autumn: [
+    winter: [
       "rgba(0,91,49,0)",
       "#005B31",
       "#2C18B6",
       "#920028",
       "rgba(146,0,40,0)",
     ],
-    winter: [
+    autumn: [
       "rgba(156,37,16,0)",
       "#9C2510",
       "#685200",
@@ -317,7 +317,7 @@ export default function ColorSeasons({
       </Path>
     );
   }
-  const gradientRadii: [number, number] = [0, radii[1] + 100];
+  const gradientRadii: [number, number] = [0, cRaxelW(1, 0.9)];
 
   /// R E N D E R ///
 
@@ -358,7 +358,7 @@ export default function ColorSeasons({
       />
       <BrandFilter
         vBrand={vBrand}
-        origin={[origin[0] - radii[1] * 0.2, origin[1] - 250]}
+        origin={[cDimW(0.85), cDimH(0.08)]}
         mainRotationR={11 / 7}
         layer={eLayers.buckets}
       />
@@ -402,64 +402,53 @@ export default function ColorSeasons({
 
       <CurvedText
         text="Winter"
-        origin={[
-          Dimensions.get("window").width + 40,
-          Dimensions.get("window").height / 2 - 50,
-        ]}
+        origin={origin}
         layer={eLayers.chipFan}
-        rotationR={-0.65}
+        rotationR={-arcLength * 0.44}
         arcLength={2}
-        radii={[100, 440]}
-        fontSize={30}
+        radii={[100, cRaxelW(0.95, 0.85)]}
+        fontSize={cDimH(0.03)}
         color="white"
         convex={true}
       />
       <CurvedText
         text="Autumn"
-        origin={[
-          Dimensions.get("window").width + 40,
-          Dimensions.get("window").height / 2 - 50,
-        ]}
+        origin={origin}
         layer={eLayers.chipFan}
-        rotationR={-0.3}
+        rotationR={-arcLength * 0.19}
         arcLength={2}
-        radii={[100, 440]}
-        fontSize={30}
+        radii={[100, cRaxelW(0.95, 0.85)]}
+        fontSize={cDimH(0.03)}
         color="white"
         convex={true}
       />
       <CurvedText
         text="Summer"
-        origin={[
-          Dimensions.get("window").width + 40,
-          Dimensions.get("window").height / 2 - 50,
-        ]}
+        origin={origin}
         layer={eLayers.chipFan}
-        rotationR={0.07}
+        rotationR={arcLength * 0.07}
         arcLength={2}
-        radii={[100, 440]}
-        fontSize={30}
+        radii={[100, cRaxelW(0.95, 0.85)]}
+        fontSize={cDimH(0.03)}
         color="white"
         convex={true}
       />
       <CurvedText
         text="Spring"
-        origin={[
-          Dimensions.get("window").width + 40,
-          Dimensions.get("window").height / 2 - 50,
-        ]}
+        origin={origin}
         layer={eLayers.chipFan}
-        rotationR={0.47}
+        rotationR={arcLength * 0.35}
         arcLength={2}
-        radii={[100, 445]}
-        fontSize={30}
+        radii={[100, cRaxelW(0.95, 0.85)]}
+        fontSize={cDimH(0.03)}
         color="white"
         convex={true}
       />
       <Button
         path={Paths.replay}
         layer={eLayers.superMax}
-        origin={[cDimW(0.9), cDimH(0.65)]}
+        origin={[cDimH(0.05), cDimH(0.14)]}
+        size={cDimH(0.05)}
         viewRadius={30}
         onPress={() => {
           pagesVisited.dispatch({

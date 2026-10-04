@@ -216,7 +216,11 @@ export default function PanManager({
       /*
       )*/
 
-      console.log("Registering hitbox: ", hitBox.id);
+      console.log(
+        "Registering hitbox: ",
+        hitBox.id,
+        Object.keys(vHitBoxes.shared.value).length + 1,
+      );
       if (hitBox.rotationR < 0) {
         hitBox.rotationR = 44 / 7 + hitBox.rotationR;
       } else if (hitBox.rotationR > 44 / 7) {
@@ -256,7 +260,10 @@ export default function PanManager({
   };
   const releaseZone = (panState: ePanEvent) => {
     "worklet";
-    if (vCurrentHitBox.shared.value !== null) {
+    if (
+      vCurrentHitBox.shared.value !== null &&
+      vHitBoxes.shared.value[vCurrentHitBox.shared.value]
+    ) {
       if (vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanPos) {
         vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanPos.value =
           vPanPos.value;
@@ -278,6 +285,9 @@ export default function PanManager({
     for (let i = 0; i < hitBoxesArray.length; i++) {
       const zone = hitBoxesArray[i];
       if (zone.vActive && zone.vActive.value === false) {
+        continue;
+      }
+      if (zone === undefined) {
         continue;
       }
       const x = e.absoluteX;
@@ -318,6 +328,7 @@ export default function PanManager({
         if (vCurrentHitBox.shared.value !== zone.id) {
           if (
             vCurrentHitBox.shared.value !== null &&
+            vHitBoxes.shared.value[vCurrentHitBox.shared.value] !== undefined &&
             vHitBoxes.shared.value[vCurrentHitBox.shared.value].vPanState
           ) {
             vHitBoxes.shared.value[
@@ -343,7 +354,10 @@ export default function PanManager({
   const tapUpdate = (e: { absoluteX: number; absoluteY: number }) => {
     "worklet";
     panUpdate(e);
-    if (vCurrentHitBox.shared.value !== null) {
+    if (
+      vCurrentHitBox.shared.value !== null &&
+      vHitBoxes.shared.value[vCurrentHitBox.shared.value] !== undefined
+    ) {
       const zone = vHitBoxes.shared.value[vCurrentHitBox.shared.value];
       if (zone.vPanState) {
         zone.vPanState.value = "tap";

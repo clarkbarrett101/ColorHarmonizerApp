@@ -31,16 +31,17 @@ import { tChordReturn, useSoundContext } from "../Contexts/SoundContext";
 import { scheduleOnRN } from "react-native-worklets";
 import { useChipContext } from "./ChipContext";
 import { Paths } from "../utils/Paths";
+import { cDimH } from "../utils/ScreenDimensions";
 
 export type tChipStatus =
   | ["idle", "ready" | "choosing" | "returning" | "flippingUp" | "flippingDown"]
   | ["grabbed", "pulled" | "pushed" | "inBucket"];
 
 export const eChipSizes = {
-  default: [150, 100],
-  grabbed: [180, 120],
-  outline: [210, 140],
-  small: [100, 70],
+  default: [cDimH(0.15), cDimH(0.1)],
+  grabbed: [cDimH(0.18), cDimH(0.12)],
+  outline: [cDimH(0.21), cDimH(0.14)],
+  small: [cDimH(0.1), cDimH(0.07)],
 };
 
 export type tPaintChip = tRadialObject & {

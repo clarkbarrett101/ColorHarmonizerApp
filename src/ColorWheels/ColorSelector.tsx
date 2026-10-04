@@ -24,9 +24,17 @@ import { BrandFilter } from "../ColorWheels/BrandFilter";
 import { Paths } from "../utils/Paths";
 import React from "react";
 import { useDemo } from "../Contexts/DemoContext";
-import { cDimW, cDimH } from "../utils/ScreenDimensions";
+import {
+  cDimW,
+  cDimH,
+  cRaxelW,
+  cRaxelH,
+  cWide,
+} from "../utils/ScreenDimensions";
 import Button from "../Buttons/Button";
 import { useChipContext } from "../Chips/ChipContext";
+import { useSoundContext } from "../Contexts/SoundContext";
+import { scheduleOnRN } from "react-native-worklets";
 
 type tColorSelector = tRadialObject & {
   wheelCenter?: number;
@@ -41,14 +49,14 @@ type tColorSelector = tRadialObject & {
 
 export default function ColorSelector({
   wheelCenter = 22 / 7,
-  radii = [50, 230],
+  radii = [cRaxelW(0.1, 0.1), cRaxelH(0.28, 0.38)],
   litDimensions = [4, 5],
   litRange = [0.15, 1],
   chromaRange = [0.1, 0.8],
   chromaDimensions = [4, 4],
   chromaArcRotation = [4.4 / 7, 16 / 7],
   lightnessArcRotation = [5.5 / 7, 28 / 7],
-  origin = [cDimW() + radii[1] * 0.3, cDimH(0.45)],
+  origin = [cDimW() + radii[1] * 0.2, cDimH(0.45)],
 }: tColorSelector) {
   /// O N  M O U N T ///
 
@@ -176,6 +184,7 @@ export default function ColorSelector({
       vAccentL.shared.value = clar[1];
     },
   );
+  const { fPlayTick } = useSoundContext();
   useAnimatedReaction(
     () => {
       return [
@@ -191,6 +200,7 @@ export default function ColorSelector({
         next[1] !== prev[1] ||
         next[2] !== prev[2]
       ) {
+        scheduleOnRN(fPlayTick);
         wUpdateState();
       }
     },
@@ -354,6 +364,7 @@ export default function ColorSelector({
   }, [vPagesVisitedRelay.state]);
 
   /// R E N D E R ///
+
   return (
     <>
       <RadialContext
@@ -369,7 +380,7 @@ export default function ColorSelector({
           rotationR={lightnessArcRotation[1]}
           ring={litDimensions[0]}
           chord={litDimensions[1]}
-          radii={[radii[1] - 50, radii[1] + 75]}
+          radii={[radii[1] * 0.8, radii[1] * 1.25]}
           vPanPos={vLightnessPanPos}
           colorModifier={lightnessModifier}
         />
@@ -379,7 +390,7 @@ export default function ColorSelector({
           rotationR={chromaArcRotation[1]}
           ring={chromaDimensions[0]}
           chord={chromaDimensions[1]}
-          radii={[radii[1] - 50, radii[1] + 75]}
+          radii={[radii[1] * 0.8, radii[1] * 1.25]}
           vPanPos={vChromaPanPos}
           colorModifier={chromaModifier}
         />
@@ -389,24 +400,24 @@ export default function ColorSelector({
           chord={24}
           wheelCenter={wheelCenter}
           draggable={true}
-          offsetLevel={50}
+          offsetLevel={cDimW(0.1)}
         />
       </RadialContext>
       <BrandFilter
         vBrand={vBrand}
         layer={eLayers.buckets}
         mainRotationR={11 / 7}
-        origin={[Dimensions.get("window").width - 60, 75]}
+        origin={[cRaxelW(0.87, 0.07), cRaxelH(0.07, 0.23)]}
       />
       <ColorChipFan
         targetColor={vTargetColor.state}
-        targetNumber={9}
+        targetNumber={cWide ? 13 : 9}
         brand={vBrand.state}
         origin={origin}
         size={"default"}
         rotationR={21.5 / 7}
-        arcLength={13 / 7}
-        radius={radii[1] + 175}
+        arcLength={cWide ? 11 / 7 : 13 / 7}
+        radius={radii[1] * 1.6}
         cSteps={chromaDimensions[1]}
         lSteps={litDimensions[1]}
         sideA={vSideA.state}
@@ -416,7 +427,8 @@ export default function ColorSelector({
       <Button
         path={Paths.replay}
         layer={eLayers.superMax}
-        origin={[cDimW(0.9), cDimH(0.8)]}
+        origin={[cDimH(0.05), cDimH(0.14)]}
+        size={cDimH(0.05)}
         viewRadius={30}
         onPress={() => {
           pagesVisited.dispatch({

@@ -21,10 +21,10 @@ import { useBucketContext } from "../Buckets/BucketContext";
 import { PetalBox } from "../Buttons/PetalBox";
 import { usePanHitBox } from "../Buttons/PanHitBox";
 import { Paths } from "../utils/Paths";
-import { cDimH, cDimW } from "../utils/ScreenDimensions";
+import { cDimH, cDimW, cRaxelW } from "../utils/ScreenDimensions";
 
 export function HarmonizerWheel({
-  radii = [210, 420],
+  radii = [cRaxelW(0.5, 0.4), cRaxelW(1, 0.8)],
   origin = [cDimW(), cDimH(0.5)],
   rotationR = 22 / 7,
   arcLength = 44 / 7,

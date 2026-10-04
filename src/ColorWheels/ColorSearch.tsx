@@ -25,16 +25,14 @@ import {
 import { BrandFilter } from "./BrandFilter";
 import { useVerse, useVerseRelay } from "../utils/Verse";
 import { PetalButton } from "../Buttons/PetalButton";
+import { cDimH, cDimW, cRaxelW, cWide } from "../utils/ScreenDimensions";
 
 export default function ColorSearch({
-  radii = [400, 450],
-  origin = [
-    Dimensions.get("window").width - 100,
-    Dimensions.get("window").height / 2,
-  ],
+  radii = [400, cRaxelW(0.9, 0.8)],
+  origin = [cDimW(0.8), Dimensions.get("window").height / 2],
   chord = 3,
   ring = 5,
-  arcLength = 3 / 7,
+  arcLength = cWide ? 9 / 7 : 13 / 7,
 }: tRadialObject) {
   const paintsA = useRef<tPaint[]>([]);
   const paintsB = useRef<tPaint[]>([]);
@@ -65,8 +63,8 @@ export default function ColorSearch({
     };
   }, [vACRelay.state, vALRelay.state, vAARRelay.state, vColorModel.state]);
   const textDimensions = {
-    width: 150,
-    height: 30,
+    width: cDimH(0.13),
+    height: cDimH(0.035),
   };
   const vBrand = useVerse<tBrand>("All Brands");
   const [label, setLabel] = useState("");
@@ -118,11 +116,12 @@ export default function ColorSearch({
           borderColor: "gray",
           borderWidth: 1,
           borderRadius: 20,
-          top: origin[1] - textDimensions.height / 2 - 17,
+          top: origin[1] - textDimensions.height * 1,
           left: origin[0] - textDimensions.width / 2,
           zIndex: eLayers.chipFan,
           position: "absolute",
           paddingHorizontal: 10,
+          fontSize: cDimH(0.012),
         }}
         value={name}
         onChangeText={(text) => setName(text)}
@@ -135,7 +134,7 @@ export default function ColorSearch({
           ...textDimensions,
           borderColor: "gray",
           borderWidth: 1,
-          top: origin[1] - textDimensions.height / 2 + 17,
+          top: origin[1] + textDimensions.height * 0.1,
           left: origin[0] - textDimensions.width / 2,
           zIndex: eLayers.chipFan,
           position: "absolute",
@@ -143,6 +142,7 @@ export default function ColorSearch({
           borderRadius: 20,
           textAlign: "center",
           textAlignVertical: "center",
+          fontSize: cDimH(0.012),
         }}
         value={label}
         onChangeText={(text) => setLabel(text)}
@@ -152,12 +152,11 @@ export default function ColorSearch({
         style={{
           position: "absolute",
           top:
-            origin[1] -
-            textDimensions.height / 2 -
-            eChipSizes.grabbed[1] * 0.75,
-          left: origin[0] - textDimensions.width / 2 + 5,
+            origin[1] - textDimensions.height / 2 - eChipSizes.grabbed[1] * 0.8,
+          left:
+            origin[0] - textDimensions.width / 2 - eChipSizes.grabbed[0] * 0.13,
           zIndex: eLayers.colorMixer + 10,
-          fontSize: 16,
+          fontSize: cDimH(0.02),
           fontWeight: "bold",
           fontFamily: "Outfit",
           opacity: 0.5,
@@ -174,18 +173,16 @@ export default function ColorSearch({
         size={"grabbed"}
       />
       <BrandFilter
-        origin={[origin[0], origin[1] + 100]}
-        totalArcLength={2 / 7}
-        radius={45}
+        origin={[origin[0], origin[1] + cDimH(0.1)]}
         vBrand={vBrand}
         mainRotationR={11 / 7}
         layer={eLayers.buckets - 10}
       />
       <ChipFan
-        origin={[origin[0] + radii[1] / 2, origin[1]]}
+        origin={[origin[0] + radii[1] / 3, origin[1]]}
         paintsA={paintsA.current}
         paintsB={paintsB.current}
-        arcLength={11 / 7}
+        arcLength={arcLength}
         sideA={vSideA.state}
         radius={radii[1]}
         rotationR={22 / 7}
@@ -196,13 +193,15 @@ export default function ColorSearch({
         <PaintChipPlaceholder
           paintA={placeHolder()}
           origin={[
-            origin[0] + radii[1] / 2 + Math.cos(28.25 / 7) * radii[1],
-            origin[1] + Math.sin(28.25 / 7) * radii[1],
+            origin[0] +
+              radii[1] / 3 +
+              Math.cos(22 / 7 + arcLength / 2 + 0.1) * radii[1],
+            origin[1] + Math.sin(22 / 7 + arcLength / 2 + 0.1) * radii[1],
           ]}
           chipID={[eLayers.chipFan + 50, 1]}
           size={"small"}
           text="( . . . )"
-          rotationR={6.2 / 7}
+          rotationR={arcLength / 2 + 0.1}
           onPress={() => {
             offset.current = Math.max(offset.current - 9, 0);
             onSubmit();
@@ -214,13 +213,15 @@ export default function ColorSearch({
           <PaintChipPlaceholder
             paintA={placeHolder()}
             origin={[
-              origin[0] + radii[1] / 2 + Math.cos(15.75 / 7) * radii[1],
-              origin[1] + Math.sin(15.75 / 7) * radii[1],
+              origin[0] +
+                radii[1] / 3 +
+                Math.cos(22 / 7 - arcLength / 2 - 0.1) * radii[1] * 1,
+              origin[1] + Math.sin(22 / 7 - arcLength / 2 - 0.1) * radii[1] * 1,
             ]}
             chipID={[eLayers.chipFan + 50, 1]}
             size={"small"}
             text="( . . . )"
-            rotationR={38 / 7}
+            rotationR={-arcLength / 2 - 0.1}
             onPress={() => {
               offset.current = Math.min(
                 offset.current + 9,

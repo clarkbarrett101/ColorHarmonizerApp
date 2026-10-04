@@ -34,6 +34,7 @@ import { PetalBox, PetalBoxSimple } from "../Buttons/PetalBox";
 import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 import { Thermo } from "./Thermo";
 import { cDimH, cDimW } from "../utils/ScreenDimensions";
+import { Paths } from "../utils/Paths";
 
 export default function UndertoneCam({
   radii = [160, 320],
@@ -186,14 +187,14 @@ export default function UndertoneCam({
         fps={8}
       />
 
-      <PetalBox
-        origin={[50, cDimH(0.5) + 100]}
+      <PetalBoxSimple
+        origin={[50, cDimH(0.5) + 50]}
         radii={[20, 110]}
         dC={dC}
         dL={dL}
         dAR={dR}
-        arcLength={4 / 7}
-        rotationR={-11 / 7}
+        size={[100, 100]}
+        viewBox={[110, 110]}
       >
         <Defs>
           <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -206,27 +207,27 @@ export default function UndertoneCam({
             <Stop offset="100%" stopColor="rgb(150,150,150)" stopOpacity="0" />
           </RadialGradient>
         </Defs>
-        <G transform={[{ rotate: 11 / 7 + "rad" }]}>
+        <G transform={[{ rotate: 0 / 7 + "rad" }]}>
           {fTextWrapSVG(
             [
               `${vThermoMode.state ? "Confirm" : "Calibrate"} Tint`,
               "Temperature",
             ],
             fontSize * 2,
-            [0, -30],
+            [0, 30],
             { ...textProps, fontSize: fontSize },
           )}
-          <Circle cx="0" cy="-80" r="40" fill="url(#radGrad)" opacity="0.5" />
+          <Circle cx="0" cy="-20" r="40" fill="url(#radGrad)" opacity="0.5" />
           <Path
-            transform={[{ translateX: 0 }, { translateY: -80 }]}
+            transform={[{ translateY: -20 }]}
             fill="url(#grad)"
             stroke="black"
             strokeWidth={0.5}
             strokeOpacity={0.3}
-            d="M-13-28C-15-28-16-27-16-25V-21H-14V-25H-12V18A4 4 90 01-9 22 4 4 90 01-13 26 4 4 90 01-17 22 4 4 90 01-14 18V-21H-16V17H-16C-18 18-19 20-19 22-19 26-16 28-13 28S-7 26-7 22C-7 20-8 18-10 17H-10V-25C-10-27-11-28-13-28ZM0-26C-2-24-4-21-6-19A74 74 90 01-8-20V-17C-5-18-3-18 0-18 10-18 18-11 18 0 18 10 10 18 0 18-2 18-3 18-5 18A9 9 90 01-4 21 77 77 90 010 26C0 26 5 18 5 18 5 18 13 22 13 22 13 22 14 14 14 14A76 76 90 0122 13C22 13 18 5 18 5 18 5 26 0 26 0 26 0 18-6 18-6 18-6 22-13 22-13 14-14 22-13 14-14A76 76 90 0113-23C13-23 5-19 5-19 5-19 0-26 0-26ZM-16-20V-18H-12V-16H-16ZM0-16C-3-16-5-16-8-15V15C-5 16-4 16 0 16 9 16 16 9 16 0 16-9 9-16 0-16ZM-18-14A77 77 90 01-23-13C-23-13-19-6-19-6-19-6-26 0-26 0-26 0-19 5-19 5-19 5-23 13-23 13-21 13-19 13-18 13V6A18 18 90 01-19 0 18 18 90 01-18-6V-14ZM-16-10V-10H-12V-8H-16ZV-1H-12V1H-16ZV8H-12V10H-16ZM-13 19C-15 18-17 21-16 23-16 21-14 19-13 19Z"
+            d={Paths.thermo}
           />
         </G>
-      </PetalBox>
+      </PetalBoxSimple>
       {!vThermoMode.state && (
         <>
           <Tutorial
@@ -261,7 +262,8 @@ export default function UndertoneCam({
             dC={dC}
             dL={dL}
             dAR={dR}
-            dim={[100, 50]}
+            viewBox={[30, 15]}
+            size={[75, 75]}
           >
             <Text {...textProps} fontSize={8}>
               {vTemp.state.k + "K"}
@@ -269,7 +271,8 @@ export default function UndertoneCam({
           </PetalBoxSimple>
           <PetalBoxSimple
             origin={[50, cDimH(0.5) - 55]}
-            dim={[100, 50]}
+            viewBox={[30, 15]}
+            size={[75, 75]}
             dC={dC}
             dL={dL}
             dAR={dR}

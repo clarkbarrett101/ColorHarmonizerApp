@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import React, { useCallback } from "react";
+import { cDimH } from "../utils/ScreenDimensions";
 import { fCLARColorToRGB, tBrand } from "../utils/CLAcolor";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { Text, TSpan } from "react-native-svg";
@@ -55,7 +56,7 @@ export const BrandFilter = (props: tBrandFilter) => {
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
   const { dAccentColor, vColorModel } = useUserContext();
   const collapseAnim = useSharedValue(0);
-  const radius = 50;
+  const radius = cDimH(0.05);
   const vPanPos = useSharedValue({ angle: 0, radius: 0 });
   const vPanState = useSharedValue<tPanEvent>("leave");
   const vInZone = useSharedValue(false);
@@ -230,16 +231,16 @@ export const BrandFilter = (props: tBrandFilter) => {
         arcLength: totalArcLength,
         chord: 0,
         ring: i,
-        radii: [bumpSize, radius + bumpSize],
+        radii: [bumpSize, radius + bumpSize * 2],
       };
       let brandString = (brands[i] as string).split(/[\s-]/);
       const text = fTextWrapSVG(
         brandString,
-        32,
+        cDimH(0.04),
         [0, radius / 2 + bumpSize / 2],
         {
           fontFamily: "Outfit",
-          fontSize: 16,
+          fontSize: cDimH(0.02),
           textAnchor: "middle",
           opacity: 0.8,
           fontWeight: 300,

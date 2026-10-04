@@ -1,26 +1,20 @@
 platforms
-wheel unroll
-color mixer crash
-consistent brand filter
-list label
 paywalls
 Revenue Cat
 Screenshots
 Store
 
 Bonus Features:
+Photo
 Season flickers
+wheel unroll
 color models
 Palette names
 Palette name generator
-Recolor touch feedback
 palette soft setup
 Sync Chips
-Settings
 Intro transitions
 Paste Palette
-Submenu
-Screen hints
 Toggle recolor
 triple harmonizer
 chroma luma harmonizer

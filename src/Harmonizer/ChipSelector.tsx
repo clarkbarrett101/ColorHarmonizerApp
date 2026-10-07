@@ -29,12 +29,9 @@ import Button from "../Buttons/Button";
 import Paths from "../utils/Paths";
 
 export default function SchemeChipSelector({
-  origin = [
-    Dimensions.get("window").width,
-    Dimensions.get("window").height / 2,
-  ],
-  radii = [cDimW(0.25), cDimW(0.5)],
-  arcLength = cWide ? 16 / 7 : 22 / 7,
+  origin = [cRaxelW(1, 1.4), Dimensions.get("window").height / 2],
+  radii = [cRaxelW(0.3, 0.7), cRaxelW(0.6, 0.9)],
+  arcLength = cWide ? 8 / 7 : 22 / 7,
   rotationR = 22 / 7,
 }: tRadialObject) {
   const { vSelected, vPage, pagesVisited } = useUserContext();
@@ -71,10 +68,10 @@ export default function SchemeChipSelector({
 
   usePanHitBox({
     id: "chipSelector",
-    origin,
-    radii: [0, radii[0] - 30],
+    origin: [cDimW(), cDimH(0.5)],
+    radii: [0, cDimW(0.2)],
     rotationR,
-    arcLength,
+    arcLength: 22 / 7,
     fOnUpdate: (vPanState, vPanPos) => {
       "worklet";
       if (vPanState.value === "tap" || vPanState.value === "release") {
@@ -89,38 +86,52 @@ export default function SchemeChipSelector({
   const vPagesVisitedRelay = useVerseRelay(pagesVisited);
   const { fPlaySequence } = useDemo();
   const { holdChip } = useChipContext();
+  function getPosFromRelativeRadial(
+    angle: number,
+    radius: number,
+  ): [number, number] {
+    const x =
+      origin[0] +
+      (radius * (radii[1] - radii[0]) + radii[0]) *
+        Math.cos(arcLength * angle + rotationR);
+    const y =
+      origin[1] +
+      (radius * (radii[1] - radii[0]) + radii[0]) *
+        Math.sin(arcLength * angle + rotationR);
+    return [x, y];
+  }
   useEffect(() => {
     if (!pagesVisited.shared.value["Chip Selector"]) {
       fPlaySequence([
         {
           touching: 0,
           duration: 1000,
-          toPos: [cDimW(0.7), cDimH(0.3)],
+          toPos: getPosFromRelativeRadial(0.3, 0.5),
         },
         {
           touching: 1,
           duration: 1000,
-          toPos: [cDimW(0.9), cDimH(0.4)],
+          toPos: getPosFromRelativeRadial(0.2, 0.5),
         },
         {
           touching: 0,
           duration: 1000,
-          toPos: [cDimW(0.9), cDimH(0.6)],
+          toPos: getPosFromRelativeRadial(-0.3, 0.5),
         },
         {
           touching: 1,
           duration: 1000,
-          toPos: [cDimW(0.8), cDimH(0.6)],
+          toPos: getPosFromRelativeRadial(-0.4, 0.6),
         },
         {
           touching: 0,
           duration: 500,
-          toPos: [cDimW(0.8), cDimH(0.6)],
+          toPos: getPosFromRelativeRadial(-0.4, 0.6),
         },
         {
           touching: 0,
           duration: 1000,
-          toPos: [cDimW(0.2), cDimH(0.5)],
+          toPos: getPosFromRelativeRadial(0, 1.2),
           callback: () => {
             "worklet";
             holdChip(eLayers.chipFan + 22);
@@ -129,7 +140,7 @@ export default function SchemeChipSelector({
         {
           touching: 1,
           duration: 2000,
-          toPos: [cDimW(0.2), cDimH(0.5)],
+          toPos: getPosFromRelativeRadial(0, 1),
           callback: () => {
             "worklet";
             holdChip();
@@ -150,23 +161,26 @@ export default function SchemeChipSelector({
 
   const vBrand = useVerse<tBrand>("All Brands");
   const selector = useMemo(() => {
-    return vSelectedRelay?.shared.value.map((color, index) => (
-      <ChipSelector
-        key={index}
-        color={color}
-        arcLength={chordLength * 0.8}
-        rotationR={
-          rotationR +
-          chordLength * (index - vSelectedRelay?.shared.value.length / 2 + 0.5)
-        }
-        origin={origin}
-        radii={radii}
-        ring={5}
-        chord={4}
-        layer={eLayers.chipFan + index * 20}
-        vBrand={vBrand}
-      />
-    ));
+    return vSelectedRelay?.shared.value
+      .reverse()
+      .map((color, index) => (
+        <ChipSelector
+          key={index}
+          color={color}
+          arcLength={chordLength * 0.8}
+          rotationR={
+            rotationR +
+            chordLength *
+              (index - vSelectedRelay?.shared.value.length / 2 + 0.5)
+          }
+          origin={origin}
+          radii={radii}
+          ring={5}
+          chord={4}
+          layer={eLayers.chipFan + index * 20}
+          vBrand={vBrand}
+        />
+      ));
   }, [
     vSelectedRelay?.state,
     chordLength,
@@ -179,28 +193,25 @@ export default function SchemeChipSelector({
     <>
       {selector}
       <ColorFan
-        hues={vSelectedRelay?.state}
+        hues={vSelectedRelay?.shared.value}
         origin={origin}
-        radii={[cDimW(0.025), radii[0] - cDimW(0.03)]}
-        arcLength={chordLength * vSelectedRelay?.state.length * 0.8}
+        radii={[radii[0] - cDimW(0.3), radii[0] - cDimW(0.05)]}
+        arcLength={chordLength * vSelectedRelay?.shared.value.length * 0.8}
         rotationR={rotationR}
         ring={3}
         bend={0.7}
       />
       <BrandFilter
         vBrand={vBrand}
-        origin={[cRaxelW(0.5, 0.1), cRaxelH(0.07, 0.21)]}
+        origin={[cDimH(0.07), cDimH(0.21)]}
         mainRotationR={11 / 7}
         layer={eLayers.buckets}
       />
       <BackIcon
         zIndex={eLayers.dropScreen - 1}
         color="white"
-        size={75}
-        origin={[
-          Dimensions.get("window").width - 40,
-          Dimensions.get("window").height / 2,
-        ]}
+        size={cDimH(0.07)}
+        origin={[cDimW(0.9), cDimH(0.5)]}
       />
 
       <Button
@@ -366,7 +377,10 @@ export function ChipSelector(props: tChipSelector) {
       };
     },
   };
-
+  function fLerp(a: number, b: number, t: number): number {
+    "worklet";
+    return a * (1 - t) + b * t;
+  }
   return (
     <>
       <RadialContext
@@ -386,7 +400,7 @@ export function ChipSelector(props: tChipSelector) {
         origin={props.origin}
         arcLength={props.arcLength * 1.2}
         targetColor={vTargetColor.state}
-        radius={props.radii[1] * 1.6}
+        radius={props.radii[1] * (cWide ? 1.5 : 1.6)}
         rotationR={rotationR}
         targetNumber={4}
         groupLayer={props.layer || eLayers.chipFan}

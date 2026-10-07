@@ -120,6 +120,7 @@ export default function PaletteLibrary({
     vAccentAR.dispatch(avgColor.ar);
     vAccentC.dispatch(avgColor.c);
     vAccentL.dispatch(avgColor.l);
+    console.log("Updated average color:", avgColor);
   }
 
   function fOnLeave() {

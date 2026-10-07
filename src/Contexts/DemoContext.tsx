@@ -251,7 +251,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
         <RoundedRect
           x={0}
           y={0}
-          r={25}
+          r={5}
           width={cDimW(1)}
           height={cDimH(1)}
           color="white"
@@ -262,7 +262,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
         <RoundedRect
           x={0}
           y={0}
-          r={25}
+          r={5}
           width={cDimW(1)}
           height={cDimH(1)}
           color="white"
@@ -288,7 +288,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
           strokeWidth={0}
           style="stroke"
           color={vColor}
-          opacity={0.9}
+          opacity={vActive.shared.value * 0.9}
         />
         <Text
           x={cDimW(0.1)}

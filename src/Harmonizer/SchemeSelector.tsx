@@ -63,7 +63,7 @@ export default function SchemeSelector({
     origin,
     radii: [0, radii[0] - 50],
     rotationR,
-    arcLength,
+    arcLength: 22 / 7,
     fOnUpdate: (vPanStateBack) => {
       "worklet";
       if (vPanStateBack.value === "tap" || vPanStateBack.value === "release") {
@@ -89,23 +89,18 @@ export default function SchemeSelector({
       };
     },
   };
-
+  const chordLength = arcLength / schemes.shared.value.length;
   return (
     <RadialContext value={{ mTransformModifier: mTransitionModifier }}>
       {schemes.state.map((harmony, index) => (
         <ColorScheme
           key={index}
           origin={origin}
-          arcLength={
-            ((Math.min(harmony.finalHues.length, 3) / 3) * arcLength) / 8
-          }
-          chordLength={
-            ((harmony.finalHues.length < 3 ? 1.3 : 1) * arcLength) / 8
-          }
+          arcLength={2 / 7}
           rotationR={
             rotationR -
             arcLength / 2 +
-            (arcLength / schemes.state.length) * (index + 0.5)
+            (arcLength / schemes.shared.value.length) * (index + 0.5)
           }
           radii={[cRaxelW(0.5, 0.45), cRaxelW(0.9, 0.8)]}
           bend={0.3}
@@ -124,9 +119,9 @@ export default function SchemeSelector({
         bend={0.5}
         layer={eLayers.colorMixer}
         hues={[
-          ...vSelectedRelay?.state,
-          ...vSelectedRelay?.state,
-          ...vSelectedRelay?.state,
+          ...vSelectedRelay?.shared.value,
+          ...vSelectedRelay?.shared.value,
+          ...vSelectedRelay?.shared.value,
         ]}
       />
       {vIntroAnim.state > 0.5 && (

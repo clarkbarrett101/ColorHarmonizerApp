@@ -33,11 +33,11 @@ import {
 import { PetalBox, PetalBoxSimple } from "../Buttons/PetalBox";
 import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 import { Thermo } from "./Thermo";
-import { cDimH, cDimW } from "../utils/ScreenDimensions";
+import { cDimH, cDimW, cRaxelW } from "../utils/ScreenDimensions";
 import { Paths } from "../utils/Paths";
 
 export default function UndertoneCam({
-  radii = [160, 320],
+  radii = [cRaxelW(0.4, 0.3), cRaxelW(0.8, 0.6)],
   chord = 24,
   arcLength = 43.9 / 7,
   rotationR = 22 / 7,
@@ -49,7 +49,6 @@ export default function UndertoneCam({
     return null;
   }
   const device = useCameraDevice("back");
-  if (device == null) return null;
   const vThermoMode = useVerse(false);
   const vCamColor = useIVerse({ ar: 0, c: 0, l: 0 });
   const vAnimAr = useVerse(0);
@@ -82,7 +81,7 @@ export default function UndertoneCam({
         dampingRatio: 0.2,
       });
       if (vThermoMode.shared.value) {
-        vTemp.dispatch();
+        vTemp.dispatch(vTemp.shared.value || kelvin_table[6000]);
       }
     }, 1000);
     return () => {
@@ -142,7 +141,7 @@ export default function UndertoneCam({
   }
   const dC = useDerivedValue(() => {
     "worklet";
-    return vTemp.shared.value.c;
+    return vTemp.shared.value.c || 0.5;
   });
   const dL = useDerivedValue(() => {
     "worklet";
@@ -150,7 +149,10 @@ export default function UndertoneCam({
   });
   const dR = useDerivedValue(() => {
     "worklet";
-    return fRGBToCLARColor(vTemp.shared.value.rgb, vColorModel.shared.value).ar;
+    return fRGBToCLARColor(
+      vTemp.shared.value.rgb || [1, 1, 1],
+      vColorModel.shared.value,
+    ).ar;
   });
   usePanHitBox({
     id: "thermoMode",
@@ -168,7 +170,7 @@ export default function UndertoneCam({
     },
   });
 
-  const fontSize = 16;
+  const fontSize = cDimH(0.02);
   const textProps: React.ComponentProps<typeof Text> = {
     fontSize,
     fontFamily: "Outfit",
@@ -179,21 +181,25 @@ export default function UndertoneCam({
   };
   return (
     <>
-      <SkiaCam
-        preProcessor={preProcessor}
-        postProcessor={frameProcessor}
-        shaderCode={shaderCode}
-        uniforms={{ targetWhiteRGB: vTemp.state.rgb.map((c) => c / 255) }}
-        fps={8}
-      />
-
+      {device != null && (
+        <SkiaCam
+          preProcessor={preProcessor}
+          postProcessor={frameProcessor}
+          shaderCode={shaderCode}
+          uniforms={{
+            targetWhiteRGB: vTemp.state.rgb.map((c) => c / 255),
+          }}
+          fps={8}
+          camActive={device != null}
+        />
+      )}
       <PetalBoxSimple
-        origin={[50, cDimH(0.5) + 50]}
-        radii={[20, 110]}
+        origin={[cDimH(0.05), cDimH(0.55)]}
+        radii={[cDimH(0.05), cDimH(0.1)]}
         dC={dC}
         dL={dL}
         dAR={dR}
-        size={[100, 100]}
+        size={[cDimH(0.1), cDimH(0.1)]}
         viewBox={[110, 110]}
       >
         <Defs>
@@ -213,9 +219,9 @@ export default function UndertoneCam({
               `${vThermoMode.state ? "Confirm" : "Calibrate"} Tint`,
               "Temperature",
             ],
-            fontSize * 2,
+            26,
             [0, 30],
-            { ...textProps, fontSize: fontSize },
+            { ...textProps, fontSize: 14 },
           )}
           <Circle cx="0" cy="-20" r="40" fill="url(#radGrad)" opacity="0.5" />
           <Path
@@ -231,14 +237,14 @@ export default function UndertoneCam({
       {!vThermoMode.state && (
         <>
           <Tutorial
-            width={400}
-            height={200}
-            origin={[cDimW(0.5), cDimH(0.5) - 250]}
-            infoIconOrigin={[cDimW(1) - 50, cDimH(0.5) - 100]}
-            infoIconSize={50}
+            width={cDimW(0.8)}
+            height={cDimH(0.25)}
+            origin={[cDimW(0.5), cDimH(0.3)]}
+            infoIconOrigin={[cDimW(0.9), cDimH(0.4)]}
+            infoIconSize={cDimH(0.05)}
             maxOpacity={0.8}
           >
-            <G transform={[{ translateX: 200 }, { translateY: 0 }]}>
+            <G>
               {fTextWrapSVG(
                 [
                   "Point the camera at a surface",
@@ -250,15 +256,15 @@ export default function UndertoneCam({
                   "Calibrate the tint temperature",
                   "to compensate for lighting color.",
                 ],
-                fontSize * 8,
-                [0, 100],
-                { ...textProps, fill: "white" },
+                70,
+                [0, 0],
+                { ...textProps, fill: "white", fontSize: 10 },
               )}
             </G>
           </Tutorial>
           <HarmonizerWheel origin={origin} draggable={false} radii={radii} />
           <PetalBoxSimple
-            origin={[50, cDimH(0.5) - 20]}
+            origin={[cDimH(0.05), cDimH(0.48)]}
             dC={dC}
             dL={dL}
             dAR={dR}
@@ -270,7 +276,7 @@ export default function UndertoneCam({
             </Text>
           </PetalBoxSimple>
           <PetalBoxSimple
-            origin={[50, cDimH(0.5) - 55]}
+            origin={[cDimH(0.05), cDimH(0.44)]}
             viewBox={[30, 15]}
             size={[75, 75]}
             dC={dC}
@@ -278,9 +284,9 @@ export default function UndertoneCam({
             dAR={dR}
           >
             <G>
-              {fTextWrapSVG(["Light", "Temp"], 12, [0, 0], {
+              {fTextWrapSVG(["Light", "Temp"], 14, [0, 0], {
                 ...textProps,
-                fontSize: 7,
+                fontSize: 8,
               })}
             </G>
           </PetalBoxSimple>
@@ -289,14 +295,14 @@ export default function UndertoneCam({
       {vThermoMode.state && (
         <>
           <Tutorial
-            width={300}
-            height={200}
-            origin={[cDimW(0.5), cDimH(0.5) - 250]}
+            width={cDimW(0.8)}
+            height={cDimH(0.25)}
+            origin={[cDimW(0.5), cDimH(0.25)]}
             maxOpacity={0.8}
-            infoIconOrigin={[50, cDimH(0.5) - 100]}
-            infoIconSize={50}
+            infoIconOrigin={[cDimW(0.9), cDimH(0.1)]}
+            infoIconSize={cDimH(0.05)}
           >
-            <G transform={[{ translateX: 150 }, { translateY: 0 }]}>
+            <G>
               {fTextWrapSVG(
                 [
                   "Light Thermometer:",
@@ -305,19 +311,19 @@ export default function UndertoneCam({
                   "calibrate to the color temperature",
                   "of the lights in your environment.",
                 ],
-                fontSize * 8,
-                [0, 100],
-                { ...textProps, fill: "white" },
+                70,
+                [0, 0],
+                { ...textProps, fill: "white", fontSize: 10 },
               )}
             </G>
           </Tutorial>
           <Thermo
             rotationR={11 / 7}
             arcLength={2.5 / 7}
-            radii={[0, 30]}
-            totalLength={400}
-            tempK={vTemp.state.k}
-            origin={[cDimW(1) - 50, cDimH(0.5)]}
+            radii={[0, cDimH(0.03)]}
+            totalLength={cDimH(0.4)}
+            tempK={vTemp.state.k | 6500}
+            origin={[cDimW(0.9), cDimH(0.5)]}
             tempList={[
               4000, 4500, 5000, 5500, 6000, 6300, 6600, 7000, 7500, 8000, 9500,
               10500, 12000,

@@ -25,6 +25,10 @@ export function BackIcon({
         top: origin[1] - size / 2,
         left: origin[0] - size / 2,
         zIndex: zIndex,
+        shadowColor: "black",
+        shadowOpacity: 0.5,
+        shadowRadius: 5,
+        shadowOffset: { width: -2, height: 2 },
       }}
       pointerEvents="none"
     >

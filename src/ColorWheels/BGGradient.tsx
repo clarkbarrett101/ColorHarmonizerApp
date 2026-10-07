@@ -10,10 +10,11 @@ import { Dimensions, View } from "react-native";
 import { useDerivedValue } from "react-native-reanimated";
 import { fCLARColorToString, fCLARColorToRGB } from "../utils/CLAcolor";
 import { eLayers, ePages, useUserContext } from "../Contexts/UserContext";
-import { cDimH, cDimW } from "../utils/ScreenDimensions";
+import { cDimH, cDimW, cRaxelW } from "../utils/ScreenDimensions";
 
 export default function BGGradient() {
-  const { vColorModel, dAccentColor, vSelected, vPage } = useUserContext();
+  const { vColorModel, dAccentColor, vSelected, vPage, vAccentAR } =
+    useUserContext();
   const harmonizerPages: ePages[] = [
     "Color Harmonizer",
     "Scheme Selector",
@@ -22,14 +23,15 @@ export default function BGGradient() {
   const colors = useDerivedValue(() => {
     if (
       !harmonizerPages.includes(vPage.shared.value) ||
-      vSelected.shared.value.length === 0
+      (vSelected.shared.value.length === 0 &&
+        harmonizerPages.includes(vPage.shared.value))
     ) {
       return [
         fCLARColorToString(
           {
             c: dAccentColor.value.c ** 1.5,
             l: dAccentColor.value.l ** 0.25,
-            ar: dAccentColor.value.ar,
+            ar: vAccentAR.shared.value,
           },
           vColorModel.shared.value,
         ),
@@ -49,7 +51,7 @@ export default function BGGradient() {
       {
         c: dAccentColor.value.c * 0.1,
         l: dAccentColor.value.l * 0.5,
-        ar: dAccentColor.value.ar,
+        ar: vAccentAR.shared.value,
       },
       vColorModel.shared.value,
     );
@@ -93,11 +95,11 @@ export default function BGGradient() {
           />
           <Shadow dx={5} dy={0} blur={25} color={shadow} inner />
         </Rect>
-        <Circle cx={0} cy={cDimH()} r={cDimW(0.4)} blendMode="multiply">
+        <Circle cx={0} cy={cDimH()} r={cRaxelW(0.4, 0.3)} blendMode="multiply">
           <RadialGradient
             colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0)"]}
             c={{ x: 0, y: cDimH() }}
-            r={cDimW(0.4)}
+            r={cRaxelW(0.4, 0.3)}
           />
         </Circle>
       </Canvas>

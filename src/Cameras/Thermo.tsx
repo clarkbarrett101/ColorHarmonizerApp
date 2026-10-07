@@ -1,6 +1,11 @@
 import { View } from "react-native";
 import React, { useCallback, useEffect } from "react";
-import { tRadialObject, tSector, tSectorGroup } from "../Radials/SectorTypes";
+import {
+  fGetBumpSize,
+  tRadialObject,
+  tSector,
+  tSectorGroup,
+} from "../Radials/SectorTypes";
 import { kelvin_table, tTemp } from "./KelvinTemp";
 import { Text } from "react-native-svg";
 import { RadialContext } from "../Radials/RadialContext";
@@ -65,7 +70,7 @@ export function Thermo({
         arcLength: arcLength,
         chord: 0,
         ring: i,
-        radii: [0, radius],
+        radii: [radius * 0.1, radius * 1.1],
         rgb: temps[i].rgb,
       };
       const text = (

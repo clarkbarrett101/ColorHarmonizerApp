@@ -49,8 +49,9 @@ export default function ReColorCam() {
     requestPermission();
     return null;
   }
+
   const device = useCameraDevice("back");
-  if (device == null) return null;
+
   const format = useCameraFormat(device, [
     {
       photoResolution: {
@@ -101,7 +102,7 @@ export default function ReColorCam() {
     frame.render(vPaint.value);
   }, []);
 
-  if (!device) return <View />;
+  //if (!device) return <View />;
 
   const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
   useEffect(() => {
@@ -307,15 +308,15 @@ export default function ReColorCam() {
 
       <ThermSelect
         mainRotationR={11 / 7}
-        radius={40}
+        radius={cDimH(0.04)}
         tempK={vTargetTemp.state.k}
         setTemp={(temp) => vTargetTemp.dispatch(temp)}
-        origin={[50, cDimH(0.5) - 100]}
+        origin={[cDimH(0.05), cDimH(0.39)]}
         arcLength={2 / 7}
       />
       <PetalBoxSimple
-        origin={[50, cDimH(0.34)]}
-        size={[100, 100]}
+        origin={[cDimH(0.05), cDimH(0.34)]}
+        size={[cDimH(0.1), cDimH(0.1)]}
         viewBox={[75, 75]}
         dAR={dAR}
         dC={dC}
@@ -356,18 +357,20 @@ export default function ReColorCam() {
           />
         </G>
       </PetalBoxSimple>
-      <Camera
-        device={device}
-        isActive={camActive}
-        style={{
-          position: "absolute",
-          width: cDimW(),
-          height: cDimH(),
-          zIndex: 0,
-        }}
-        frameProcessor={skfp}
-        fps={12}
-      />
+      {device != null && (
+        <Camera
+          device={device}
+          isActive={device != null}
+          style={{
+            position: "absolute",
+            width: cDimW(),
+            height: cDimH(),
+            zIndex: 0,
+          }}
+          frameProcessor={skfp}
+          fps={12}
+        />
+      )}
       <ReplacementMeter
         activePaint={vTargetPaint.state}
         layer={eLayers.colorMixer}

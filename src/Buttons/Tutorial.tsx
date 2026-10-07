@@ -50,17 +50,17 @@ export function Tutorial({
             left: origin[0] - width / 2,
             zIndex: layer,
           }}
-          viewBox={`0 0 ${width} ${height}`}
+          viewBox={`-100 -50 200 100`}
           onTouchEnd={() => {
             vActive.dispatch(!vActive.state);
           }}
         >
           <Defs>
             <RadialGradient
-              cx={width / 2}
-              cy={height / 2}
-              rx={width / 2}
-              ry={height / 2}
+              cx={0}
+              cy={0}
+              rx={100}
+              ry={50}
               id="grad"
               gradientUnits="userSpaceOnUse"
             >
@@ -68,13 +68,7 @@ export function Tutorial({
               <Stop stopColor={"black"} stopOpacity={0} offset={1} />
             </RadialGradient>
           </Defs>
-          <Ellipse
-            cx={width / 2}
-            cy={height / 2}
-            rx={width / 2}
-            ry={height / 2}
-            fill="url(#grad)"
-          />
+          <Ellipse cx={0} cy={0} rx={100} ry={50} fill="url(#grad)" />
           {children}
         </Svg>
       )}

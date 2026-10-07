@@ -67,14 +67,14 @@ export type tScheme = {
   finalHues?: number[];
 };
 const complementaryScheme: tScheme = {
-  deltaRange: [0.9, 1],
+  deltaRange: [0.8, 1],
   addAngles: ["Alpha", "Beta"],
   topText: "Complementary",
   bottomText: "",
   signPath: signPaths.cancer,
 };
 const analogousMidScheme: tScheme = {
-  deltaRange: [0.1, 0.9],
+  deltaRange: [0.15, 0.85],
   addAngles: ["Alpha", "Mu", "Beta"],
   topText: "Analogous",
   bottomText: "(Median)",
@@ -137,21 +137,21 @@ const tetradScheme: tScheme = {
   signPath: signPaths.pisces,
 };
 const tetrad2Scheme: tScheme = {
-  deltaRange: [0.9, 1],
+  deltaRange: [0.85, 1],
   addAngles: ["Alpha", "iMu", "Mu", "Beta"],
   topText: "T e t r a d i c",
   bottomText: "",
   signPath: signPaths.pisces,
 };
 const scorpioScheme: tScheme = {
-  deltaRange: [0.9, 1],
+  deltaRange: [0.85, 1],
   addAngles: ["Alpha", "Sigma", "iSigma", "Beta"],
   topText: "Double Split",
   bottomText: "Complementary",
   signPath: signPaths.scorpio,
 };
 const virgoScheme: tScheme = {
-  deltaRange: [0.9, 1],
+  deltaRange: [0.85, 1],
   addAngles: ["Alpha", "iGamma", "Gamma", "Beta"],
   topText: "Double Split",
   bottomText: "Complementary",
@@ -239,6 +239,7 @@ export function ColorScheme({ tScheme, ready = true, ...props }: tColorScheme) {
   return (
     <>
       <ColorFan
+        chromaRange={[0.2, 0.65]}
         hues={tScheme?.finalHues}
         {...props}
         chordLength={props.arcLength / 2}

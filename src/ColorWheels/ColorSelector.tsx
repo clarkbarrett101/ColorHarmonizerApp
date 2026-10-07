@@ -100,9 +100,9 @@ export default function ColorSelector({
     let c = Math.max(
       Math.min(
         vChromaPanPos.value.angle,
-        chromaArcRotation[1] + chromaArcRotation[0],
+        chromaArcRotation[1] + chromaArcRotation[0] / 2,
       ),
-      chromaArcRotation[1],
+      chromaArcRotation[1] - chromaArcRotation[0] / 2,
     );
     c =
       (vChromaPanPos.value.angle -
@@ -119,15 +119,15 @@ export default function ColorSelector({
     let l = Math.max(
       Math.min(
         vLightnessPanPos.value.angle,
-        lightnessArcRotation[1] + lightnessArcRotation[0],
+        lightnessArcRotation[1] + lightnessArcRotation[0] / 2,
       ),
-      lightnessArcRotation[1],
+      lightnessArcRotation[1] - lightnessArcRotation[0] / 2,
     );
     l =
       1 -
-      (l - lightnessArcRotation[1] + lightnessArcRotation[0] / 2) /
+      (l - (lightnessArcRotation[1] - lightnessArcRotation[0] / 2)) /
         lightnessArcRotation[0];
-    //  l = (l - 0.5 / litDimensions[1]) / (1 - 1 / litDimensions[1]);
+    // l = (l - 0.5 / litDimensions[1]) / (1 - 1 / litDimensions[1]);
     l = litRange[0] + l * (litRange[1] - litRange[0]);
     l = Math.max(litRange[0], Math.min(l, litRange[1]));
     l = Math.round(l * 100) / 100;
@@ -411,7 +411,7 @@ export default function ColorSelector({
       />
       <ColorChipFan
         targetColor={vTargetColor.state}
-        targetNumber={cWide ? 13 : 9}
+        targetNumber={cWide ? 11 : 9}
         brand={vBrand.state}
         origin={origin}
         size={"default"}

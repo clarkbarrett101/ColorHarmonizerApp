@@ -22,17 +22,15 @@ import { tRadialObject } from "../Radials/SectorTypes";
 import { tChordReturn, useSoundContext } from "../Contexts/SoundContext";
 import { useChipContext } from "./ChipContext";
 import { Paths } from "../utils/Paths";
+import { cDimW, cRaxelW } from "../utils/ScreenDimensions";
 
-export type tChipHand = tRadialObject & {
-  holdRadius?: number;
-};
+export type tChipHand = tRadialObject & {};
 
 export default function ChipHand({
-  radii = [80, 80],
+  radii = [cRaxelW(0.2, 0.1), cRaxelW(0.5, 0.3)],
   rotationR = -6 / 7,
   arcLength = 11 / 7,
-  holdRadius = 150,
-  origin = [30, Dimensions.get("window").height * 0.95],
+  origin = [cDimW(0.05), Dimensions.get("window").height * 0.95],
 }: tChipHand) {
   /// O N  M O U N T ///
 
@@ -125,7 +123,7 @@ export default function ChipHand({
         (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
       );
 
-      if (distance > holdRadius) {
+      if (distance > radii[1]) {
         panWeight.value = withTiming(1, { duration: 200 });
         holdChip(eLayers.chipHand + selectVerse.shared.value);
       } else {
@@ -215,11 +213,12 @@ export default function ChipHand({
           Math.sqrt(
             (vPanX.shared.value - origin[0]) ** 2 +
               (vPanY.shared.value - origin[1]) ** 2,
-          ) / holdRadius,
+          ) /
+            (radii[1] - radii[0]),
         );
 
-        const pullX = Math.cos(input.rotateZ) * diff * (holdRadius - radii[0]);
-        const pullY = Math.sin(input.rotateZ) * diff * (holdRadius - radii[0]);
+        const pullX = Math.cos(input.rotateZ) * diff * (radii[1] - radii[0]);
+        const pullY = Math.sin(input.rotateZ) * diff * (radii[1] - radii[0]);
         return {
           ...input,
           translateX: input.translateX + pullX,
@@ -260,7 +259,7 @@ export default function ChipHand({
   useEffect(() => {
     registerBucket({
       origin: [origin[0] + radii[0], origin[1] - radii[0]],
-      radii: [holdRadius, holdRadius * 2],
+      radii: [radii[0], radii[1]],
       rotationR: -11 / 21,
       callback: (paint) => {
         addPaintCallback(paint);
@@ -271,8 +270,8 @@ export default function ChipHand({
       path: Paths.addChip,
     });
     registerBucket({
-      origin: [Dimensions.get("window").width / 2, eChipSizes.outline[1] / 2],
-      radii: [holdRadius, holdRadius * 2],
+      origin: [cDimW(0.5), eChipSizes.outline[1] / 2],
+      radii: [radii[0], radii[1]],
       targetLayerRange: [eLayers.chipHand - 50, eLayers.chipHand + 50],
       id: 22,
       zIndex: eLayers.buckets + 100,
@@ -306,8 +305,8 @@ export default function ChipHand({
         style={{
           zIndex: eLayers.superMax,
           position: "absolute",
-          left: origin[0] - holdRadius,
-          top: origin[1] - holdRadius,
+          left: origin[0] - (radii[1] + radii[0]) / 2,
+          top: origin[1] - (radii[1] + radii[0]) / 2,
         }}
       >
         <GestureDetector gesture={pan}>
@@ -315,8 +314,8 @@ export default function ChipHand({
             style={{
               left: 0,
               top: 0,
-              width: holdRadius * 2,
-              height: holdRadius * 2,
+              width: radii[1] + radii[0],
+              height: radii[1] + radii[0],
             }}
           />
         </GestureDetector>

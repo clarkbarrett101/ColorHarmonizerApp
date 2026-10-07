@@ -30,6 +30,7 @@ export default class App extends React.Component {
       }
     }
   }
+
   restore = async () => {
     try {
       const restore = await Purchases.restorePurchases();

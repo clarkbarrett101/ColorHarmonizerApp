@@ -54,11 +54,7 @@ export default class App extends React.Component {
       ) {
         this.setState({ isPremium: true });
       }
-    } catch (e) {
-      if (!e.userCancelled) {
-        // showError(e);
-      }
-    }
+    } catch (e) {}
   };
 
   render() {

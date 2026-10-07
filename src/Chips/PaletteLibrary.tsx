@@ -8,6 +8,7 @@ import {
   fDefaultPalettes,
   fToList,
   tCLARColor,
+  tPaint,
   tPalette,
 } from "../utils/CLAcolor";
 import { CleanPalette, eLayers, useUserContext } from "../Contexts/UserContext";
@@ -228,14 +229,13 @@ export default function PaletteLibrary({
           totalPaints += palettes[i].paints.length;
         }
         if (totalPaints === 0) {
-          palettes = fDefaultPalettes().map((pal) => CleanPalette(pal));
+          palettes = fDefaultPalettes();
         }
         return palettes;
       } else {
         console.log("setting empty data");
-        const fallback = [...fDefaultPalettes()].map((pal) =>
-          CleanPalette(pal),
-        );
+        const fallback = [...fDefaultPalettes()];
+
         return fallback;
       }
     } catch (e) {

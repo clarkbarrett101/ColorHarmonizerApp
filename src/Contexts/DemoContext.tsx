@@ -47,9 +47,13 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
   const { vPanX, vPanY, vVelocityX, holdChip } = useChipContext();
   const vActive = useVerse(0);
   const vTimer: SharedValue<number> = useSharedValue(0);
-  const vTouch: SharedValue<(0 | 1 | -1)[]> = useSharedValue([1]);
-  const dTouching: DerivedValue<number> = useDerivedValue(() => {
-    return vTouch.value[Math.floor(vTimer.value)];
+  const vTouch: SharedValue<(0 | 1 | -1)[]> = useSharedValue([1] as (
+    | 0
+    | 1
+    | -1
+  )[]);
+  const dTouching: DerivedValue<0 | 1 | -1> = useDerivedValue(() => {
+    return vTouch.value[Math.floor(vTimer.value)] as 0 | 1 | -1;
   });
   const vTouchBuffer: SharedValue<number> = useSharedValue(0);
   const vDuration: SharedValue<number> = useSharedValue(0);
@@ -135,7 +139,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
       { translateX: pos[0] },
       { translateY: pos[1] },
       { scale: fLerp(1, 0.5, vTouchBuffer.value) },
-    ];
+    ] as Transforms3d;
   });
   const vTransform1: DerivedValue<Transforms3d> = useDerivedValue(() => {
     const v = vTimer.value;
@@ -144,7 +148,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
       { translateX: pos[0] },
       { translateY: pos[1] },
       { scale: fLerp(1.2, 0.5, vTouchBuffer.value) },
-    ];
+    ] as Transforms3d;
   });
   const vTransform2: DerivedValue<Transforms3d> = useDerivedValue(() => {
     const v = vTimer.value;
@@ -153,7 +157,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
       { translateX: pos[0] },
       { translateY: pos[1] },
       { scale: fLerp(1.4, 0.5, vTouchBuffer.value) },
-    ];
+    ] as Transforms3d;
   });
   const vTransform3: DerivedValue<Transforms3d> = useDerivedValue(() => {
     const v = vTimer.value;
@@ -162,7 +166,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
       { translateX: pos[0] },
       { translateY: pos[1] },
       { scale: fLerp(1.6, 0.5, vTouchBuffer.value) },
-    ];
+    ] as Transforms3d;
   });
   const vTransform4: DerivedValue<Transforms3d> = useDerivedValue(() => {
     const v = vTimer.value;
@@ -171,7 +175,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
       { translateX: pos[0] },
       { translateY: pos[1] },
       { scale: fLerp(1.8, 0.5, vTouchBuffer.value) },
-    ];
+    ] as Transforms3d;
   });
   const vTransforms = [
     dTransform0,

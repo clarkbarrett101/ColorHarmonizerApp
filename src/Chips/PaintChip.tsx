@@ -151,7 +151,7 @@ export const PaintChip = ({
     }
   }, [vGrabbed.state]);
 
-  function flipDown(isSideA) {
+  function flipDown(isSideA: boolean) {
     "worklet";
     flipAnim.value = isSideA ? 0.4 : 0.6;
     vPaintA.dispatch(isSideA);
@@ -159,7 +159,7 @@ export const PaintChip = ({
       duration: 200,
     });
   }
-  function flipUp(isSideA) {
+  function flipUp(isSideA: boolean) {
     "worklet";
     flipAnim.value = withDelay(
       isSideA ? 500 * relativeZ : (1 - relativeZ) * 500,

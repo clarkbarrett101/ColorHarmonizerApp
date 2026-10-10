@@ -35,9 +35,10 @@ export function RadialGraphic(props: tRadialGraphic) {
       rotationR,
     ) !== 0
   ) {
-    throw new Error(
+    console.warn(
       `angleToChord:${wAngleToChord(wChordToAngle(0, arcLength, chord, rotationR), arcLength, chord, rotationR)} and chordToAngle:${wChordToAngle(0, arcLength, chord, rotationR)} are not consistent with each other`,
     );
+    return;
   }
 
   //// Init sectors ////

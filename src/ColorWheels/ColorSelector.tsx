@@ -326,12 +326,12 @@ export default function ColorSelector({
         },
         {
           touching: 0,
-          toPos: [cDimW(0.65), cDimH(0.6)],
+          toPos: [cDimW(0.65), cDimH(0.7)],
           duration: 2000,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.75), cDimH(0.65)],
+          toPos: [cDimW(0.75), cDimH(0.75)],
           duration: 1000,
         },
         {

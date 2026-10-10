@@ -30,6 +30,8 @@ export const SectorGroup = ({
     chord,
     id: sectorGroupID,
     rotateZ: rotationR,
+    radialOffsetX: 0,
+    radialOffsetY: 0,
     shadowRadius: 3,
     shadowX: 1,
     shadowY: 1,
@@ -44,7 +46,7 @@ export const SectorGroup = ({
     return () => {
       actor.removeModifier(mTransformModifier.modID);
     };
-  }, []);
+  }, [mTransformModifier]);
 
   const animatedProps = useAnimatedProps(() => {
     "worklet";
@@ -52,6 +54,8 @@ export const SectorGroup = ({
       return {
         transform: [
           { translateY: attributes.translateY || 0 },
+          { translateX: attributes.radialOffsetX || 0 },
+          { translateY: attributes.radialOffsetY || 0 },
           { rotateZ: `${attributes.rotateZ || 0}rad` },
           { translateX: attributes.translateX || 0 },
           { scaleX: attributes.scaleX || 1 },

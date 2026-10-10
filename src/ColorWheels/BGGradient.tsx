@@ -43,7 +43,6 @@ export default function BGGradient() {
       const rgb = fCLARColorToRGB({ c, l, ar }, vColorModel.shared.value);
       return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
     });
-    console.log("vSelected.shared.value:", cs);
     return cs.reverse();
   });
   const shadow = useDerivedValue(() => {

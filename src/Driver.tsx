@@ -37,8 +37,8 @@ configureReanimatedLogger({
 });
 
 const Driver = () => {
-  //  const { premium, setPaywall, restore, purchase } = usePurchaseContext();
-  const premium = true;
+  const { premium, setPaywall, restore, purchase } = usePurchaseContext();
+  // const premium = true;
   const vPage = useVerse<ePages>("Main Menu");
   const hardReset = useRef(0);
   useEffect(() => {

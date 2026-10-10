@@ -119,9 +119,9 @@ export default function SchemeSelector({
         bend={0.5}
         layer={eLayers.colorMixer}
         hues={[
-          ...vSelectedRelay?.shared.value,
-          ...vSelectedRelay?.shared.value,
-          ...vSelectedRelay?.shared.value,
+          ...vSelected?.shared.value,
+          ...vSelected?.shared.value,
+          ...vSelected?.shared.value,
         ]}
       />
       {vIntroAnim.state > 0.5 && (

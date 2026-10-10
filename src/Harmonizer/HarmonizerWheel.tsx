@@ -69,6 +69,9 @@ export function HarmonizerWheel({
       "worklet";
       const secondColor = vSecondColor.shared.value;
       if (secondColor !== null) {
+        if (wheelRotation === secondColor) {
+          wheelRotation += chordLength;
+        }
         vSelected.shared.value = [wheelRotation, secondColor];
       } else {
         vSelected.shared.value = [wheelRotation];

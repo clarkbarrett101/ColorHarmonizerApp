@@ -42,7 +42,7 @@ export default function UndertoneCam({
   arcLength = 43.9 / 7,
   rotationR = 22 / 7,
 }: tRadialObject) {
-  const origin: [number, number] = [cDimW() + 50, cDimH(0.6)];
+  const origin: [number, number] = [cDimW(1.05), cDimH(0.68)];
   const { hasPermission, requestPermission } = useCameraPermission();
   if (!hasPermission) {
     requestPermission();

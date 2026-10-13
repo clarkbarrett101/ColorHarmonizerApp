@@ -303,7 +303,7 @@ export default function ChipHand({
 
       <View
         style={{
-          zIndex: eLayers.superMax,
+          zIndex: eLayers.superMax - 10,
           position: "absolute",
           left: origin[0] - (radii[1] + radii[0]) / 2,
           top: origin[1] - (radii[1] + radii[0]) / 2,

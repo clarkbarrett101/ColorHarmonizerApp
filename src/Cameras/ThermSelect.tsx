@@ -35,66 +35,59 @@ export const ThermSelect = (props: tThermSelect) => {
   const mainRotationR = props.mainRotationR || ctx.mainRotationR || 22 / 7;
   const radius = props.radius ? props.radius : 40;
   const vActive = useSharedValue(1);
-  const vSelection = useSharedValue(0);
-  useEffect(() => {
-    let closestIndex = -1;
-    let closestDistance = Number.MAX_VALUE;
-    for (let i = 0; i < temps.length; i++) {
-      const distance = Math.abs(temps[i].k - props.tempK);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestIndex = i;
-      }
-    }
-  }, [props.tempK]);
+  const vSelection = useSharedValue(Math.floor(temps.length / 2));
   const dActive = useDerivedValue(() => 1 - vActive.value, []);
-  usePanHitBox({
-    id: "" + origin[0] + origin[1],
-    shape: "capsule",
-    priority: 10,
-    origin: [origin[0], origin[1] + radius / 2 - hitSlop],
-    arcLength: totalArcLength,
-    radii: [radius, radius * temps.length + hitSlop],
-    capsuleMod: dActive,
-    rotationR: mainRotationR,
-    fOnUpdate: (state, pos) => {
-      "worklet";
-      console.log("Pan update", state.value, vActive.value);
-      if (vActive.value < 0.5) {
-        if (state.value == "drag") {
-          const index = Math.round((pos.value.radius - hitSlop) / radius);
-          if (
-            index >= 0 &&
-            index < temps.length &&
-            index !== vSelection.value
-          ) {
-            vSelection.value = index;
-            scheduleOnRN(props.setTemp, temps[index]);
+  usePanHitBox(
+    {
+      id: "" + origin[0] + origin[1],
+      shape: "capsule",
+      priority: 10,
+      origin: [origin[0], origin[1] + radius / 2 - hitSlop],
+      arcLength: totalArcLength,
+      radii: [radius, radius * temps.length + hitSlop],
+      capsuleMod: dActive,
+      rotationR: mainRotationR,
+      fOnUpdate: (state, pos) => {
+        "worklet";
+        console.log("Pan update", state.value, vActive.value);
+        if (vActive.value < 0.5) {
+          if (state.value == "drag") {
+            const index = Math.round((pos.value.radius - hitSlop) / radius);
+            if (
+              index >= 0 &&
+              index < temps.length &&
+              index !== vSelection.value
+            ) {
+              vSelection.value = index;
+              scheduleOnRN(props.setTemp, temps[index]);
+            }
           }
-        }
-        if (state.value == "release" || state.value == "tap") {
-          const index = Math.round((pos.value.radius - hitSlop) / radius);
-          if (
-            index >= 0 &&
-            index < temps.length &&
-            index !== vSelection.value
-          ) {
-            vSelection.value = index;
-            scheduleOnRN(props.setTemp, temps[index]);
-          }
-          vActive.value = withTiming(1, { duration: 500 });
-          state.value = "leave";
-        }
-      } else {
-        if (state.value == "enter" || state.value == "tap") {
-          vActive.value = withTiming(0, { duration: 500 });
-          if (state.value == "tap") {
+          if (state.value == "release" || state.value == "tap") {
+            const index = Math.round((pos.value.radius - hitSlop) / radius);
+            if (
+              index >= 0 &&
+              index < temps.length &&
+              index !== vSelection.value
+            ) {
+              vSelection.value = index;
+              scheduleOnRN(props.setTemp, temps[index]);
+            }
+            vActive.value = withTiming(1, { duration: 500 });
             state.value = "leave";
           }
+        } else {
+          if (state.value == "enter" || state.value == "tap") {
+            vActive.value = withTiming(0, { duration: 500 });
+            if (state.value == "tap") {
+              state.value = "leave";
+            }
+          }
         }
-      }
+      },
     },
-  });
+    0,
+    (radius * temps.length) / 2,
+  );
 
   function fLerp(a: number, b: number, t: number) {
     "worklet";

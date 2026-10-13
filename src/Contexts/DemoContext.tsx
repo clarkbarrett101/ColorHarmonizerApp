@@ -67,7 +67,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
     vActive.shared.value = 0;
     vTimer.value = 0;
     vTouch.value = [-1];
-    vPositions.value = [[0, 0]];
+    vPositions.value = [[-500, -500]];
     holdChip();
   }
   function fPlaySequence(steps: tDemoStep[]) {

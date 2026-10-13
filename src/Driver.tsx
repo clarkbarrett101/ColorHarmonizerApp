@@ -1,6 +1,5 @@
 import React, { ReactNode, useEffect, useRef } from "react";
 import { usePurchaseContext } from "./Contexts/PurchaseContext";
-import PayWall from "./PayWall";
 import ColorHarmonizer from "./Harmonizer/ColorHarmonizer";
 import type { ePages } from "./Contexts/UserContext";
 import PanManager from "./Contexts/PanManager";
@@ -31,6 +30,8 @@ import { Paths } from "./utils/Paths";
 import { View } from "react-native";
 import { DemoContext } from "./Contexts/DemoContext";
 import { cDimW, cDimH } from "./utils/ScreenDimensions";
+import PayWall from "./PayWall";
+
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
   strict: false,
@@ -84,7 +85,7 @@ const Driver = () => {
                   size={cDimH(0.05)}
                   origin={[cDimH(0.05), cDimH(0.07)]}
                   path={Paths.menu}
-                  layer={eLayers.buckets}
+                  layer={eLayers.superMax}
                   onPress={() => {
                     vPage.dispatch("Main Menu");
                   }}

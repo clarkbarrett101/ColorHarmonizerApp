@@ -16,12 +16,12 @@ export type tPanHitBox = Omit<tRadialHitBox, "vPanState" | "vPanPos"> & {
     vPanPos: SharedValue<{ angle: number; radius: number }>,
   ) => void;
 };
-export function usePanHitBox(props: tPanHitBox) {
+export function usePanHitBox(props: tPanHitBox, angle = 0, radius = 0) {
   const { registerHitBox, unregisterHitBox } = usePanManager();
   const vPanState = useSharedValue<ePanEvent>("leave");
   const vPanPos = useSharedValue<{ angle: number; radius: number }>({
-    angle: 0,
-    radius: 0,
+    angle: angle,
+    radius: radius,
   });
   useEffect(() => {
     registerHitBox({

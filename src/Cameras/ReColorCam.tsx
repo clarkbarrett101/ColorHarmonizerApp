@@ -45,10 +45,9 @@ import { useChipContext } from "../Chips/ChipContext";
 
 export default function ReColorCam() {
   const { hasPermission, requestPermission } = useCameraPermission();
-  if (!hasPermission) {
-    requestPermission();
-    return null;
-  }
+  useEffect(() => {
+    if (!hasPermission) requestPermission();
+  }, [hasPermission]);
 
   const device = useCameraDevice("back");
 
@@ -67,6 +66,8 @@ export default function ReColorCam() {
   const frameSize = useSharedValue([0, 0]);
   const vTargetTemp = useIVerse<tTemp>(kelvin_table[6500]);
   const vThreshold = useVerse(0.05);
+  const vToggle = useVerse(true);
+
   function resetShader(dimensions?: [number, number]) {
     frameSize.value = dimensions ?? frameSize.value;
     const replacementYUV = fCLARColorToYUV(
@@ -84,14 +85,19 @@ export default function ReColorCam() {
       "targetWhite",
       vTargetTemp.state.rgb.map((c) => c / 255) as [number, number, number],
     );
-    builder.setUniform("threshold", [vThreshold.state]);
+    builder.setUniform("threshold", [vToggle.state ? vThreshold.state : 0]);
     const rtShader = Skia.ImageFilter.MakeRuntimeShader(builder, null, null);
     vPaint.value.setImageFilter(rtShader);
   }
   const runResetShader = useRunOnJS(resetShader, []);
   useEffect(() => {
     resetShader();
-  }, [vTargetPaint.state.clar, vTargetTemp.state, vThreshold.state]);
+  }, [
+    vTargetPaint.state.clar,
+    vTargetTemp.state,
+    vThreshold.state,
+    vToggle.state,
+  ]);
 
   const skfp = useSkiaFrameProcessor((frame) => {
     "worklet";
@@ -101,7 +107,15 @@ export default function ReColorCam() {
     }
     frame.render(vPaint.value);
   }, []);
-
+  function fToggleThreshold() {
+    "worklet";
+    console.log("Toggling threshold");
+    if (vToggle.shared.value) {
+      vToggle.dispatch(false);
+    } else {
+      vToggle.dispatch(true);
+    }
+  }
   //if (!device) return <View />;
 
   const { registerBucket, unregisterBucket, vDropScreen } = useBucketContext();
@@ -142,7 +156,13 @@ export default function ReColorCam() {
 
   function fAddThreshold(value: number) {
     "worklet";
-    console.log("Adding threshold:", vThreshold.shared.value * (1 + value));
+    console.log(
+      "Adding threshold:",
+      value,
+      "Current threshold:",
+      vThreshold.state,
+    );
+    vToggle.dispatch(true);
     vThreshold.dispatch(vThreshold.shared.value * (1 + value));
   }
   const dAR = useDerivedValue(() => vTargetTemp.shared.value.ar);
@@ -291,6 +311,7 @@ export default function ReColorCam() {
       });
     }
   }, [vPagesVisitedRelay.state]);
+
   return (
     <>
       <Button
@@ -375,7 +396,9 @@ export default function ReColorCam() {
         activePaint={vTargetPaint.state}
         layer={eLayers.colorMixer}
         origin={[cDimW(0.65), cDimH(0.65)]}
+        toggleThreshold={fToggleThreshold}
         setThreshold={fAddThreshold}
+        inverted={!vToggle.state}
       />
 
       <GlassView
@@ -464,6 +487,9 @@ vec3 posterize(vec3 color, float levels) {
  
 
 half4 main(vec2 pos) {  
+  if(threshold <= 0.0) {
+    return image.eval(pos);
+  }
   float centerDist = distance(pos, center);
   if(centerDist < 40 ) {
     return image.eval(pos);

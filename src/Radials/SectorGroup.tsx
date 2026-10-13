@@ -46,7 +46,7 @@ export const SectorGroup = ({
     return () => {
       actor.removeModifier(mTransformModifier.modID);
     };
-  }, [mTransformModifier]);
+  }, []);
 
   const animatedProps = useAnimatedProps(() => {
     "worklet";

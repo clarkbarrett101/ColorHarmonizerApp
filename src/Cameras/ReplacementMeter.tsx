@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Paths } from "../utils/Paths";
 import { eChipSizes, PaintChip } from "../Chips/PaintChip";
 import { tPaint } from "../utils/CLAcolor";
@@ -6,17 +6,22 @@ import { ePanEvent, usePanManager } from "../Contexts/PanManager";
 import { useVerse } from "../utils/Verse";
 import { useUserContext } from "../Contexts/UserContext";
 import {
+  SharedValue,
   useAnimatedReaction,
   useSharedValue,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { PetalBox, PetalBoxSimple } from "../Buttons/PetalBox";
-import { Path, G } from "react-native-svg";
+import { Path, G, Defs, RadialGradient, Stop, Circle } from "react-native-svg";
 import { TextCircle } from "../Buttons/CurvedText";
+import Button from "../Buttons/Button";
+import { cDimH } from "../utils/ScreenDimensions";
 export type tReplacementMeter = {
   origin: [number, number];
   activePaint: tPaint;
+  inverted: boolean;
+  toggleThreshold: () => void;
   setThreshold: (value: number) => void;
   layer: number;
 };
@@ -24,9 +29,12 @@ export function ReplacementMeter({
   origin,
   activePaint,
   layer,
+  inverted,
+  toggleThreshold,
   setThreshold,
 }: tReplacementMeter) {
   const { registerHitBox, unregisterHitBox } = usePanManager();
+  const { vAccentL } = useUserContext();
   const vPanState = useVerse<ePanEvent>("leave");
   const vPanPos = useVerse<{ angle: number; radius: number }>({
     angle: 0,
@@ -67,6 +75,10 @@ export function ReplacementMeter({
     },
     [],
   );
+  const color = useMemo(
+    () => (vAccentL.state > 0.5 ? `black` : `white`),
+    [vAccentL.state],
+  );
 
   return (
     <>
@@ -79,15 +91,32 @@ export function ReplacementMeter({
         vOpacity={vOpacityM}
       >
         <G transform={[{ translateX: 0 }]}>
+          <Defs>
+            <RadialGradient
+              id="grad"
+              cx="50%"
+              cy="50%"
+              r="50%"
+              fx="50%"
+              fy="50%"
+            >
+              <Stop offset="0%" stopColor="white" stopOpacity="0.2" />
+              <Stop offset="100%" stopColor="white" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Circle cx="0%" cy="0%" r="50%" fill="url(#grad)" />
           <Path
             transform={[{ scale: 0.6 }, { translateY: 10 }]}
             d={Paths.replaceMore}
-            fill={`rgba(0,0,0,.75)`}
+            fill={"black"}
           />
           <TextCircle
             topText={"More"}
             radii={[20, 25]}
-            topTextProps={{ fontSize: 17 }}
+            topTextProps={{
+              fontSize: 17,
+              color: "black",
+            }}
           />
         </G>
       </PetalBoxSimple>
@@ -100,15 +129,32 @@ export function ReplacementMeter({
         vOpacity={vOpacityL}
       >
         <G transform={[{ translateX: 0 }]}>
+          <Defs>
+            <RadialGradient
+              id="grad"
+              cx="50%"
+              cy="50%"
+              r="50%"
+              fx="50%"
+              fy="50%"
+            >
+              <Stop offset="0%" stopColor="white" stopOpacity="0.2" />
+              <Stop offset="100%" stopColor="white" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Circle cx="0%" cy="0%" r="50%" fill="url(#grad)" />
           <Path
             transform={[{ scale: 0.65 }, { translateY: 5 }]}
             d={Paths.replaceLess}
-            fill={`rgba(0,0,0,.75)`}
+            fill={"black"}
           />
           <TextCircle
             topText={"Less"}
             radii={[20, 20]}
-            topTextProps={{ fontSize: 16 }}
+            topTextProps={{
+              fontSize: 16,
+              color: "black",
+            }}
           />
         </G>
       </PetalBoxSimple>
@@ -117,6 +163,18 @@ export function ReplacementMeter({
         size={"default"}
         origin={origin}
         chipID={[layer, 0]}
+      />
+      <Button
+        path={Paths.noPaint}
+        origin={[
+          origin[0],
+          origin[1] + eChipSizes.default[1] * 0.5 + cDimH(0.025),
+        ]}
+        inverted={inverted}
+        size={cDimH(0.05)}
+        onPress={() => {
+          toggleThreshold();
+        }}
       />
     </>
   );

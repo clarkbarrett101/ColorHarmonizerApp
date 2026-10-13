@@ -111,7 +111,7 @@ export function PetalBoxSimple({
   const animatedColor = useAnimatedProps(() => {
     const [r, g, b] = dColor.value;
     return {
-      fill: `rgba(${r}, ${g}, ${b}, ${vOpacity?.value ?? opacity})`,
+      fill: `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${vOpacity?.value ?? opacity})`,
     };
   });
   const [width, height] = viewBox;

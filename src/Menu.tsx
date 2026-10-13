@@ -204,13 +204,15 @@ export default function Menu({
       "worklet";
       let diff = 1 - Math.abs(input.rotateZ - vSlowAngle.value) / arcLength;
       diff = Math.max(diff, 0);
+      const scale = 1 + Math.max(0, diff - 0.9);
       return {
         ...input,
         translateX: input.translateX + diff * radii[0] * 0.2,
         translateY:
-          input.translateY + (1 - input.chord / (mainPages.length - 1)) * 30,
-        scaleX: 1 + Math.max(0, diff - 0.9),
-        scaleY: 1 + Math.max(0, diff - 0.9),
+          input.translateY +
+          ((1 - input.chord / (mainPages.length - 1)) * 30) / scale,
+        scaleX: scale,
+        scaleY: scale,
         zIndex:
           eLayers.colorMixer +
           Math.round(diff * Math.max(mainPages.length, searchPages.length)),
@@ -368,7 +370,7 @@ function PageDescription({ vPage }: { vPage: SharedValue<tMenuPage> }) {
     <>
       <DoubleText
         {...textProps}
-        fontSize={30}
+        fontSize={26}
         stroke="black"
         targetPage="Color Search"
       >

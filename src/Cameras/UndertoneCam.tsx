@@ -44,16 +44,16 @@ export default function UndertoneCam({
 }: tRadialObject) {
   const origin: [number, number] = [cDimW(1.05), cDimH(0.68)];
   const { hasPermission, requestPermission } = useCameraPermission();
-  if (!hasPermission) {
-    requestPermission();
-    return null;
-  }
   const device = useCameraDevice("back");
   const vThermoMode = useVerse(false);
   const vCamColor = useIVerse({ ar: 0, c: 0, l: 0 });
   const vAnimAr = useVerse(0);
   const vTemp = useIVerse<tTemp>(kelvin_table[6000]);
   const { vColorModel, vAccentAR, vAccentC } = useUserContext();
+
+  useEffect(() => {
+    if (!hasPermission) requestPermission();
+  }, [hasPermission]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -170,6 +170,8 @@ export default function UndertoneCam({
     },
   });
 
+  if (!hasPermission) return null;
+
   const fontSize = cDimH(0.02);
   const textProps: React.ComponentProps<typeof Text> = {
     fontSize,
@@ -189,7 +191,7 @@ export default function UndertoneCam({
           uniforms={{
             targetWhiteRGB: vTemp.state.rgb.map((c) => c / 255),
           }}
-          fps={8}
+          fps={12}
           camActive={device != null}
         />
       )}

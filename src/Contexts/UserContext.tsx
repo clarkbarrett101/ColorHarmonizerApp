@@ -105,8 +105,8 @@ export default function UserContext({
     PayWall: false,
   });
   const vColorModel = useVerse<tColorModel>("RYGB");
-  const vAccentC = useVerse<number>(1);
-  const vAccentL = useVerse<number>(1);
+  const vAccentC = useVerse<number>(0.5);
+  const vAccentL = useVerse<number>(0.5);
   const vAccentAR = useVerse<number>(0);
   const dAccentColor = useDerivedValue<tCLARColor>(() => {
     return {

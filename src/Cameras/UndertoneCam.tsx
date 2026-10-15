@@ -35,6 +35,7 @@ import { fTextWrapSVG, Tutorial } from "../Buttons/Tutorial";
 import { Thermo } from "./Thermo";
 import { cDimH, cDimW, cRaxelW } from "../utils/ScreenDimensions";
 import { Paths } from "../utils/Paths";
+import { scheduleOnRN } from "react-native-worklets";
 
 export default function UndertoneCam({
   radii = [cRaxelW(0.4, 0.3), cRaxelW(0.8, 0.6)],
@@ -45,7 +46,7 @@ export default function UndertoneCam({
   const origin: [number, number] = [cDimW(1.05), cDimH(0.68)];
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice("back");
-  const vThermoMode = useVerse(false);
+  const vThermoMode = useIVerse(false);
   const vCamColor = useIVerse({ ar: 0, c: 0, l: 0 });
   const vAnimAr = useVerse(0);
   const vTemp = useIVerse<tTemp>(kelvin_table[6000]);
@@ -56,6 +57,7 @@ export default function UndertoneCam({
   }, [hasPermission]);
 
   useEffect(() => {
+    if (!device) return;
     const interval = setInterval(() => {
       let angle = wDefaultChordToAngle(
         wDefaultAngleToChord(
@@ -88,7 +90,7 @@ export default function UndertoneCam({
       clearInterval(interval);
       collectGarbage?.();
     };
-  }, []);
+  }, [device]);
 
   function frameProcessor(frame: DrawableFrame) {
     "worklet";
@@ -117,6 +119,7 @@ export default function UndertoneCam({
   }
   function preProcessor(frame: DrawableFrame) {
     "worklet";
+    if (!vThermoMode.shared.value) return;
     frame.render();
     const imageInfo = frame.readPixels(
       frame.height / 2 - 2,
@@ -154,6 +157,9 @@ export default function UndertoneCam({
       vColorModel.shared.value,
     ).ar;
   });
+  function toggleThermoMode() {
+    vThermoMode.dispatch(!vThermoMode.shared.value);
+  }
   usePanHitBox({
     id: "thermoMode",
     origin: [10, cDimH(0.5)],
@@ -164,7 +170,7 @@ export default function UndertoneCam({
       "worklet";
       console.log(state.value);
       if (state.value === "release" || state.value === "tap") {
-        vThermoMode.dispatch(!vThermoMode.shared.value);
+        scheduleOnRN(toggleThermoMode);
         state.value = "leave";
       }
     },
@@ -324,7 +330,7 @@ export default function UndertoneCam({
             arcLength={2.5 / 7}
             radii={[0, cDimH(0.03)]}
             totalLength={cDimH(0.4)}
-            tempK={vTemp.state.k | 6500}
+            tempK={vTemp.state.k}
             origin={[cDimW(0.9), cDimH(0.5)]}
             tempList={[
               4000, 4500, 5000, 5500, 6000, 6300, 6600, 7000, 7500, 8000, 9500,

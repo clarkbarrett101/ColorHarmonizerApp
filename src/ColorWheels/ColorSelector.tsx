@@ -49,14 +49,14 @@ type tColorSelector = tRadialObject & {
 
 export default function ColorSelector({
   wheelCenter = 22 / 7,
-  radii = [cRaxelW(0.1, 0.1), cRaxelH(0.28, 0.38)],
+  radii = [cRaxelW(0.1, 0.1), cRaxelH(0.28, 0.35)],
   litDimensions = [4, 5],
   litRange = [0.15, 1],
   chromaRange = [0.1, 0.8],
   chromaDimensions = [4, 4],
   chromaArcRotation = [4.4 / 7, 16 / 7],
   lightnessArcRotation = [5.5 / 7, 28 / 7],
-  origin = [cDimW() + radii[1] * 0.2, cDimH(0.45)],
+  origin = [cDimW() + radii[1] * 0.2, cDimH(0.47)],
 }: tColorSelector) {
   /// O N  M O U N T ///
 
@@ -407,7 +407,8 @@ export default function ColorSelector({
         vBrand={vBrand}
         layer={eLayers.buckets}
         mainRotationR={11 / 7}
-        origin={[cRaxelW(0.87, 0.07), cRaxelH(0.07, 0.23)]}
+        origin={[cRaxelW(0.69, 0.07), cRaxelH(0.12, 0.23)]}
+        direction={1}
       />
       <ColorChipFan
         targetColor={vTargetColor.state}

@@ -31,6 +31,7 @@ import { View } from "react-native";
 import { DemoContext } from "./Contexts/DemoContext";
 import { cDimW, cDimH } from "./utils/ScreenDimensions";
 import PayWall from "./PayWall";
+import { PageTitle } from "./Buttons/PageTitle";
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -39,7 +40,7 @@ configureReanimatedLogger({
 
 const Driver = () => {
   const { premium, setPaywall, restore, purchase } = usePurchaseContext();
-  // const premium = true;
+  //const premium = true;
   const vPage = useVerse<ePages>("Main Menu");
   const hardReset = useRef(0);
   useEffect(() => {
@@ -73,9 +74,9 @@ const Driver = () => {
               style={{
                 flex: 1,
                 shadowColor: "black",
-                shadowOffset: { width: -10, height: 10 },
+                shadowOffset: { width: -cDimH(0.05), height: cDimH(0.05) },
                 shadowOpacity: 0.25,
-                shadowRadius: 5,
+                shadowRadius: cDimH(0.025),
                 zIndex: 20,
               }}
             >
@@ -95,6 +96,7 @@ const Driver = () => {
                 <DemoContext>{pageMap[vPage.state]}</DemoContext>
               </PanManager>
               <ChipHand />
+              <PageTitle title={vPage.state} />
             </View>
           </BucketContext>
         </SoundContext>

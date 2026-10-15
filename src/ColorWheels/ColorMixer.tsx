@@ -267,7 +267,7 @@ export default function ColorMixer({
       />
       <BrandFilter
         vBrand={vBrand}
-        origin={[cDimW(0.85), cDimH(0.08)]}
+        origin={[cDimW(0.85), cDimH(0.125)]}
         mainRotationR={11 / 7}
         layer={eLayers.chipHand}
       />

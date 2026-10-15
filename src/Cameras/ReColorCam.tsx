@@ -200,78 +200,78 @@ export default function ReColorCam() {
         },
         {
           touching: 0,
-          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          toPos: [cDimW(0.55), cDimH(0.7)],
           duration: 500,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          toPos: [cDimW(0.55), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 0,
-          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          toPos: [cDimW(0.55), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          toPos: [cDimW(0.55), cDimH(0.7)],
           duration: 200,
         },
 
         {
           touching: 0,
-          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          toPos: [cDimW(0.55), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.65) - 100, cDimH(0.65)],
+          toPos: [cDimW(0.55), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 0,
-          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          toPos: [cDimW(0.85), cDimH(0.7)],
           duration: 1000,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          toPos: [cDimW(0.85), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 0,
-          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          toPos: [cDimW(0.85), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          toPos: [cDimW(0.85), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 0,
-          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          toPos: [cDimW(0.85), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          toPos: [cDimW(0.85), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 0,
-          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          toPos: [cDimW(0.85), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 1,
-          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          toPos: [cDimW(0.85), cDimH(0.7)],
           duration: 200,
         },
         {
           touching: 0,
-          toPos: [cDimW(0.65) + 100, cDimH(0.65)],
+          toPos: [cDimW(0.85), cDimH(0.7)],
           duration: 1000,
         },
         {
@@ -301,7 +301,7 @@ export default function ReColorCam() {
         },
         {
           touching: 0,
-          toPos: [-100, cDimH(0.55)],
+          toPos: [-1000, cDimH(0.55)],
           duration: 300,
         },
       ]);
@@ -317,7 +317,8 @@ export default function ReColorCam() {
       <Button
         path={Paths.replay}
         layer={eLayers.superMax}
-        origin={[cDimW(0.1), cDimH(0.15)]}
+        size={cDimH(0.05)}
+        origin={[cDimW(0.07), cDimH(0.15)]}
         viewRadius={30}
         onPress={() => {
           pagesVisited.dispatch({
@@ -381,7 +382,7 @@ export default function ReColorCam() {
       {device != null && (
         <Camera
           device={device}
-          isActive={device != null}
+          isActive={camActive}
           style={{
             position: "absolute",
             width: cDimW(),
@@ -395,7 +396,7 @@ export default function ReColorCam() {
       <ReplacementMeter
         activePaint={vTargetPaint.state}
         layer={eLayers.colorMixer}
-        origin={[cDimW(0.65), cDimH(0.65)]}
+        origin={[cDimW(0.7), cDimH(0.7)]}
         toggleThreshold={fToggleThreshold}
         setThreshold={fAddThreshold}
         inverted={!vToggle.state}

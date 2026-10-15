@@ -86,7 +86,7 @@ export function ReplacementMeter({
         origin={[origin[0] + eChipSizes.default[0] * 0.5 + 20, origin[1]]}
         rotationR={11 / 7}
         layer={layer - 10}
-        size={[75, 75]}
+        size={[eChipSizes.default[1] * 0.8, eChipSizes.default[1] * 0.8]}
         viewBox={[75, 75]}
         vOpacity={vOpacityM}
       >
@@ -124,7 +124,7 @@ export function ReplacementMeter({
         origin={[origin[0] - eChipSizes.default[0] * 0.5 - 20, origin[1]]}
         rotationR={33 / 7}
         layer={layer - 10}
-        size={[75, 75]}
+        size={[eChipSizes.default[1] * 0.8, eChipSizes.default[1] * 0.8]}
         viewBox={[75, 75]}
         vOpacity={vOpacityL}
       >
@@ -170,7 +170,8 @@ export function ReplacementMeter({
           origin[0],
           origin[1] + eChipSizes.default[1] * 0.5 + cDimH(0.025),
         ]}
-        inverted={inverted}
+        inverted={!inverted}
+        invertColor={"rgba(255, 255, 255, .25)"}
         size={cDimH(0.05)}
         onPress={() => {
           toggleThreshold();

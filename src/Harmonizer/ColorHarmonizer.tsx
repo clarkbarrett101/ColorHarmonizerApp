@@ -14,7 +14,7 @@ import Button from "../Buttons/Button";
 export default function ColorHarmonizer() {
   const { premium } = usePurchaseContext();
   const { vPage, pagesVisited, vUserPalette } = useUserContext();
-  const linkOrigin = [cDimW(0.85), cDimH(0.1)];
+  const linkOrigin = [cDimW(0.85), cDimH(0.15)];
   const vPagesVisitedRelay = useVerseRelay(pagesVisited);
   const { fPlaySequence } = useDemo();
   const { holdChip } = useChipContext();

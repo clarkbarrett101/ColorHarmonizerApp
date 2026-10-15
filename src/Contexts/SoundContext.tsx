@@ -131,6 +131,8 @@ export default function SoundContext({ children }: { children: ReactNode }) {
 
   function fStartChord(color: tCLARColor, harp: boolean = false): tChordReturn {
     if (!color || !ready.current || vMute.state) return () => {};
+
+    AudioManager.setAudioSessionActivity(true);
     const gainNode = audioContext.createGain();
     const convolver = audioContext.createConvolver();
     const sampleRate = audioContext.sampleRate;
@@ -338,7 +340,6 @@ export default function SoundContext({ children }: { children: ReactNode }) {
   function fAddPaintsToPresent(id: string, paints: tPaint[]) {
     paintsPresent[id] = paints;
     fAssignPaintsToChords();
-    AudioManager.setAudioSessionActivity(true);
     audioContext.resume();
   }
 

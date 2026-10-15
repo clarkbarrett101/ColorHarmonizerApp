@@ -358,7 +358,7 @@ export default function ColorSeasons({
       />
       <BrandFilter
         vBrand={vBrand}
-        origin={[cDimW(0.85), cDimH(0.08)]}
+        origin={[cDimW(0.85), cDimH(0.12)]}
         mainRotationR={11 / 7}
         layer={eLayers.buckets}
       />

@@ -304,7 +304,7 @@ export function DemoContext({ children }: { children: React.ReactNode }) {
         />
         <Text
           x={cDimW(0.6)}
-          y={cDimH(0.8)}
+          y={cDimH(0.83)}
           color={"white"}
           font={smallFont}
           text={"Tap to skip"}

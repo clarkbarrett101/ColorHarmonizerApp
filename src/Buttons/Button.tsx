@@ -17,7 +17,10 @@ export type tButton = {
   textCircle?: tTextCircle;
   layer?: number;
   inverted?: boolean;
+  invertColor?: string;
 };
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 export default function Button({
   onPress,
   path,
@@ -27,26 +30,34 @@ export default function Button({
   textCircle,
   layer = eLayers.dropScreen - 1,
   inverted = false,
+  invertColor = "white",
 }: tButton) {
   const { vColorModel, vAccentAR, vAccentC, vAccentL } = useUserContext();
-  const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-  const AnimatedPath = Animated.createAnimatedComponent(Path);
-  const vColor = useDerivedValue(() =>
-    fCLARColorToString(
-      {
-        c: vAccentC.shared.value ** (1 / 2),
-        l: vAccentL.shared.value * (1 / 2),
-        ar: vAccentAR.shared.value,
-      },
-      vColorModel.shared.value,
-    ),
-  );
+  const dInverted = useDerivedValue(() => inverted);
   const animatedProps = useAnimatedProps(() => ({
-    fill: inverted ? "white" : vColor.value,
+    fill: dInverted.value
+      ? invertColor
+      : fCLARColorToString(
+          {
+            c: vAccentC.shared.value ** (1 / 2),
+            l: vAccentL.shared.value * (1 / 2),
+            ar: vAccentAR.shared.value,
+          },
+          vColorModel.shared.value,
+        ),
   }));
   const pathProps = useAnimatedProps(() => ({
     d: path,
-    fill: inverted ? vColor.value : "white",
+    fill: inverted
+      ? fCLARColorToString(
+          {
+            c: vAccentC.shared.value ** (1 / 2),
+            l: vAccentL.shared.value * (1 / 2),
+            ar: vAccentAR.shared.value,
+          },
+          vColorModel.shared.value,
+        )
+      : invertColor,
   }));
   return (
     <Svg

@@ -96,7 +96,7 @@ export default function SchemeSelector({
         <ColorScheme
           key={index}
           origin={origin}
-          arcLength={2 / 7}
+          arcLength={cWide ? 1.5 / 7 : 2 / 7}
           rotationR={
             rotationR -
             arcLength / 2 +

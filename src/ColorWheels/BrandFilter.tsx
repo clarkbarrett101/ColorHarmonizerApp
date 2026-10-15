@@ -37,9 +37,11 @@ export type tBrandFilter = {
   mainRotationR?: number;
   origin?: [number, number];
   layer?: number;
+  direction?: 1 | -1;
 };
 
 export const BrandFilter = (props: tBrandFilter) => {
+  const direction = props.direction || 1;
   const brands: tBrand[] = [
     "All Brands",
     "Behr",
@@ -129,10 +131,15 @@ export const BrandFilter = (props: tBrandFilter) => {
       dx * Math.cos(-mainRotationR) - dy * Math.sin(-mainRotationR);
     const localY =
       dx * Math.sin(-mainRotationR) + dy * Math.cos(-mainRotationR);
-    const clampedX = Math.max(
-      0,
-      Math.min(collapseAnim.value * (radius * (brands.length - 1)), localX),
-    );
+    const clampedX =
+      direction *
+      Math.max(
+        0,
+        Math.min(
+          collapseAnim.value * (radius * (brands.length - 1)),
+          direction * localX,
+        ),
+      );
     const distX = localX - clampedX;
     const inZone = distX * distX + localY * localY <= radius * radius;
 
@@ -207,7 +214,8 @@ export const BrandFilter = (props: tBrandFilter) => {
     modifier: (input: tAttributeMap) => {
       "worklet";
       const x =
-        (input.ring * collapseAnim.value - 0.5) *
+        direction *
+        (input.ring * collapseAnim.value - 0.5 * direction) *
         (radius - fGetBumpSize(totalArcLength, radius) / 2);
 
       return {
@@ -224,7 +232,6 @@ export const BrandFilter = (props: tBrandFilter) => {
 
   const sectors = useCallback(() => {
     const bumpSize = fGetBumpSize(totalArcLength, radius);
-    console.log(bumpSize);
     const group = [];
     for (let i = 0; i < brands.length; i++) {
       const sector: tSector = {
@@ -266,7 +273,8 @@ export const BrandFilter = (props: tBrandFilter) => {
   }, [brands]);
 
   const gestureBoundsStyle = useAnimatedStyle(() => {
-    const bodyLength = collapseAnim.value * (radius * (brands.length - 1));
+    const bodyLength =
+      direction * collapseAnim.value * (radius * (brands.length - 1));
     const endX = origin[0] + bodyLength * Math.cos(mainRotationR);
     const endY = origin[1] + bodyLength * Math.sin(mainRotationR);
     const minX = Math.min(origin[0], endX) - radius;

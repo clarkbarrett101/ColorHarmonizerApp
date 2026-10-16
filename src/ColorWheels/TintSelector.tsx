@@ -6,6 +6,7 @@ import { SharedValue, useSharedValue } from "react-native-reanimated";
 import { RadialContext, useRadialContext } from "../Radials/RadialContext";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { eLayers } from "../Contexts/UserContext";
+import { View } from "react-native";
 export type tTintSelector = tRadialObject & {
   fSectorModifier?: (sector: tSector) => tSector;
   fSectorGroupModifier?: (group: tSectorGroup) => any;
@@ -68,22 +69,24 @@ export function TintSelector({
     },
   };
   return (
-    <RadialContext
-      value={{
-        radii,
-        mColorModifier: colorModifier,
-        mTransformModifier: transformModifier,
-        vPanPos,
-      }}
-    >
-      <RadialGraphic
-        rotationR={rotationR}
-        arcLength={arcLength}
-        ring={ring}
-        chord={chord}
-        fSectorModifier={fSectorModifier}
-        fSectorGroupModifier={fSectorGroupModifier}
-      />
-    </RadialContext>
+    <View style={{ zIndex: eLayers.colorMixer - 1 }}>
+      <RadialContext
+        value={{
+          radii,
+          mColorModifier: colorModifier,
+          mTransformModifier: transformModifier,
+          vPanPos,
+        }}
+      >
+        <RadialGraphic
+          rotationR={rotationR}
+          arcLength={arcLength}
+          ring={ring}
+          chord={chord}
+          fSectorModifier={fSectorModifier}
+          fSectorGroupModifier={fSectorGroupModifier}
+        />
+      </RadialContext>
+    </View>
   );
 }

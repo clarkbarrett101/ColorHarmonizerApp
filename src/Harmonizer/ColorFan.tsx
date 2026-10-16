@@ -1,3 +1,4 @@
+import { View } from "react-native";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { RadialContext } from "../Radials/RadialContext";
 import { RadialGraphic } from "../Radials/RadialGraphic";
@@ -63,26 +64,28 @@ export function ColorFan({
     };
   }
   return (
-    <RadialContext
-      value={{
-        radii,
-        origin,
-        totalArcLength: arcLength,
-        mainRotationR: rotationR,
-        totalChords: hues.length,
-        totalRings: ring,
-        fPathFunction: (radii, arcLength, maxRadius, rotationR = 0) =>
-          fMakePetalPath(radii, arcLength, maxRadius, rotationR, bend),
-      }}
-    >
-      <RadialGraphic
-        ring={ring}
-        arcLength={arcLength}
-        rotationR={rotationR}
-        origin={origin}
-        chord={hues.length}
-        fSectorModifier={fSectorModifier}
-      />
-    </RadialContext>
+    <View style={{ zIndex: eLayers.colorMixer }}>
+      <RadialContext
+        value={{
+          radii,
+          origin,
+          totalArcLength: arcLength,
+          mainRotationR: rotationR,
+          totalChords: hues.length,
+          totalRings: ring,
+          fPathFunction: (radii, arcLength, maxRadius, rotationR = 0) =>
+            fMakePetalPath(radii, arcLength, maxRadius, rotationR, bend),
+        }}
+      >
+        <RadialGraphic
+          ring={ring}
+          arcLength={arcLength}
+          rotationR={rotationR}
+          origin={origin}
+          chord={hues.length}
+          fSectorModifier={fSectorModifier}
+        />
+      </RadialContext>
+    </View>
   );
 }

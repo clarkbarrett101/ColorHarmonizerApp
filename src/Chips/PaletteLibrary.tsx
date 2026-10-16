@@ -538,24 +538,26 @@ export default function PaletteLibrary({
           },
         }}
       />
-      {vPalettes.state.length > 0 &&
-        vPalettes.state.map((palette, index) => (
-          <ChipRow
-            key={index}
-            id={index * 10 + eLayers.background + 10}
-            paints={palette.paints}
-            rotationR={wDefaultChordToAngle(
-              index,
-              Math.min((4 / 7) * vPalettes.state.length, 44 / 7),
-              vPalettes.state.length,
-              wheelCenter,
-            )}
-            rotationOffset={22 / 7}
-            radii={[0, cRaxelW(0.7, 0.3)]}
-            origin={origin}
-            grouped={false}
-          />
-        ))}
+      <View style={{ zIndex: eLayers.colorMixer }}>
+        {vPalettes.state.length > 0 &&
+          vPalettes.state.map((palette, index) => (
+            <ChipRow
+              key={index}
+              id={index * 10 + eLayers.background + 10}
+              paints={palette.paints}
+              rotationR={wDefaultChordToAngle(
+                index,
+                Math.min((4 / 7) * vPalettes.state.length, 44 / 7),
+                vPalettes.state.length,
+                wheelCenter,
+              )}
+              rotationOffset={22 / 7}
+              radii={[0, cRaxelW(0.7, 0.3)]}
+              origin={origin}
+              grouped={false}
+            />
+          ))}
+      </View>
       {vPalettes.state.length > 0 &&
         vSelection.state < vPalettes.state.length && (
           <ChipFan

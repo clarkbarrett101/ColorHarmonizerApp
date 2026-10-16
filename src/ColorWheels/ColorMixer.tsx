@@ -28,7 +28,7 @@ import { useDemo } from "../Contexts/DemoContext";
 import { cDimW, cDimH, cWide } from "../utils/ScreenDimensions";
 import Button from "../Buttons/Button";
 import Paths from "../utils/Paths";
-
+import { View } from "react-native";
 export default function ColorMixer({
   radii = [0, Dimensions.get("window").width * 0.9],
   ring = 5,
@@ -232,22 +232,24 @@ export default function ColorMixer({
 
   return (
     <>
-      <RadialContext
-        value={{
-          origin,
-          radii,
-          mColorModifier,
-          mTransformModifier,
-        }}
-      >
-        <RadialGraphic
-          ring={ring}
-          chord={chord}
-          arcLength={arcLength}
-          rotationR={rotationR}
-          fSectorGroupModifier={fSectorGroupModifier}
-        />
-      </RadialContext>
+      <View style={{ zIndex: eLayers.colorMixer - 1 }}>
+        <RadialContext
+          value={{
+            origin,
+            radii,
+            mColorModifier,
+            mTransformModifier,
+          }}
+        >
+          <RadialGraphic
+            ring={ring}
+            chord={chord}
+            arcLength={arcLength}
+            rotationR={rotationR}
+            fSectorGroupModifier={fSectorGroupModifier}
+          />
+        </RadialContext>
+      </View>
       <PaintChip
         paintA={vTargetColor.state}
         origin={[origin[0] - eChipSizes.default[0] / 4, origin[1]]}

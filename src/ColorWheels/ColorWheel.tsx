@@ -14,6 +14,7 @@ import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { tVerse, useVerse } from "../utils/Verse";
 import React from "react";
+import { View } from "react-native";
 
 type tColorWheel = tRadialObject & {
   wheelCenter?: number;
@@ -225,33 +226,35 @@ function ColorWheel({
   };
 
   return (
-    <RadialContext
-      value={{
-        radii,
-        mColorModifier,
-        mTransformModifier,
-        totalArcLength: arcLength,
-        mainRotationR: wheelCenter,
-        totalRings: ring,
-        totalChords: chord,
-        origin,
-      }}
-    >
-      <RadialGraphic />
-      {vSecondColor.state !== null && (
-        <RadialContext
-          value={{
-            mColorModifier: secondColorModifier,
-            mTransformModifier: secondTransformModifier,
-            totalChords: 1,
-            totalArcLength: chordLength,
-            mainRotationR: wheelCenter,
-          }}
-        >
-          <RadialGraphic />
-        </RadialContext>
-      )}
-    </RadialContext>
+    <View style={{ zIndex: eLayers.colorMixer }}>
+      <RadialContext
+        value={{
+          radii,
+          mColorModifier,
+          mTransformModifier,
+          totalArcLength: arcLength,
+          mainRotationR: wheelCenter,
+          totalRings: ring,
+          totalChords: chord,
+          origin,
+        }}
+      >
+        <RadialGraphic />
+        {vSecondColor.state !== null && (
+          <RadialContext
+            value={{
+              mColorModifier: secondColorModifier,
+              mTransformModifier: secondTransformModifier,
+              totalChords: 1,
+              totalArcLength: chordLength,
+              mainRotationR: wheelCenter,
+            }}
+          >
+            <RadialGraphic />
+          </RadialContext>
+        )}
+      </RadialContext>
+    </View>
   );
 }
 export { ColorWheel };

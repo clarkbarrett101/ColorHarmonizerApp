@@ -1,4 +1,4 @@
-import { Dimensions } from "react-native";
+import { Dimensions, View } from "react-native";
 import { Profiler, useEffect, useMemo, useState } from "react";
 import { fMakePetalPath, tRadialObject, tSector } from "../Radials/SectorTypes";
 import { RadialGraphic } from "../Radials/RadialGraphic";
@@ -383,17 +383,19 @@ export function ChipSelector(props: tChipSelector) {
   }
   return (
     <>
-      <RadialContext
-        value={{
-          mTransformModifier,
-          radii: props.radii,
-          mColorModifier,
-          fPathFunction: (radii, arcLength, maxRadius, rotationR = 0) =>
-            fMakePetalPath(radii, arcLength, maxRadius, rotationR, 0.2),
-        }}
-      >
-        <RadialGraphic {...props} fSectorModifier={fSectorModifier} />
-      </RadialContext>
+      <View style={{ zIndex: eLayers.colorMixer }}>
+        <RadialContext
+          value={{
+            mTransformModifier,
+            radii: props.radii,
+            mColorModifier,
+            fPathFunction: (radii, arcLength, maxRadius, rotationR = 0) =>
+              fMakePetalPath(radii, arcLength, maxRadius, rotationR, 0.2),
+          }}
+        >
+          <RadialGraphic {...props} fSectorModifier={fSectorModifier} />
+        </RadialContext>
+      </View>
       <ColorChipFan
         {...props}
         sideA={sideA}

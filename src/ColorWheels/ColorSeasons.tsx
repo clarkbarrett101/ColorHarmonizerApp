@@ -34,6 +34,7 @@ import { useDemo } from "../Contexts/DemoContext";
 import { Paths } from "../utils/Paths";
 import React from "react";
 import Button from "../Buttons/Button";
+import { View } from "react-native";
 export default function ColorSeasons({
   radii = [0, cRaxelW(0.75, 0.8)],
   ring = 5,
@@ -323,22 +324,24 @@ export default function ColorSeasons({
 
   return (
     <>
-      <RadialContext
-        value={{
-          origin,
-          radii,
-          mColorModifier,
-          mTransformModifier,
-        }}
-      >
-        <RadialGraphic
-          ring={ring}
-          chord={chord}
-          arcLength={arcLength}
-          rotationR={rotationR}
-          fSectorGroupModifier={fSectorGroupModifier}
-        />
-      </RadialContext>
+      <View style={{ zIndex: eLayers.colorMixer }}>
+        <RadialContext
+          value={{
+            origin,
+            radii,
+            mColorModifier,
+            mTransformModifier,
+          }}
+        >
+          <RadialGraphic
+            ring={ring}
+            chord={chord}
+            arcLength={arcLength}
+            rotationR={rotationR}
+            fSectorGroupModifier={fSectorGroupModifier}
+          />
+        </RadialContext>
+      </View>
       <PaintChip
         paintA={vTargetColor.state}
         origin={[origin[0] - eChipSizes.default[0] / 4, origin[1]]}
@@ -362,43 +365,44 @@ export default function ColorSeasons({
         mainRotationR={11 / 7}
         layer={eLayers.buckets}
       />
-
-      <Canvas
-        style={{
-          width: gradientRadii[1] * 2,
-          height: gradientRadii[1] * 2,
-          zIndex: eLayers.background + 5,
-          position: "absolute",
-          top: origin[1] - gradientRadii[1] - 10,
-          left: origin[0] - gradientRadii[1],
-          opacity: 0.8,
-        }}
-      >
-        {sweepPath(
-          gradientRadii,
-          arcLength / 4,
-          rotationR + arcLength * 0.4,
-          colorsBySeason.spring,
-        )}
-        {sweepPath(
-          gradientRadii,
-          arcLength / 4,
-          rotationR + arcLength * 0.13,
-          colorsBySeason.summer,
-        )}
-        {sweepPath(
-          gradientRadii,
-          arcLength / 4,
-          rotationR - arcLength * 0.13,
-          colorsBySeason.autumn,
-        )}
-        {sweepPath(
-          gradientRadii,
-          arcLength / 4,
-          rotationR - arcLength * 0.4,
-          colorsBySeason.winter,
-        )}
-      </Canvas>
+      <View style={{ zIndex: eLayers.colorMixer - 1 }}>
+        <Canvas
+          style={{
+            width: gradientRadii[1] * 2,
+            height: gradientRadii[1] * 2,
+            zIndex: eLayers.background + 5,
+            position: "absolute",
+            top: origin[1] - gradientRadii[1] - 10,
+            left: origin[0] - gradientRadii[1],
+            opacity: 0.8,
+          }}
+        >
+          {sweepPath(
+            gradientRadii,
+            arcLength / 4,
+            rotationR + arcLength * 0.4,
+            colorsBySeason.spring,
+          )}
+          {sweepPath(
+            gradientRadii,
+            arcLength / 4,
+            rotationR + arcLength * 0.13,
+            colorsBySeason.summer,
+          )}
+          {sweepPath(
+            gradientRadii,
+            arcLength / 4,
+            rotationR - arcLength * 0.13,
+            colorsBySeason.autumn,
+          )}
+          {sweepPath(
+            gradientRadii,
+            arcLength / 4,
+            rotationR - arcLength * 0.4,
+            colorsBySeason.winter,
+          )}
+        </Canvas>
+      </View>
 
       <CurvedText
         text="Winter"

@@ -15,6 +15,7 @@ export default class App extends React.Component {
   async componentDidMount() {
     Purchases.setLogLevel(LOG_LEVEL.WARN);
     if (Platform.OS === "android") {
+      console.log("Running on Android, setting premium to true");
       this.setState({ isPremium: true });
     } else if (Platform.OS === "ios") {
       await Purchases.configure({

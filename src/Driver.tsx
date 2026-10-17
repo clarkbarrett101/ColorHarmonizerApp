@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useRef } from "react";
-import { usePurchaseContext } from "./Contexts/PurchaseContext";
+//import { usePurchaseContext } from "./Contexts/PurchaseContext";
 import ColorHarmonizer from "./Harmonizer/ColorHarmonizer";
 import type { ePages } from "./Contexts/UserContext";
 import PanManager from "./Contexts/PanManager";
@@ -30,7 +30,7 @@ import { Paths } from "./utils/Paths";
 import { View } from "react-native";
 import { DemoContext } from "./Contexts/DemoContext";
 import { cDimW, cDimH } from "./utils/ScreenDimensions";
-import PayWall from "./PayWall";
+//import PayWall from "./PayWall";
 import { PageTitle } from "./Buttons/PageTitle";
 
 configureReanimatedLogger({
@@ -39,21 +39,16 @@ configureReanimatedLogger({
 });
 
 const Driver = () => {
-  const { premium, setPaywall, restore, purchase } = usePurchaseContext();
-  //const premium = true;
+  // const { premium, setPaywall, restore, purchase } = usePurchaseContext();
+  const premium = true;
   const vPage = useVerse<ePages>("Main Menu");
-  const hardReset = useRef(0);
-  useEffect(() => {
-    hardReset.current += 1;
-    console.log("Hard reset count:", hardReset.current);
-  }, [vPage.state]);
   const pageMap: Partial<Record<ePages, ReactNode>> = {
     "Main Menu": <Menu />,
-    "ReColor Camera": premium ? <ReColorCam /> : <PayWall />,
+    "ReColor Camera": <ReColorCam />,
     "Color Wheel": <ColorSelector />,
     "Color Mixer": <ColorMixer />,
     "Color Seasons": <ColorSeasons />,
-    "Undertone Camera": premium ? <UndertoneCam /> : <PayWall />,
+    "Undertone Camera": <UndertoneCam />,
     "Color Harmonizer": <ColorHarmonizer />,
     "Palette Library": <PaletteLibrary />,
     "Scheme Selector": <SchemeSelector />,

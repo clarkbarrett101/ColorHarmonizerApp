@@ -77,6 +77,7 @@ export const SectorGroup = ({
         },
         shadowRadius: attributes.shadowRadius || 0,
         shadowOpacity: attributes.shadowOpacity || 0,
+        elevation: attributes.shadowY || 0,
         shadowColor:
           "#" + (attributes.shadowColor?.toString(16).padStart(6, "0") || null),
       };
@@ -86,6 +87,7 @@ export const SectorGroup = ({
   const bumpSize = fGetBumpSize(arcLength, r[1]);
   return (
     <Animated.View
+      key={sectorGroupID}
       style={[
         {
           position: "absolute",

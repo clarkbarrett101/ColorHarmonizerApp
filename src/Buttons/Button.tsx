@@ -71,6 +71,7 @@ export default function Button({
         width: size,
         height: size,
         zIndex: layer,
+        elevation: 2,
         shadowColor: "black",
         shadowOffset: { width: -2, height: 2 },
         shadowOpacity: 0.5,

@@ -2,37 +2,16 @@ import {
   Camera,
   DrawableFrame,
   useCameraDevice,
-  useCameraFormat,
   useCameraPermission,
   useSkiaFrameProcessor,
 } from "react-native-vision-camera";
 import { Dimensions, View } from "react-native";
-import {
-  AlphaType,
-  ColorType,
-  Skia,
-  SkPaint,
-} from "@shopify/react-native-skia";
-import { useEffect, useState } from "react";
-import {
-  fCLARColorToString,
-  fCLARColorToYUV,
-  fGetRandomPaint,
-  fRGBToYUV,
-  fYUVToRGB,
-  tPaint,
-} from "../utils/CLAcolor";
+import { Skia, SkPaint } from "@shopify/react-native-skia";
+import { useEffect } from "react";
 import { useRunOnJS, useSharedValue } from "react-native-worklets-core";
-import { useBucketContext } from "../Buckets/BucketContext";
-import { tIVerse, useIVerse } from "../utils/iVerse";
-import { tTemp, kelvin_table, fGetTempFromUV } from "./KelvinTemp";
-import { ThermSelect } from "./ThermSelect";
-import { eLayers, useUserContext } from "../Contexts/UserContext";
+import { eLayers } from "../Contexts/UserContext";
 import { GlassView } from "expo-glass-effect";
-import { useVerse, useVerseRelay } from "../utils/Verse";
-import { ReplacementMeter } from "./ReplacementMeter";
-import { SharedValue } from "react-native-reanimated";
-
+import { cDimH, cDimW } from "../utils/ScreenDimensions";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 export type tSkiaCam = {
   shaderCode?: string;
@@ -102,8 +81,8 @@ export function SkiaCam({
         isActive={camActive}
         style={{
           position: "absolute",
-          width: SCREEN_WIDTH,
-          height: SCREEN_HEIGHT,
+          width: cDimW(),
+          height: cDimH(),
           zIndex: 0,
         }}
         frameProcessor={skfp}
@@ -113,8 +92,8 @@ export function SkiaCam({
       <GlassView
         style={{
           position: "absolute",
-          top: SCREEN_HEIGHT / 2 - 20,
-          left: SCREEN_WIDTH / 2 - 20,
+          top: cDimH() / 2 - 20,
+          left: cDimW() / 2 - 20,
           width: 40,
           height: 40,
           borderRadius: 20,

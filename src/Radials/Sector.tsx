@@ -47,15 +47,10 @@ export const Sector = (props: tSector) => {
     return actor.get((attributes) => {
       return {
         fill: `rgb(${attributes.red || 0},${attributes.green || 0},${attributes.blue || 0})`,
-        strokeWidth: attributes.strokeWidth || 0,
+        stroke: `rgb(${attributes.red * 0.8 || 0},${attributes.green * 0.8 || 0},${attributes.blue * 0.8 || 0})`,
+        strokeWidth: attributes.strokeWidth || 2,
       };
     });
   });
-  return (
-    <AnimatedPath
-      animatedProps={animatedProps}
-      d={path}
-      stroke={"rgba(255,255,255,0.5)"}
-    />
-  );
+  return <AnimatedPath animatedProps={animatedProps} d={path} />;
 };

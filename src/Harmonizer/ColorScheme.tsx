@@ -289,6 +289,7 @@ export function Sign({
         width: radii[1] * 2,
         height: radii[1] * 2,
         zIndex: zIndex,
+        elevation: 1,
         shadowColor: "black",
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.5,

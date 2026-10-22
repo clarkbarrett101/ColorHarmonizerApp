@@ -123,6 +123,7 @@ export function PetalBoxSimple({
         top: origin[1] - size[0] / 2,
         left: origin[0] - size[1] / 2,
         position: "absolute",
+        elevation: 2,
         shadowColor: "#000",
         shadowOffset: { width: -2, height: 2 },
         shadowOpacity: 0.5,

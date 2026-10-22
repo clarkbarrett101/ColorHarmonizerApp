@@ -1,6 +1,10 @@
 import { View, Dimensions } from "react-native";
 import React, { useCallback, useEffect, useRef } from "react";
-import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  usePanGesture,
+} from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { useVerse, useVerseRelay } from "../utils/Verse";
@@ -75,73 +79,80 @@ export default function ChipHand({
   }, [touching.state]);
 
   /// P A N  G E S T U R E ///
+  function onBegin(event) {
+    "worklet";
+    console.log("Hand Activate");
+    if (vUserPalette.shared.value.paints.length === 0) {
+      return;
+    }
+    vPanX.shared.value = event.absoluteX;
+    vPanY.shared.value = event.absoluteY;
+    const angle = Math.atan2(
+      event.absoluteY - origin[1],
+      event.absoluteX - origin[0],
+    );
+    const index = Math.round(
+      (1 - (startAngle - angle) / arcLength) *
+        vUserPalette.shared.value.paints.length -
+        0.5,
+    );
+    holdChip(eLayers.chipHand + index);
+    vDropScreen.shared.value = true;
+    selectVerse.dispatch(index);
+    touching.dispatch(true);
+  }
+  function onUpdate(event) {
+    "worklet";
+    if (vUserPalette.shared.value.paints.length === 0) {
+      return;
+    }
+    vPanX.shared.value = event.absoluteX;
+    vPanY.shared.value = event.absoluteY;
 
+    vVelocityX.shared.value = event.velocityX;
+    const angle = Math.atan2(
+      event.absoluteY - origin[1],
+      event.absoluteX - origin[0],
+    );
+
+    const index = Math.round(
+      (1 - (startAngle - angle) / arcLength) *
+        vUserPalette.shared.value.paints.length -
+        0.5,
+    );
+    const distance = Math.sqrt(
+      (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
+    );
+
+    if (distance > radii[1]) {
+      panWeight.value = withTiming(1, { duration: 200 });
+      holdChip(eLayers.chipHand + selectVerse.shared.value);
+    } else {
+      holdChip();
+      slowAngle.value = withSpring(angle, { stiffness: 1000, damping: 1000 });
+      panWeight.value = withTiming(0, { duration: 200 });
+      selectVerse.dispatch(index);
+    }
+  }
+  function onFinalize(event) {
+    "worklet";
+    console.log("Hand Deactivate");
+    panWeight.value = withTiming(0, { duration: 200 });
+    holdChip();
+    vDropScreen.shared.value = false;
+    touching.dispatch(false);
+  }
   const pan = usePanGesture({
     minDistance: 0,
-    onBegin: (event) => {
-      "worklet";
-      console.log("Hand Activate");
-      if (vUserPalette.shared.value.paints.length === 0) {
-        return;
-      }
-      vPanX.shared.value = event.absoluteX;
-      vPanY.shared.value = event.absoluteY;
-      const angle = Math.atan2(
-        event.absoluteY - origin[1],
-        event.absoluteX - origin[0],
-      );
-      const index = Math.round(
-        (1 - (startAngle - angle) / arcLength) *
-          vUserPalette.shared.value.paints.length -
-          0.5,
-      );
-      holdChip(eLayers.chipHand + index);
-      vDropScreen.shared.value = true;
-      selectVerse.dispatch(index);
-      touching.dispatch(true);
-    },
-    onUpdate: (event) => {
-      "worklet";
-      if (vUserPalette.shared.value.paints.length === 0) {
-        return;
-      }
-      vPanX.shared.value = event.absoluteX;
-      vPanY.shared.value = event.absoluteY;
-
-      vVelocityX.shared.value = event.velocityX;
-      const angle = Math.atan2(
-        event.absoluteY - origin[1],
-        event.absoluteX - origin[0],
-      );
-
-      const index = Math.round(
-        (1 - (startAngle - angle) / arcLength) *
-          vUserPalette.shared.value.paints.length -
-          0.5,
-      );
-      const distance = Math.sqrt(
-        (event.absoluteX - origin[0]) ** 2 + (event.absoluteY - origin[1]) ** 2,
-      );
-
-      if (distance > radii[1]) {
-        panWeight.value = withTiming(1, { duration: 200 });
-        holdChip(eLayers.chipHand + selectVerse.shared.value);
-      } else {
-        holdChip();
-        slowAngle.value = withSpring(angle, { stiffness: 1000, damping: 1000 });
-        panWeight.value = withTiming(0, { duration: 200 });
-        selectVerse.dispatch(index);
-      }
-    },
-    onFinalize: (event) => {
-      "worklet";
-      console.log("Hand Deactivate");
-      panWeight.value = withTiming(0, { duration: 200 });
-      holdChip();
-      vDropScreen.shared.value = false;
-      touching.dispatch(false);
-    },
+    onBegin,
+    onUpdate,
+    onFinalize,
   });
+
+  const panLegacy = Gesture.Pan()
+    .onStart(onBegin)
+    .onChange(onUpdate)
+    .onEnd(onFinalize);
 
   /// M O D I F I E R S ///
 
@@ -308,8 +319,9 @@ export default function ChipHand({
           left: origin[0] - (radii[1] + radii[0]) / 2,
           top: origin[1] - (radii[1] + radii[0]) / 2,
         }}
+        pointerEvents="box-none"
       >
-        <GestureDetector gesture={pan}>
+        <GestureDetector gesture={panLegacy}>
           <View
             style={{
               left: 0,

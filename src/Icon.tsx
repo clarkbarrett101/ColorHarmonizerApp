@@ -78,7 +78,7 @@ export default function Icon() {
         zIndex,
         scaleX: distanceFromCenter ** 3 * 0.1 + 1,
         scaleY: distanceFromCenter ** 3 * 0.15 + 1,
-        //  shadowColor: b | (g << 8) | (r << 16),
+        //  elevation:1, shadowColor: b | (g << 8) | (r << 16),
         shadowRadius: 20 * distanceFromCenter ** 2,
       };
     },
@@ -112,6 +112,7 @@ export default function Icon() {
           right: 0,
           bottom: 0,
           flex: 1,
+          elevation: 1,
           shadowColor: "black",
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.75,

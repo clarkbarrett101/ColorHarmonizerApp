@@ -14,6 +14,7 @@ import {
   fGetSeasons,
   fToList,
 } from "../utils/CLAcolor";
+/*
 import {
   AudioContext,
   AudioBuffer,
@@ -22,6 +23,7 @@ import {
   AnalyserNode,
   AudioManager,
 } from "react-native-audio-api";
+ */
 import * as Haptics from "expo-haptics";
 import Button from "../Buttons/Button";
 import { Paths } from "../utils/Paths";
@@ -116,20 +118,22 @@ export default function SoundContext({ children }: { children: ReactNode }) {
   const roomSize = 1;
   const decayTime = 1;
   const paintChords = useRef<Record<string, tChord>>({}).current;
-  const audioContext = useRef<AudioContext>(new AudioContext()).current;
-  const buffers = useRef<Record<number, AudioBuffer | null>>({}).current;
-  const harpBuffers = useRef<Record<number, AudioBuffer | null>>({}).current;
+  //const audioContext = useRef<AudioContext>(new AudioContext()).current;
+  // const buffers = useRef<Record<number, AudioBuffer | null>>({}).current;
+  //  const harpBuffers = useRef<Record<number, AudioBuffer | null>>({}).current;
   const paintsPresent = useRef<Record<string, tPaint[]>>({}).current;
-  const masterGain = useRef<GainNode>(audioContext.createGain()).current;
-  const sfxBuffers = useRef<Record<eSFX, AudioBuffer | null>>({
-    fan: null,
-    grab: null,
-    drop: null,
-  }).current;
+  //const masterGain = useRef<GainNode>(audioContext.createGain()).current;
+  // const sfxBuffers = useRef<Record<eSFX, AudioBuffer | null>>({
+  //   fan: null,
+  //   grab: null,
+  //   drop: null,
+  // }).current;
   const ready = useRef<boolean>(false);
   const vMute = useVerse<boolean>(false);
 
   function fStartChord(color: tCLARColor, harp: boolean = false): tChordReturn {
+    return () => {};
+    /*
     if (!color || !ready.current || vMute.state) return () => {};
 
     AudioManager.setAudioSessionActivity(true);
@@ -180,6 +184,7 @@ export default function SoundContext({ children }: { children: ReactNode }) {
       });
     };
     return chordReturn;
+    */
   }
 
   function fPlayTick() {
@@ -211,7 +216,7 @@ export default function SoundContext({ children }: { children: ReactNode }) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     }
   }
-
+  /*
   function fSetupNode(
     midiNote: number,
     output: GainNode,
@@ -240,6 +245,7 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     node.connect(output);
     return node;
   }
+  */
 
   function fChooseChord(color: tCLARColor): tChord {
     let { c, l, ar } = color;
@@ -315,16 +321,16 @@ export default function SoundContext({ children }: { children: ReactNode }) {
   }
 
   function fPlaySFX(sfx: eSFX, delay: number = 0) {
+    let haptic =
+      sfx === "grab"
+        ? Haptics.ImpactFeedbackStyle.Rigid
+        : Haptics.ImpactFeedbackStyle.Soft;
+
+    Haptics.impactAsync(haptic);
+    /*
     if (!ready.current || vMute.state) return;
     const buffer = sfxBuffers[sfx];
-
     if (buffer) {
-      let haptic =
-        sfx === "grab"
-          ? Haptics.ImpactFeedbackStyle.Rigid
-          : Haptics.ImpactFeedbackStyle.Soft;
-
-      Haptics.impactAsync(haptic);
 
       const source = audioContext.createBufferSource();
       source.buffer = buffer;
@@ -336,14 +342,17 @@ export default function SoundContext({ children }: { children: ReactNode }) {
       gainNode.connect(audioContext.destination);
       source.start(audioContext.currentTime + delay / 1000);
     }
+      */
   }
   function fAddPaintsToPresent(id: string, paints: tPaint[]) {
     paintsPresent[id] = paints;
     fAssignPaintsToChords();
-    audioContext.resume();
+    // audioContext.resume();
   }
 
   useEffect(() => {
+    return;
+    /*
     Object.keys(noteFiles).forEach((key) => {
       const index = Number(key);
       audioContext.decodeAudioData(noteFiles[index]).then((decodedBuffer) => {
@@ -365,6 +374,7 @@ export default function SoundContext({ children }: { children: ReactNode }) {
     masterGain.gain.value = 1;
     masterGain.connect(audioContext.destination);
     ready.current = true;
+    */
   }, []);
 
   const { dAccentColor } = useUserContext();

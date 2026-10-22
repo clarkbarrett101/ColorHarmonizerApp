@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import React, { useState } from "react";
+import React, { ComponentProps, Fragment, useState } from "react";
 import {
   Circle,
   Defs,
@@ -96,10 +96,11 @@ export function fTextWrapSVG(
   lines: string[],
   totalHeight: number,
   origin = [0, 0],
-  props: React.ComponentProps<typeof Text>,
+  props: ComponentProps<typeof Text>,
 ) {
+  console.log("Rendering text wrap for lines:", lines);
   return (
-    <>
+    <Fragment key={`text-${lines.join("-")}`}>
       {lines.map((line, index) => (
         <Text
           key={`${line}-${index}`}
@@ -113,7 +114,7 @@ export function fTextWrapSVG(
           {line}
         </Text>
       ))}
-    </>
+    </Fragment>
   );
 }
 const infoIconPath =

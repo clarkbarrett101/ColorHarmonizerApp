@@ -328,6 +328,7 @@ export function ChipSelector(props: tChipSelector) {
         scaleX: 1 + Math.max(0, diff - 0.8),
         scaleY: 1 + Math.max(0, diff - 0.8),
         translateX: -vPanPos.value.radius * Math.max(0, diff - 0.8),
+        elevation: 1,
         shadowColor: diff > 0.9 ? b | (g << 8) | (r << 16) : 0,
         shadowOpacity: diff > 0.9 ? 1 : 0.5,
         shadowRadius: diff > 0.9 ? 10 : 3,

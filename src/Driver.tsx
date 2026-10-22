@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useRef } from "react";
-//import { usePurchaseContext } from "./Contexts/PurchaseContext";
+import { usePurchaseContext } from "./Contexts/PurchaseContext";
 import ColorHarmonizer from "./Harmonizer/ColorHarmonizer";
 import type { ePages } from "./Contexts/UserContext";
 import PanManager from "./Contexts/PanManager";
@@ -39,7 +39,7 @@ configureReanimatedLogger({
 });
 
 const Driver = () => {
-  // const { premium, setPaywall, restore, purchase } = usePurchaseContext();
+  //const { premium, setPaywall, restore, purchase } = usePurchaseContext();
   const premium = true;
   const vPage = useVerse<ePages>("Main Menu");
   const pageMap: Partial<Record<ePages, ReactNode>> = {
@@ -68,11 +68,13 @@ const Driver = () => {
             <View
               style={{
                 flex: 1,
+                elevation: cDimH(0.05),
                 shadowColor: "black",
                 shadowOffset: { width: -cDimH(0.05), height: cDimH(0.05) },
                 shadowOpacity: 0.25,
                 shadowRadius: cDimH(0.025),
                 zIndex: 20,
+                backgroundColor: "transparent",
               }}
             >
               <DropScreen />

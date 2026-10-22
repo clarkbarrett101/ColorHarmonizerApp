@@ -334,6 +334,7 @@ export const PaintChip = ({
           width: attributes.shadowX || 0,
           height: attributes.shadowY || 0,
         },
+        elevation: attributes.shadowY || 0,
         shadowRadius: attributes.shadowRadius || 0,
         shadowOpacity: attributes.shadowOpacity || 0,
       };
@@ -348,6 +349,7 @@ export const PaintChip = ({
 
   return (
     <Animated.View
+      key={id}
       style={[
         {
           shadowColor: "#000",
@@ -396,7 +398,16 @@ export const PaintChip = ({
               </LinearGradient>
             </Defs>
             <G>
-              <Path d={Paths.chipOutline} fill={paint?.hex || "transparent"} />
+              <Path
+                d={Paths.chipOutline}
+                fill={paint?.hex || "transparent"}
+                stroke={
+                  paint
+                    ? `rgb(${paint.rgb[0] * 0.7},${paint.rgb[1] * 0.7},${paint.rgb[2] * 0.7})`
+                    : "transparent"
+                }
+                strokeWidth="0.5"
+              />
               <Path d={Paths.chipOutline} fill="url(#grad)" />
               <Path d={Paths.chip} fill={paint?.hex || "transparent"} />
             </G>
@@ -453,6 +464,13 @@ export function PaintChipPlaceholder({
 }: tPaintChip & { text?: string; onPress?: () => void }) {
   /// R E N D E R ///
   const paint = paintA;
+  const rgb = paint.hex
+    ? [
+        parseInt(paint.hex.slice(1, 3), 16),
+        parseInt(paint.hex.slice(3, 5), 16),
+        parseInt(paint.hex.slice(5, 7), 16),
+      ]
+    : [0, 0, 0];
   return (
     <Svg
       viewBox={`-16 -12 32 24`}
@@ -464,6 +482,7 @@ export function PaintChipPlaceholder({
         height: eChipSizes[size][1],
         transform: [{ scaleY: 1 }, { rotate: `${rotationR}rad` }],
         zIndex: chipID[0] + chipID[1],
+        elevation: 2,
         shadowColor: "#000",
         shadowOpacity: 0.7,
         shadowRadius: 5,
@@ -486,6 +505,12 @@ export function PaintChipPlaceholder({
         <Path
           d="M-16-8C-8-12 8-12 16-8V8C8 12-8 12-16 8Z"
           fill={paint?.hex || "transparent"}
+          stroke={
+            paint
+              ? `rgb(${rgb[0] * 0.7},${rgb[1] * 0.7},${rgb[2] * 0.7})`
+              : "transparent"
+          }
+          strokeWidth={0.5}
         />
         <Path d="M-16-8C-8-12 8-12 16-8V8C8 12-8 12-16 8Z" fill="url(#grad)" />
         <Path

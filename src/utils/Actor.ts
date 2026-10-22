@@ -165,6 +165,7 @@ export function useActor(initialAttributes: tAttributeMap): tActor {
     let modifiedAttributes: tAttributeMap = { ...attributes.value };
     for (let id in modifiers.value) {
       const modifier = modifiers.value[id];
+      if (!modifier) continue;
       modifiedAttributes = modifier(modifiedAttributes);
     }
     return callback(modifiedAttributes);

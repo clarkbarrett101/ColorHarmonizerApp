@@ -1,6 +1,8 @@
 import React, { use, useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Gesture,
   GestureDetector,
+  GestureHandlerRootView,
   usePanGesture,
   useSimultaneousGestures,
   useTapGesture,
@@ -281,7 +283,6 @@ export default function PanManager({
     let foundZone = false;
     const hitBoxesArray = Object.values(vHitBoxes.shared.value);
     hitBoxesArray.sort((a, b) => (b.priority || 0) - (a.priority || 0));
-
     for (let i = 0; i < hitBoxesArray.length; i++) {
       const zone = hitBoxesArray[i];
       if (zone.vActive && zone.vActive.value === false) {
@@ -369,6 +370,7 @@ export default function PanManager({
   const tap = useTapGesture({
     onActivate: tapUpdate,
   });
+  const tapLegacy = Gesture.Tap().onBegin(tapUpdate);
   const pan = usePanGesture({
     minDistance: 5,
     onActivate: panUpdate,
@@ -377,7 +379,16 @@ export default function PanManager({
       releaseZone("release");
     },
   });
+  const panLegacy = Gesture.Pan()
+    .onBegin(panUpdate)
+    .onChange(panUpdate)
+    .onEnd(() => {
+      "worklet";
+      releaseZone("release");
+    });
   const compGesture = useSimultaneousGestures(tap, pan);
+  const compGestureLegacy = Gesture.Simultaneous(tapLegacy, panLegacy);
+
   const sectors = () => {
     if (!drawSectors) {
       return null;
@@ -406,7 +417,7 @@ export default function PanManager({
       }}
     >
       {children}
-      <View
+      <GestureHandlerRootView
         style={{
           position: "absolute",
           zIndex: layer,
@@ -414,7 +425,7 @@ export default function PanManager({
           top: 0,
         }}
       >
-        <GestureDetector gesture={compGesture}>
+        <GestureDetector gesture={compGestureLegacy}>
           <Svg
             style={{
               position: "absolute",
@@ -430,7 +441,7 @@ export default function PanManager({
             {sectors()}
           </Svg>
         </GestureDetector>
-      </View>
+      </GestureHandlerRootView>
     </Ctx.Provider>
   );
 }

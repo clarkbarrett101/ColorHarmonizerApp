@@ -66,6 +66,7 @@ export function Thermo({
   const sectors = useCallback(() => {
     const group = [];
     for (let i = 0; i < temps.length; i++) {
+      console.log("Creating sector for index", i);
       const sector: tSector = {
         arcLength: arcLength,
         chord: 0,
@@ -75,14 +76,13 @@ export function Thermo({
       };
       const text = (
         <Text
-          key={i}
+          key={i + tempK}
           fontFamily="Outfit"
           fontSize={18}
           textAnchor="middle"
           fontWeight={2000}
           opacity={0.65}
           fill={"black"}
-          verticalAlign={0.1}
           transform={[
             { rotate: `${adjustedRotation}rad` },
             { translateY: radius * 0.6 },

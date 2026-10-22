@@ -3,8 +3,9 @@ import React, { useCallback } from "react";
 import { cDimH } from "../utils/ScreenDimensions";
 import { fCLARColorToRGB, tBrand } from "../utils/CLAcolor";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
-import { Text, TSpan } from "react-native-svg";
+import { Text } from "react-native-svg";
 import {
+  Gesture,
   GestureDetector,
   usePanGesture,
   useSimultaneousGestures,
@@ -241,32 +242,40 @@ export const BrandFilter = (props: tBrandFilter) => {
         radii: [bumpSize, radius + bumpSize * 2],
       };
       let brandString = (brands[i] as string).split(/[\s-]/);
-      const text = fTextWrapSVG(
-        brandString,
-        cDimH(0.04),
-        [0, radius / 2 + bumpSize / 2],
-        {
-          fontFamily: "Outfit",
-          fontSize: cDimH(0.02),
-          textAnchor: "middle",
-          opacity: 0.8,
-          fontWeight: 300,
-          fill: i / (brands.length - 1) > 0.4 ? "white" : "black",
-          transform: [{ rotate: `${adjustedRotation}rad` }],
-          verticalAlign: "middle",
-          alignmentBaseline: "middle",
-        } as React.ComponentProps<typeof Text>,
-      );
+      let text = [];
+      for (let j = 0; j < brandString.length; j++) {
+        text.push(
+          <Text
+            key={j}
+            fontFamily="Outfit"
+            fontSize={cDimH(0.02)}
+            fill={i / (brands.length - 1) > 0.4 ? "white" : "black"}
+            textAnchor="middle"
+            alignmentBaseline="middle"
+            transform={[{ rotate: `${adjustedRotation}rad` }]}
+            x={0}
+            y={
+              bumpSize / 2 +
+              radius / 2 +
+              cDimH(0.01) * (1 - brandString.length + j * 2)
+            }
+          >
+            {brandString[j]}
+          </Text>,
+        );
+      }
+
       const sectorGroup: tSectorGroup = {
         arcLength: totalArcLength,
         chord: 0,
         rotationR: mainRotationR,
         sectorGroupID: i,
         ring: i,
-        children: [text],
+        children: [...text],
         sectors: [sector],
         origin,
       };
+
       group.push(<SectorGroup key={i} {...sectorGroup} />);
     }
     return group;
@@ -288,6 +297,18 @@ export const BrandFilter = (props: tBrandFilter) => {
       height: Math.max(1, maxY - minY),
     };
   }, [origin, mainRotationR, radius, brands.length]);
+  const tapLegacy = Gesture.Tap().onBegin(fTapUpdate);
+  const panLegacy = Gesture.Pan()
+    .onBegin(fPanUpdate)
+    .onChange(fPanUpdate)
+    .onEnd(() => {
+      "worklet";
+      if (vInZone.value) {
+        vPanState.value = "release";
+        vInZone.value = false;
+      }
+    });
+  const compGestureLegacy = Gesture.Simultaneous(tapLegacy, panLegacy);
 
   return (
     <>
@@ -301,7 +322,7 @@ export const BrandFilter = (props: tBrandFilter) => {
         ]}
         pointerEvents="box-none"
       >
-        <GestureDetector gesture={compGesture}>
+        <GestureDetector gesture={compGestureLegacy}>
           <View
             style={{
               width: "100%",
@@ -327,6 +348,7 @@ export const BrandFilter = (props: tBrandFilter) => {
         <View
           style={{
             position: "absolute",
+            elevation: 3,
             shadowColor: "black",
             shadowOffset: { width: -3, height: 3 },
             shadowOpacity: 0.5,

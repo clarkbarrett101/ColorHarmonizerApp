@@ -6,9 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/AppIcon.png",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.clarkbarrett101.ColorHarmonizer",
@@ -39,23 +37,9 @@
       [
         "expo-font",
         {
-          "fonts": [
-            "./assets/Outfit-VariableFont_wght.ttf"
-          ]
+          "fonts": ["./assets/Outfit-VariableFont_wght.ttf"]
         }
-      ],
-      ["react-native-audio-api",
-      {
-        "androidPermissions" : [
-          "android.permission.MODIFY_AUDIO_SETTINGS",
-          "android.permission.FOREGROUND_SERVICE",
-          "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
-        ],
-        "androidForegroundService": true,
-        "androidFSTypes": [
-          "mediaPlayback"
-        ]
-      }
-    ]]
+      ]
+    ]
   }
 }

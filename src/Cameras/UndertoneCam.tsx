@@ -185,7 +185,6 @@ export default function UndertoneCam({
     textAnchor: "middle",
     fill: "rgba(0,0,0,0.5)",
     alignmentBaseline: "middle",
-    verticalAlign: "middle",
   };
   return (
     <>
@@ -195,7 +194,9 @@ export default function UndertoneCam({
           postProcessor={frameProcessor}
           shaderCode={shaderCode}
           uniforms={{
-            targetWhiteRGB: vTemp.state.rgb.map((c) => c / 255),
+            targetWhiteRGB: vTemp.state.rgb
+              ? vTemp.state.rgb.map((c) => c / 255)
+              : [1, 1, 1],
           }}
           fps={12}
           camActive={device != null}

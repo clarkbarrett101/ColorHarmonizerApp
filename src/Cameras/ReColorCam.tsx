@@ -364,7 +364,6 @@ export default function ReColorCam() {
             opacity=".6"
             fill="black"
             fontFamily="Outfit"
-            verticalAlign="middle"
           >
             Color Tint
           </Text>

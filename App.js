@@ -1,16 +1,33 @@
-import { Dimensions, Platform } from "react-native";
-import Purchases from "./src/Purchases";
-import React from "react";
-import { View } from "react-native";
+import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { LOG_LEVEL } from "react-native-purchases";
-import Icon from "./src/Icon";
-import Driver from "./src/Driver";
+import Purchases from "./src/Purchases";
+import { loadSkia } from "./src/SkiaLoader";
+
 const App = () => {
-  console.log("App component rendered");
+  const [skiaReady, setSkiaReady] = useState(false);
+  const [Driver, setDriver] = useState(null);
+
+  useEffect(() => {
+    loadSkia()
+      .then(() => import("./src/Driver"))
+      .then((module) => {
+        setDriver(() => module.default);
+        setSkiaReady(true);
+      })
+      .catch((error) => {
+        console.error("Unable to initialize Skia for web", error);
+      });
+  }, []);
+
+  if (!skiaReady || !Driver) {
+    return null;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Driver />
+      <Purchases>
+        <Driver />
+      </Purchases>
     </GestureHandlerRootView>
   );
 };

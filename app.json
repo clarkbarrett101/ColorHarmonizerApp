@@ -22,7 +22,8 @@
       "package": "com.clarkbarrett101.ColorHarmonizer"
     },
     "web": {
-      "favicon": "./assets/AppIcon.png"
+      "favicon": "./assets/AppIcon.png",
+      "bundler": "metro"
     },
     "extra": {
       "eas": {

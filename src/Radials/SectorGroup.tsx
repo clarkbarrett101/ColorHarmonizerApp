@@ -52,15 +52,12 @@ export const SectorGroup = ({
     "worklet";
     return actor.get((attributes) => {
       return {
-        transform: [
-          { translateY: attributes.translateY || 0 },
-          { translateX: attributes.radialOffsetX || 0 },
-          { translateY: attributes.radialOffsetY || 0 },
-          { rotateZ: `${attributes.rotateZ || 0}rad` },
-          { translateX: attributes.translateX || 0 },
-          { scaleX: attributes.scaleX || 1 },
-          { scaleY: attributes.scaleY || 1 },
-        ],
+        transform: `translate(${(attributes.translateX || 0) +
+          (attributes.radialOffsetX || 0)} ${
+          (attributes.translateY || 0) + (attributes.radialOffsetY || 0)
+        }) rotate(${((attributes.rotateZ || 0) * 180) / Math.PI}) scale(${
+          attributes.scaleX || 1
+        } ${attributes.scaleY || 1})`,
       };
     });
   });

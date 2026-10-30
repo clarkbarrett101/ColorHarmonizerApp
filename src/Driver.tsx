@@ -87,7 +87,7 @@ const Driver = () => {
                   }}
                 />
               )}
-              <PanManager>
+              <PanManager drawSectors>
                 <DemoContext>{pageMap[vPage.state]}</DemoContext>
               </PanManager>
               <ChipHand />

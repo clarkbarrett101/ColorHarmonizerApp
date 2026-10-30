@@ -1,19 +1,21 @@
 import { Dimensions } from "react-native";
 export const cWide =
   Dimensions.get("window").width / Dimensions.get("window").height > 0.6;
+  const width= Math.min(Dimensions.get("window").width, Dimensions.get("window").height);
+  const height= Math.min(Dimensions.get("window").width, Dimensions.get("window").height);
 export function cDimW(value = 1) {
   "worklet";
   if (value < 0) {
-    return Dimensions.get("window").width * (1 + value);
+    return width * (1 + value);
   }
-  return Dimensions.get("window").width * value;
+  return width * value;
 }
 export function cDimH(value = 1) {
   "worklet";
   if (value < 0) {
-    return Dimensions.get("window").height * (1 + value);
+    return height * (1 + value);
   }
-  return Dimensions.get("window").height * value;
+  return height * value;
 }
 export function cRaxelW(tall = 1, wide = tall) {
   "worklet";

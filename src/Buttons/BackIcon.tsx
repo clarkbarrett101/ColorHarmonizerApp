@@ -25,7 +25,7 @@ export function BackIcon({
         top: origin[1] - size / 2,
         left: origin[0] - size / 2,
         zIndex: zIndex,
-        elevation: 2,
+
         shadowColor: "black",
         shadowOpacity: 0.5,
         shadowRadius: 5,

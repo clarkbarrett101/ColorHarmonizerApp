@@ -77,7 +77,6 @@ export const SectorGroup = ({
         },
         shadowRadius: attributes.shadowRadius || 0,
         shadowOpacity: attributes.shadowOpacity || 0,
-        elevation: attributes.shadowY || 0,
         shadowColor:
           "#" + (attributes.shadowColor?.toString(16).padStart(6, "0") || null),
       };

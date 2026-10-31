@@ -19,6 +19,7 @@ import Animated, {
   useAnimatedProps,
   useDerivedValue,
   runOnJS,
+  SharedValue,
 } from "react-native-reanimated";
 import { tRadialObject, tSector, tSectorGroup } from "./Radials/SectorTypes";
 import { tAttributeModifier, tAttributeMap } from "./utils/Actor";
@@ -34,13 +35,14 @@ import {
   cWide,
 } from "./utils/ScreenDimensions";
 import Paths from "./utils/Paths";
-import { SharedValue } from "react-native-gesture-handler/lib/typescript/v3/types";
 import Button from "./Buttons/Button";
 import { scheduleOnRN } from "react-native-worklets";
 import { useSoundContext } from "./Contexts/SoundContext";
 import { usePurchaseContext } from "./Contexts/PurchaseContext";
 import React from "react";
 const mainPages = [
+  "ReColor Camera",
+  "Undertone Camera",
   "Palette Library",
   "Color Search",
   "Color Seasons",

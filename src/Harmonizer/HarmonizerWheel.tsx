@@ -231,7 +231,7 @@ export function HarmonizerWheel({
           radii={radii}
           rotationR={rotationR - 2 / 7}
           arcLength={3 / 7}
-          layer={eLayers.colorMixer - 10}
+          layer={eLayers.colorMixer - 15}
           dAR={dAR}
           mTransformModifier={secondTransformModifier}
         >

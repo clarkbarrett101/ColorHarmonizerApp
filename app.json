@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/AppIcon.png",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.clarkbarrett101.ColorHarmonizer",
@@ -38,9 +40,12 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/Outfit-VariableFont_wght.ttf"]
+          "fonts": [
+            "./assets/Outfit-VariableFont_wght.ttf"
+          ]
         }
-      ]
+      ],
+      "react-native-audio-api"
     ]
   }
 }

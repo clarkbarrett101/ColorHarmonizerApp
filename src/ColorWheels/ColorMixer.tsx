@@ -120,7 +120,7 @@ export default function ColorMixer({
         ...input,
         rotateZ: fLerp(22 / 7, input.rotateZ, rotationAnim.value),
         translateX: input.translateX + 50,
-        elevation: 1,
+
         shadowColor: parseInt(colorHex[input.chord].replace("#", ""), 16),
         shadowRadius: 10,
       };

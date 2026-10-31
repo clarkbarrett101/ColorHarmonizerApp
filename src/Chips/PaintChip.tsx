@@ -14,12 +14,7 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
-import {
-  GestureDetector,
-  useLongPressGesture,
-  usePanGesture,
-  useSimultaneousGestures,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useEffect, useMemo, useRef } from "react";
 import { Dimensions } from "react-native";
 import { eLayers } from "../Contexts/UserContext";
@@ -180,7 +175,7 @@ export const PaintChip = ({
   }, [sideA]);
 
   /// P A N  G E S T U R E///
-
+  /*
   const panGesture = usePanGesture({
     minDistance: 0,
     onActivate: (event) => {
@@ -222,7 +217,48 @@ export const PaintChip = ({
     },
   });
   const compGesture = useSimultaneousGestures(panGesture, touchGesture);
-
+  */
+  const panLegacy = Gesture.Pan()
+    .onBegin((event) => {
+      "worklet";
+      if (!draggable) return;
+      vPanX.shared.value = event.absoluteX;
+      vPanY.shared.value = event.absoluteY;
+      holdChip(id);
+      vDropScreen.shared.value = true;
+    })
+    .onChange((event) => {
+      "worklet";
+      if (!draggable) return;
+      vPanX.shared.value = event.absoluteX;
+      vPanY.shared.value = event.absoluteY;
+      vVelocityX.shared.value = event.velocityX;
+    })
+    .onEnd((event) => {
+      "worklet";
+      if (!draggable) return;
+      holdChip();
+      vDropScreen.shared.value = false;
+    });
+  const touchLegacy = Gesture.LongPress()
+    .minDuration(100)
+    .onBegin((event) => {
+      "worklet";
+      if (!draggable) return;
+      panWeight.value = withTiming(1, { duration: 200 });
+      vPanX.shared.value = event.absoluteX;
+      vPanY.shared.value = event.absoluteY;
+      holdChip(id);
+      vDropScreen.shared.value = true;
+    })
+    .onEnd((event) => {
+      "worklet";
+      if (!draggable) return;
+      panWeight.value = withTiming(0, { duration: 200 });
+      holdChip();
+      vDropScreen.shared.value = false;
+    });
+  const compLegacy = Gesture.Simultaneous(panLegacy, touchLegacy);
   /// M O D I F I E R S ///
 
   const flipModifier: tAttributeModifier = {
@@ -334,7 +370,6 @@ export const PaintChip = ({
           width: attributes.shadowX || 0,
           height: attributes.shadowY || 0,
         },
-        elevation: attributes.shadowY || 0,
         shadowRadius: attributes.shadowRadius || 0,
         shadowOpacity: attributes.shadowOpacity || 0,
       };
@@ -368,7 +403,7 @@ export const PaintChip = ({
           animatedStyle,
         ]}
       >
-        <GestureDetector gesture={compGesture}>
+        <GestureDetector gesture={compLegacy}>
           <Svg
             viewBox={`-16 -12 32 24`}
             style={{
@@ -482,7 +517,7 @@ export function PaintChipPlaceholder({
         height: eChipSizes[size][1],
         transform: [{ scaleY: 1 }, { rotate: `${rotationR}rad` }],
         zIndex: chipID[0] + chipID[1],
-        elevation: 2,
+
         shadowColor: "#000",
         shadowOpacity: 0.7,
         shadowRadius: 5,

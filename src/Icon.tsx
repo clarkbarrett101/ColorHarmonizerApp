@@ -112,7 +112,7 @@ export default function Icon() {
           right: 0,
           bottom: 0,
           flex: 1,
-          elevation: 1,
+
           shadowColor: "black",
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.75,

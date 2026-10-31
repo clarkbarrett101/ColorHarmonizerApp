@@ -3,9 +3,6 @@ import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
-  usePanGesture,
-  useSimultaneousGestures,
-  useTapGesture,
 } from "react-native-gesture-handler";
 import {
   SharedValue,
@@ -367,18 +364,20 @@ export default function PanManager({
       releaseZone("tap");
     }
   };
+  /*
   const tap = useTapGesture({
     onActivate: tapUpdate,
   });
-  const tapLegacy = Gesture.Tap().onBegin(tapUpdate);
   const pan = usePanGesture({
     minDistance: 5,
     onActivate: panUpdate,
     onUpdate: panUpdate,
     onDeactivate() {
       releaseZone("release");
-    },
-  });
+      },
+      }); const compGesture = useSimultaneousGestures(tap, pan);
+      */
+  const tapLegacy = Gesture.Tap().onBegin(tapUpdate);
   const panLegacy = Gesture.Pan()
     .onBegin(panUpdate)
     .onChange(panUpdate)
@@ -386,7 +385,7 @@ export default function PanManager({
       "worklet";
       releaseZone("release");
     });
-  const compGesture = useSimultaneousGestures(tap, pan);
+
   const compGestureLegacy = Gesture.Simultaneous(tapLegacy, panLegacy);
 
   const sectors = () => {

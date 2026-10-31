@@ -4,13 +4,7 @@ import { cDimH } from "../utils/ScreenDimensions";
 import { fCLARColorToRGB, tBrand } from "../utils/CLAcolor";
 import { tAttributeMap, tAttributeModifier } from "../utils/Actor";
 import { Text } from "react-native-svg";
-import {
-  Gesture,
-  GestureDetector,
-  usePanGesture,
-  useSimultaneousGestures,
-  useTapGesture,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import {
   useAnimatedReaction,
   useAnimatedStyle,
@@ -165,7 +159,7 @@ export const BrandFilter = (props: tBrandFilter) => {
       vInZone.value = false;
     }
   };
-
+  /*
   const tap = useTapGesture({
     onActivate: fTapUpdate,
   });
@@ -184,6 +178,7 @@ export const BrandFilter = (props: tBrandFilter) => {
   });
 
   const compGesture = useSimultaneousGestures(tap, pan);
+  */
   const mColorModifier: tAttributeModifier = {
     modID: 0,
     deps: [dAccentColor, vColorModel.shared],
@@ -348,7 +343,6 @@ export const BrandFilter = (props: tBrandFilter) => {
         <View
           style={{
             position: "absolute",
-            elevation: 3,
             shadowColor: "black",
             shadowOffset: { width: -3, height: 3 },
             shadowOpacity: 0.5,

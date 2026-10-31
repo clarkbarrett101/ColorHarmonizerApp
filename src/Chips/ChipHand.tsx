@@ -1,10 +1,6 @@
 import { View, Dimensions } from "react-native";
 import React, { useCallback, useEffect, useRef } from "react";
-import {
-  Gesture,
-  GestureDetector,
-  usePanGesture,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { ChipFan } from "./ChipStack";
 import { eLayers, useUserContext } from "../Contexts/UserContext";
 import { useVerse, useVerseRelay } from "../utils/Verse";
@@ -142,13 +138,14 @@ export default function ChipHand({
     vDropScreen.shared.value = false;
     touching.dispatch(false);
   }
+  /*
   const pan = usePanGesture({
     minDistance: 0,
     onBegin,
     onUpdate,
     onFinalize,
   });
-
+  */
   const panLegacy = Gesture.Pan()
     .onStart(onBegin)
     .onChange(onUpdate)

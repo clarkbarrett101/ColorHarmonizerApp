@@ -418,7 +418,7 @@ export default function PaletteLibrary({
             zIndex: eLayers.dropScreen,
             backgroundColor: color,
             borderRadius: 50,
-            elevation: 2,
+
             shadowColor: "#000",
             shadowOffset: { width: -2, height: 2 },
             shadowOpacity: 0.5,
@@ -439,7 +439,7 @@ export default function PaletteLibrary({
               fontFamily: "Outfit",
               backgroundColor: borderColor,
               borderRadius: 50,
-              elevation: 2,
+
               shadowColor: "#000",
               shadowOffset: { width: -2, height: 2 },
               shadowOpacity: 0.5,

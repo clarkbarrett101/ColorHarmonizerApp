@@ -68,7 +68,6 @@ const Driver = () => {
             <View
               style={{
                 flex: 1,
-                elevation: cDimH(0.05),
                 shadowColor: "black",
                 shadowOffset: { width: -cDimH(0.05), height: cDimH(0.05) },
                 shadowOpacity: 0.25,

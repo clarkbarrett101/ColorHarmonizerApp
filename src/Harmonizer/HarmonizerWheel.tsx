@@ -182,22 +182,12 @@ export function HarmonizerWheel({
           mainRotationR: rotationR,
         }}
       >
-        <ColorWheel
-          radii={[0, radii[0]]}
-          ring={ring}
-          chord={chord}
-          wheelCenter={rotationR}
-          vSecondColor={vSecondColor}
-          draggable={draggable}
-          offsetLevel={30}
-          transitionAnim={transitionAnim}
-        />
         <PetalBox
           origin={origin}
           radii={radii}
-          rotationR={0}
+          rotationR={rotationR}
           arcLength={3 / 7}
-          layer={eLayers.colorMixer - 2}
+          layer={eLayers.colorMixer - 10}
         >
           <G
             transform={[
@@ -239,9 +229,9 @@ export function HarmonizerWheel({
         <PetalBox
           origin={origin}
           radii={radii}
-          rotationR={0}
+          rotationR={rotationR - 2 / 7}
           arcLength={3 / 7}
-          layer={eLayers.colorMixer - 5}
+          layer={eLayers.colorMixer - 10}
           dAR={dAR}
           mTransformModifier={secondTransformModifier}
         >
@@ -282,6 +272,17 @@ export function HarmonizerWheel({
             </Text>
           </G>
         </PetalBox>
+
+        <ColorWheel
+          radii={[0, radii[0]]}
+          ring={ring}
+          chord={chord}
+          wheelCenter={rotationR}
+          vSecondColor={vSecondColor}
+          draggable={draggable}
+          offsetLevel={30}
+          transitionAnim={transitionAnim}
+        />
       </RadialContext>
     </>
   );

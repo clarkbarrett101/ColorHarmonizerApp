@@ -101,7 +101,6 @@ export default function ReColorCam() {
 
   const skfp = useSkiaFrameProcessor((frame) => {
     "worklet";
-
     if (frameSize.value[0] === 0) {
       runResetShader([frame.width, frame.height]);
     }
@@ -388,6 +387,7 @@ export default function ReColorCam() {
             height: cDimH(),
             zIndex: 0,
           }}
+          format={format}
           frameProcessor={skfp}
           fps={12}
         />

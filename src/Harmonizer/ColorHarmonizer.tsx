@@ -98,31 +98,6 @@ export default function ColorHarmonizer() {
   return (
     <>
       <HarmonizerWheel />
-      <Button
-        path={Paths.camera}
-        layer={eLayers.superMax}
-        origin={linkOrigin as [number, number]}
-        size={cDimH(0.1)}
-        viewRadius={85}
-        onPress={() => {
-          vPage.dispatch("Undertone Camera");
-        }}
-        textCircle={{
-          topText: "Undertone",
-          bottomText: "Camera",
-          radii: [65, 70],
-          topTextProps: {
-            fontSize: 20,
-            fill: "rgba(255,255,255,1)",
-            letterSpacing: 1,
-          },
-          bottomTextProps: {
-            fontSize: 20,
-            fill: "rgba(255,255,255,1)",
-            letterSpacing: 4,
-          },
-        }}
-      />
 
       <Button
         path={Paths.replay}

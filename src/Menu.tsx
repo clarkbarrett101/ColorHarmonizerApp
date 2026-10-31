@@ -41,8 +41,6 @@ import { useSoundContext } from "./Contexts/SoundContext";
 import { usePurchaseContext } from "./Contexts/PurchaseContext";
 import React from "react";
 const mainPages = [
-  "ReColor Camera",
-  "Undertone Camera",
   "Palette Library",
   "Color Search",
   "Color Seasons",

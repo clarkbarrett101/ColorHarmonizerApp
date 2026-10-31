@@ -2,6 +2,7 @@ import {
   Camera,
   DrawableFrame,
   useCameraDevice,
+  useCameraFormat,
   useCameraPermission,
   useSkiaFrameProcessor,
 } from "react-native-vision-camera";
@@ -73,7 +74,14 @@ export function SkiaCam({
   );
 
   if (!device) return <View />;
-
+  const format = useCameraFormat(device, [
+    {
+      photoResolution: {
+        width: 1280,
+        height: 720,
+      },
+    },
+  ]);
   return (
     <>
       <Camera
@@ -87,6 +95,7 @@ export function SkiaCam({
         }}
         frameProcessor={skfp}
         fps={fps}
+        format={format}
       />
 
       <GlassView
